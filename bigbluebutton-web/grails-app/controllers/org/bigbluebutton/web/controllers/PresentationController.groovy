@@ -80,7 +80,9 @@ class PresentationController {
   }
 
   def upload = {
-    // check if the authorization token provided is valid
+    // Check if the authorization token provided is valid
+    // This is the handler for the presentation upload
+    // Need to pass this check
     if (null == params.authzToken || !meetingService.authzTokenIsValidAndExpired(params.authzToken)) {
       log.debug "WARNING! AuthzToken=" + params.authzToken + " was not valid in meetingId=" + params.conference
       response.addHeader("Cache-Control", "no-cache")
@@ -149,6 +151,8 @@ class PresentationController {
 
     log.debug("processing file upload " + presFilename)
     def presentationBaseUrl = presentationService.presentationBaseUrl
+
+    // Info needed to process presentation
     UploadedPresentation uploadedPres = new UploadedPresentation(
             podId,
             meetingId,
@@ -166,6 +170,7 @@ class PresentationController {
       uploadedPres.setDownloadable();
     }
 
+    // Entry point
     uploadedPres.setUploadedFile(pres);
     presentationService.processUploadedPresentation(uploadedPres)
     log.debug("file upload success " + presFilename)

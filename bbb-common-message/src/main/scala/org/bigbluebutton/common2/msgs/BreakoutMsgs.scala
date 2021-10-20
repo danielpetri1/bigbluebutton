@@ -58,7 +58,8 @@ case class BreakoutRoomDetail(
     sourcePresentationId:    String,
     sourcePresentationSlide: Int,
     record:                  Boolean,
-    privateChatEnabled:      Boolean
+    privateChatEnabled:      Boolean,
+    presentationUploadToken: String
 )
 
 /**

@@ -51,6 +51,8 @@ trait CreateBreakoutRoomsCmdMsgHdlr extends RightsManagementTrait {
       rooms = rooms + (breakout.id -> breakout)
     }
 
+    val presentationUploadToken = if (msg.body.record) "foobar" else null
+
     for (breakout <- rooms.values.toVector) {
       val roomDetail = new BreakoutRoomDetail(
         breakout.id, breakout.name,
@@ -65,7 +67,8 @@ trait CreateBreakoutRoomsCmdMsgHdlr extends RightsManagementTrait {
         liveMeeting.props.password.moderatorPass,
         liveMeeting.props.password.viewerPass,
         presId, presSlide, msg.body.record,
-        liveMeeting.props.breakoutProps.privateChatEnabled
+        liveMeeting.props.breakoutProps.privateChatEnabled,
+        presentationUploadToken
       )
 
       val event = buildCreateBreakoutRoomSysCmdMsg(liveMeeting.props.meetingProp.intId, roomDetail)

@@ -368,12 +368,14 @@ public class MeetingService implements MessageListener {
 
       storeService.recordMeetingInfo(m.getInternalId(), metadata);
 
+      // Here you store the token in the breakout metadata
       if (m.isBreakout()) {
         Map<String, String> breakoutMetadata = new TreeMap<>();
         breakoutMetadata.put("meetingId", m.getExternalId());
         breakoutMetadata.put("sequence", m.getSequence().toString());
         breakoutMetadata.put("freeJoin", m.isFreeJoin().toString());
         breakoutMetadata.put("parentMeetingId", m.getParentMeetingId());
+        breakoutMetadata.put("presentationUploadToken", "foobar");
         storeService.recordBreakoutInfo(m.getInternalId(), breakoutMetadata);
       }
     }

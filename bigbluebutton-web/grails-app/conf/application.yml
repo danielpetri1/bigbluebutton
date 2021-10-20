@@ -27,6 +27,7 @@ endpoints:
         enabled: true
 
 server:
+    port: 8090
     session:
         cookie:
             secure: true
