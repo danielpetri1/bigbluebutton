@@ -1,6 +1,7 @@
 package org.bigbluebutton.core.apps.breakout
 
 import org.bigbluebutton.common2.msgs._
+import org.bigbluebutton.core.apps.presentationpod.PresentationPodsApp
 import org.bigbluebutton.core.apps.{ BreakoutModel, PermissionCheck, RightsManagementTrait }
 import org.bigbluebutton.core.domain.{ BreakoutRoom2x, MeetingState2x }
 import org.bigbluebutton.core.models.PresentationInPod
@@ -51,7 +52,7 @@ trait CreateBreakoutRoomsCmdMsgHdlr extends RightsManagementTrait {
       rooms = rooms + (breakout.id -> breakout)
     }
 
-    val presentationUploadToken = if (msg.body.record) "foobar" else null
+    val presentationUploadToken = if (msg.body.record) (PresentationPodsApp.generateToken("DEFAULT_PRESENTATION_POD", msg.header.userId)) else null
 
     for (breakout <- rooms.values.toVector) {
       val roomDetail = new BreakoutRoomDetail(
@@ -72,7 +73,7 @@ trait CreateBreakoutRoomsCmdMsgHdlr extends RightsManagementTrait {
       )
 
       val event = buildCreateBreakoutRoomSysCmdMsg(liveMeeting.props.meetingProp.intId, roomDetail)
-      outGW.send(event)
+      outGW.send(event) // Send message to bbb-web
     }
 
     val breakoutModel = new BreakoutModel(None, msg.body.durationInMinutes, rooms)
