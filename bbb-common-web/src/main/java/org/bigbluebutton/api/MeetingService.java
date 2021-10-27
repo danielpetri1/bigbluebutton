@@ -375,7 +375,7 @@ public class MeetingService implements MessageListener {
         breakoutMetadata.put("sequence", m.getSequence().toString());
         breakoutMetadata.put("freeJoin", m.isFreeJoin().toString());
         breakoutMetadata.put("parentMeetingId", m.getParentMeetingId());
-        breakoutMetadata.put("presentationUploadToken", "foobar");
+        breakoutMetadata.put("presentationUploadToken", m.getPresentationUploadToken());
         storeService.recordBreakoutInfo(m.getInternalId(), breakoutMetadata);
       }
     }

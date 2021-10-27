@@ -534,7 +534,7 @@ public class ParamsProcessorUtil {
                 internalMeetingId, createTime).withName(meetingName)
                 .withMaxUsers(maxUsers).withModeratorPass(modPass)
                 .withViewerPass(viewerPass).withRecording(record)
-                .withDuration(meetingDuration).withLogoutUrl(logoutUrl)
+                .withDuration(meetingDuration).withLogoutUrl(logoutUrl).withPresentationUploadToken("foobar")
                 .withLogoutTimer(logoutTimer)
                 .withBannerText(bannerText).withBannerColor(bannerColor)
                 .withTelVoice(telVoice).withWebVoice(webVoice)
