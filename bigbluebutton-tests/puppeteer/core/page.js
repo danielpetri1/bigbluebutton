@@ -8,7 +8,7 @@ const path = require('path');
 const PuppeteerVideoRecorder = require('puppeteer-video-recorder');
 const helper = require('./helper');
 const params = require('./params');
-const { ELEMENT_WAIT_TIME } = require('./constants');
+const { ELEMENT_WAIT_TIME, VIDEO_LOADING_WAIT_TIME } = require('./constants');
 const { getElementLength } = require('./util');
 const e = require('./elements');
 const { NETWORK_PRESETS } = require('./profiles');
@@ -104,6 +104,17 @@ class Page {
     await this.waitForSelector(e.isTalking);
   }
 
+  async shareWebcam(shouldConfirmSharing, videoPreviewTimeout = ELEMENT_WAIT_TIME) {
+    await this.waitAndClick(e.joinVideo);
+    if (shouldConfirmSharing) {
+      await this.waitForSelector(e.videoPreview, videoPreviewTimeout);
+      await this.waitAndClick(e.startSharingWebcam);
+    }
+    await this.waitForSelector(e.webcamConnecting);
+    await this.waitForSelector(e.webcamVideo, VIDEO_LOADING_WAIT_TIME);
+    await this.waitForSelector(e.leaveVideo, VIDEO_LOADING_WAIT_TIME);
+  }
+
   // Joining audio with microphone
   async joinMicrophoneWithoutEchoTest() {
     await this.waitAndClick(e.joinAudio);
@@ -191,6 +202,7 @@ class Page {
       '--window-size=1150,980',
       '--allow-file-access',
       '--lang=en-US',
+      '--disable-features=IsolateOrigins,site-per-process',
     ];
     return {
       headless: false,
@@ -214,16 +226,6 @@ class Page {
     }
   }
 
-  async isNotVisible(element, timeout = ELEMENT_WAIT_TIME) {
-    try {
-      await this.hasElement(element, false, timeout);
-      return true;
-    } catch (err) {
-      await this.logger(err);
-      return false;
-    }
-  }
-
   // async emulateMobile(userAgent) {
   //   await this.page.setUserAgent(userAgent);
   // }
@@ -243,7 +245,7 @@ class Page {
     }
   }
 
-  async hasElement(element, visible = false, timeout = ELEMENT_WAIT_TIME) {
+  async hasElement(element, visible = true, timeout = ELEMENT_WAIT_TIME) {
     try {
       await this.page.waitForSelector(element, { visible, timeout });
       return true;
@@ -341,6 +343,7 @@ class Page {
   async type(element, text, relief = false) {
     if (relief) await helper.sleep(1000);
     await this.waitForSelector(element);
+    await this.page.focus(element);
     await this.page.type(element, text);
   }
 

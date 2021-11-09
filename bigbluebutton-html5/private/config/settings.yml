@@ -556,6 +556,7 @@ public:
     allowDownloadable: true
     panZoomThrottle: 32
     restoreOnUpdate: false
+    oldMinimizeButton: false
     uploadEndpoint: '/bigbluebutton/presentation/upload'
     uploadValidMimeTypes:
       - extension: .pdf
@@ -755,7 +756,7 @@ private:
     - browser: chrome
       version: 72
     - browser: chromeMobileIOS
-      version: Infinity
+      version: 94
     - browser: firefox
       version: 68
     - browser: firefoxMobile
