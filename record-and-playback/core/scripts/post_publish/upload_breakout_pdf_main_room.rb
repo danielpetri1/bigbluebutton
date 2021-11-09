@@ -34,6 +34,7 @@ BigBlueButton.logger = logger
 
 opts = Trollop.options do
   opt :meeting_id, 'Meeting id to archive', type: String
+  opt :format, "Playback format name", type: String
 end
 
 # Breakout room meeting ID
