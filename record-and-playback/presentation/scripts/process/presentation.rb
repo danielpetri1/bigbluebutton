@@ -32,7 +32,6 @@ require 'trollop'
 require 'yaml'
 require 'json'
 
-benchmark = Time.now
 opts = Trollop.options do
   opt :meeting_id, 'Meeting id to archive', default: '58f4a6b3-cd07-444d-8564-59116cb53974', type: String
 end
@@ -58,11 +57,6 @@ unless FileTest.directory?(target_dir)
   FileUtils.mkdir_p target_dir
 
   begin
-    # Create a copy of the raw archives
-    temp_dir = "#{target_dir}/temp"
-    FileUtils.mkdir_p temp_dir
-    FileUtils.cp_r(raw_archive_dir, temp_dir)
-
     # Create initial metadata.xml
     b = Builder::XmlMarkup.new(indent: 2)
     metaxml = b.recording do
@@ -80,25 +74,28 @@ unless FileTest.directory?(target_dir)
     metadata_xml.close
     BigBlueButton.logger.info('Created inital metadata.xml')
 
-    BigBlueButton::AudioProcessor.process("#{temp_dir}/#{meeting_id}", "#{target_dir}/audio")
-    events_xml = "#{temp_dir}/#{meeting_id}/events.xml"
+    BigBlueButton::AudioProcessor.process(raw_archive_dir, "#{target_dir}/audio")
+    events_xml = "#{raw_archive_dir}/events.xml"
+
+    # TODO: Don't copy events.xml to target directory
     FileUtils.cp(events_xml, target_dir)
 
-    presentation_dir = "#{temp_dir}/#{meeting_id}/presentation"
+    presentation_dir = "#{raw_archive_dir}/presentation"
     presentations = BigBlueButton::Presentation.get_presentations(events_xml)
 
     processed_pres_dir = "#{target_dir}/presentation"
     FileUtils.mkdir_p processed_pres_dir
 
     # Get the real-time start and end timestamp
-    @doc = Nokogiri::XML(File.read("#{target_dir}/events.xml"))
+    @doc = Nokogiri::XML(File.read("#{target_dir}/events.xml")) 
 
-    meeting_start = @doc.xpath('//event')[0][:timestamp]
-    meeting_end = @doc.xpath('//event').last[:timestamp]
+    event_timestamps = @doc.xpath('recording/event/@timestamp')
 
+    meeting_start = event_timestamps.first.text.to_i
+    meeting_end = event_timestamps.last.text.to_i
     match = /.*-(\d+)$/.match(meeting_id)
-    real_start_time = match[1]
-    real_end_time = (real_start_time.to_i + (meeting_end.to_i - meeting_start.to_i)).to_s
+    real_start_time = match[1].to_i
+    real_end_time = real_start_time + (meeting_end - meeting_start)
 
     # Add start_time, end_time and meta to metadata.xml
     ## Load metadata.xml
@@ -113,9 +110,9 @@ unless FileTest.directory?(target_dir)
 
     ## Copy the breakout and breakout rooms node from
     ## events.xml if present.
-    breakout_xpath = @doc.xpath('//breakout')
-    breakout_rooms_xpath = @doc.xpath('//breakoutRooms')
-    meeting_xpath = @doc.xpath('//meeting')
+    breakout_xpath = @doc.xpath('recording/breakout')
+    breakout_rooms_xpath = @doc.xpath('recording/breakoutRooms')
+    meeting_xpath = @doc.xpath('recording/meeting')
 
     recording << meeting_xpath unless meeting_xpath.nil?
 
@@ -127,7 +124,8 @@ unless FileTest.directory?(target_dir)
     participants.content = BigBlueButton::Events.get_num_participants(@doc)
 
     ## Remove empty meta
-    metadata.search('//recording/meta').each(&:remove)
+    ## TODO: Clarify reasoning behind creating an empty node to then remove it
+    metadata.search('recording/meta').each(&:remove)
     ## Add the actual meta
     Nokogiri::XML::Builder.with(metadata.at('recording')) do |xml|
       xml.meta do
@@ -221,8 +219,8 @@ unless FileTest.directory?(target_dir)
       end
 
       webcam_framerate = 15 if webcam_framerate.nil?
-      processed_audio_file = BigBlueButton::AudioProcessor.get_processed_audio_file("#{temp_dir}/#{meeting_id}", "#{target_dir}/audio")
-      BigBlueButton.process_webcam_videos(target_dir, temp_dir, meeting_id, webcam_width, webcam_height, webcam_framerate, presentation_props['audio_offset'], processed_audio_file, presentation_props['video_formats'])
+      processed_audio_file = BigBlueButton::AudioProcessor.get_processed_audio_file(raw_archive_dir, "#{target_dir}/audio")
+      BigBlueButton.process_webcam_videos(target_dir, raw_archive_dir, webcam_width, webcam_height, webcam_framerate, presentation_props['audio_offset'], processed_audio_file, presentation_props['video_formats'])
     end
 
     if !Dir["#{raw_archive_dir}/deskshare/*"].empty? && presentation_props['include_deskshare']
@@ -231,7 +229,7 @@ unless FileTest.directory?(target_dir)
       deskshare_framerate = presentation_props['deskshare_output_framerate']
       deskshare_framerate = 5 if deskshare_framerate.nil?
 
-      BigBlueButton.process_deskshare_videos(target_dir, temp_dir, meeting_id, deskshare_width, deskshare_height, deskshare_framerate, presentation_props['video_formats'])
+      BigBlueButton.process_deskshare_videos(target_dir, raw_archive_dir, deskshare_width, deskshare_height, deskshare_framerate, presentation_props['video_formats'])
     end
 
     # Copy shared notes from raw files
@@ -253,8 +251,6 @@ unless FileTest.directory?(target_dir)
     metadata_file.write(metadata.root)
     metadata_file.close
     BigBlueButton.logger.info('Created an updated metadata.xml with state=processed')
-
-    puts "Sucess! Took #{Time.now - benchmark}"
   rescue StandardError => e
     BigBlueButton.logger.error(e.message)
     e.backtrace.each do |traceline|
