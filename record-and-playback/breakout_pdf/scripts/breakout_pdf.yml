@@ -1,0 +1,8 @@
+document_extension: .pdf
+
+# For PRODUCTION
+# publish_dir: /var/bigbluebutton/published/presentation
+
+# For DEVELOPMENT
+publish_dir: /home/petriroc/temp/published/presentation
+
