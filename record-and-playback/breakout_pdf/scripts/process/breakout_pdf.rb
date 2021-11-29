@@ -22,10 +22,10 @@
 
 # For DEVELOPMENT
 # Allows us to run the script manually
-require File.expand_path('../../../../core/lib/recordandplayback', __FILE__)
+# require File.expand_path('../../../../core/lib/recordandplayback', __FILE__)
 
 # For PRODUCTION
-# require File.expand_path('../../../lib/recordandplayback', __FILE__)
+require File.expand_path('../../../lib/recordandplayback', __FILE__)
 
 require 'rubygems'
 require 'trollop'
@@ -104,18 +104,16 @@ unless FileTest.directory?(target_dir)
     breakout_xpath = @doc.xpath('recording/breakout')
     breakout_rooms_xpath = @doc.xpath('recording/breakoutRooms')
     meeting_xpath = @doc.xpath('recording/meeting')
+    is_breakout = @doc.at_xpath('recording/metadata/@isBreakout').text == 'true'
 
     recording << meeting_xpath unless meeting_xpath.nil?
-
     recording << breakout_xpath unless breakout_xpath.nil?
-
     recording << breakout_rooms_xpath unless breakout_rooms_xpath.nil?
 
     participants = recording.at_xpath('participants')
     participants.content = BigBlueButton::Events.get_num_participants(@doc)
 
     ## Remove empty meta
-    ## TODO: Clarify reasoning behind creating an empty node to then remove it
     metadata.search('recording/meta').each(&:remove)
     ## Add the actual meta
     Nokogiri::XML::Builder.with(metadata.at('recording')) do |xml|
@@ -131,45 +129,47 @@ unless FileTest.directory?(target_dir)
     BigBlueButton.logger.info('Created an updated metadata.xml with start_time and end_time')
 
     # Start processing raw files
-    # TODO: Don't convert files to 1600x1600 PNG, use SVG files directly
-    presentations.each do |pres|
-      pres_dir = "#{breakout_pdf_dir}/#{pres}"
-      num_pages = BigBlueButton::Presentation.get_number_of_pages_for(pres_dir)
+    if is_breakout
+      presentations.each do |pres|
+        pres_dir = "#{breakout_pdf_dir}/#{pres}"
+        num_pages = BigBlueButton::Presentation.get_number_of_pages_for(pres_dir)
 
-      target_pres_dir = "#{processed_breakout_pdf_dir}/#{pres}"
-      FileUtils.mkdir_p target_pres_dir
+        target_pres_dir = "#{processed_breakout_pdf_dir}/#{pres}"
+        FileUtils.mkdir_p target_pres_dir
 
-      images = Dir.glob("#{pres_dir}/#{pres}.{jpg,jpeg,png,gif,JPG,JPEG,PNG,GIF}")
-      if images.empty?
-        pres_name = "#{pres_dir}/#{pres}"
-        if File.exist?("#{pres_name}.pdf")
-          pres_pdf = "#{pres_name}.pdf"
-          BigBlueButton.logger.info("Found pdf file for presentation #{pres_pdf}")
-        elsif File.exist?("#{pres_name}.PDF")
-          pres_pdf = "#{pres_name}.PDF"
-          BigBlueButton.logger.info("Found PDF file for presentation #{pres_pdf}")
-        elsif File.exist?(pres_name.to_s)
-          pres_pdf = pres_name
-          BigBlueButton.logger.info("Falling back to old presentation filename #{pres_pdf}")
-        else
-          pres_pdf = ''
-          BigBlueButton.logger.warn("Could not find pdf file for presentation #{pres}")
-        end
-
-        unless pres_pdf.empty?
-          1.upto(num_pages) do |page|
-            BigBlueButton::Presentation.extract_png_page_from_pdf(
-              page, pres_pdf, "#{target_pres_dir}/slide-#{page}.png", '1600x1600'
-            )
+        images = Dir.glob("#{pres_dir}/#{pres}.{jpg,jpeg,png,gif,JPG,JPEG,PNG,GIF}")
+        if images.empty?
+          pres_name = "#{pres_dir}/#{pres}"
+          if File.exist?("#{pres_name}.pdf")
+            pres_pdf = "#{pres_name}.pdf"
+            BigBlueButton.logger.info("Found pdf file for presentation #{pres_pdf}")
+          elsif File.exist?("#{pres_name}.PDF")
+            pres_pdf = "#{pres_name}.PDF"
+            BigBlueButton.logger.info("Found PDF file for presentation #{pres_pdf}")
+          elsif File.exist?(pres_name.to_s)
+            pres_pdf = pres_name
+            BigBlueButton.logger.info("Falling back to old presentation filename #{pres_pdf}")
+          else
+            pres_pdf = ''
+            BigBlueButton.logger.warn("Could not find pdf file for presentation #{pres}")
           end
+
+          unless pres_pdf.empty?
+            1.upto(num_pages) do |page|
+              BigBlueButton::Presentation.extract_png_page_from_pdf(
+                page, pres_pdf, "#{target_pres_dir}/slide-#{page}.png", '1600x1600'
+              )
+            end
+          end
+        else
+          BigBlueButton::Presentation.convert_image_to_png(
+            images[0], "#{target_pres_dir}/slide-1.png", '1600x1600'
+          )
         end
-      else
-        BigBlueButton::Presentation.convert_image_to_png(
-          images[0], "#{target_pres_dir}/slide-1.png", '1600x1600'
-        )
       end
     end
 
+    # Generate 'done' file so that publishing script can begin
     breakout_pdf_done = File.new("#{recording_dir}/status/processed/#{meeting_id}-breakout_pdf.done", 'w')
     breakout_pdf_done.write("Processed #{meeting_id}")
     breakout_pdf_done.close

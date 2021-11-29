@@ -22,10 +22,10 @@
 performance_start = Time.now
 
 # For PRODUCTION
-# require File.expand_path('../../../lib/recordandplayback', __FILE__)
+require File.expand_path('../../../lib/recordandplayback', __FILE__)
 
 # For DEVELOPMENT
-require File.expand_path('../../../../core/lib/recordandplayback', __FILE__)
+# require File.expand_path('../../../../core/lib/recordandplayback', __FILE__)
 
 require 'rubygems'
 require 'trollop'
@@ -471,8 +471,7 @@ def events_parse_shape(shapes, event, current_presentation, current_slide, times
   end
   if  shape[:type] == 'rectangle' or
       shape[:type] == 'ellipse' or shape[:type] == 'triangle'
-    # HTML5 CLIENT NOT UP TO DATE
-    # fill = event.at_xpath('fill').text
+    fill = event.at_xpath('fill').text
     fill = ""
     shape[:fill] = fill =~ /true/ ? true : false
   end
@@ -920,9 +919,7 @@ puts $meeting_id
 puts $playback
 
 begin
-
   if ($playback == "breakout_pdf")
-
     log_dir = bbb_props['log_dir']
     logger = Logger.new("#{log_dir}/breakout_pdf/publish-#{$meeting_id}.log", 'daily' )
     BigBlueButton.logger = logger
@@ -982,11 +979,14 @@ begin
         FileUtils.cp_r(package_dir, publish_dir) # Copy all the files.
         BigBlueButton.logger.info("Finished publishing script presentation.rb successfully.")
 
+        export_pdf = system("ruby /usr/local/bigbluebutton/core/scripts/post_publish/export_slides.rb -m #{$meeting_id}")
+        upload = system("ruby /usr/local/bigbluebutton/core/scripts/post_publish/upload_breakout_pdf_main_room.rb -m #{$meeting_id}")
+        
         BigBlueButton.logger.info("Removing processed files.")
-        # FileUtils.rm_r(Dir.glob("#{$process_dir}/*"))
+        FileUtils.rm_r(Dir.glob("#{$process_dir}/*"))
 
         BigBlueButton.logger.info("Removing published files.")
-        # FileUtils.rm_r(Dir.glob("#{target_dir}/*"))
+        FileUtils.rm_r(Dir.glob("#{target_dir}/*"))
         rescue  Exception => e
           BigBlueButton.logger.error(e.message)
           e.backtrace.each do |traceline|

@@ -3,20 +3,20 @@
 require 'minitest/autorun'
 require 'nokogiri'
 
-require 'recordandplayback'
+require '/home/petriroc/dev/bigbluebutton/record-and-playback/core/lib/recordandplayback'
 
 class TestEvents < Minitest::Test
   def setup
-    @events_legacy = File.open('resources/raw/1b199e88-7df7-4842-a5f1-0e84b781c5c8/events.xml') do |io|
+    @events_legacy = File.open('/home/petriroc/dev/bigbluebutton/record-and-playback/core/resources/raw/1b199e88-7df7-4842-a5f1-0e84b781c5c8/events.xml') do |io|
       Nokogiri::XML(io)
     end
-    @events_chat09 = File.open('resources/raw/chat_0_9.xml') do |io|
+    @events_chat09 = File.open('/home/petriroc/dev/bigbluebutton/record-and-playback/core/resources/raw/chat_0_9.xml') do |io|
       Nokogiri::XML(io)
     end
-    @events_devcall = File.open('resources/raw/183f0bf3a0982a127bdb8161e0c44eb696b3e75c-1630430006889/events.xml') do |io|
+    @events_devcall = File.open('/home/petriroc/dev/bigbluebutton/record-and-playback/core/resources/raw/183f0bf3a0982a127bdb8161e0c44eb696b3e75c-1630430006889/events.xml') do |io|
       Nokogiri::XML(io)
     end
-    @events_meta_edt = File.open('resources/raw/2a1de53edf0543d950056bf3c0d4d357eba3383f-1630607370684/events.xml') do |io|
+    @events_meta_edt = File.open('/home/petriroc/dev/bigbluebutton/record-and-playback/core/resources/raw/2a1de53edf0543d950056bf3c0d4d357eba3383f-1630607370684/events.xml') do |io|
       Nokogiri::XML(io)
     end
   end
