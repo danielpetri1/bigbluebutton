@@ -3,6 +3,7 @@ package org.bigbluebutton.core.models
 import org.bigbluebutton.common2.domain.PageVO
 import org.bigbluebutton.core.models.PresentationInPod
 import org.bigbluebutton.core.util.RandomStringGenerator
+import org.bigbluebutton.common2.msgs.AnnotationVO
 
 object PresentationPodFactory {
   private def genId(): String = System.currentTimeMillis() + "-" + RandomStringGenerator.randomAlphanumericString(8)

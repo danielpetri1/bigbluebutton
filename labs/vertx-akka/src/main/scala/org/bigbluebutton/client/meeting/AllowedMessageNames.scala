@@ -61,6 +61,10 @@ object AllowedMessageNames {
     CreateNewPresentationPodPubMsg.NAME,
     RemovePresentationPodPubMsg.NAME,
     SetPresenterInPodReqMsg.NAME,
+    MakePresentationWithAnnotationDownloadReqMsg.NAME,
+    ExportPresentationWithAnnotationReqMsg.NAME,
+    StoreAnnotationsInRedisSysMsg.NAME,
+    StoreExportJobInRedisSysMsg.NAME,
 
     // Whiteboard Messages
     ModifyWhiteboardAccessPubMsg.NAME,
