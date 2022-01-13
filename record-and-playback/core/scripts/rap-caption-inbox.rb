@@ -69,99 +69,97 @@ caption_file_notify = proc do |json_filename|
   captions_work_base = File.join(props['recording_dir'], 'caption', 'inbox')
   new_caption_info = File.open(json_filename) { |file| JSON.parse(file.read) }
   record_id = new_caption_info['record_id']
+
+  # Read the existing captions index file
+  # TODO: This is racy if multiple tools are editing the captions.json file
   logger.tag(record_id: record_id) do
-    begin
-      # Read the existing captions index file
-      # TODO: This is racy if multiple tools are editing the captions.json file
-      index_filename = File.join(captions_dir, record_id, 'captions.json')
-      captions_info =
-        begin
-          File.open(index_filename) { |file| JSON.parse(file.read) }
-        rescue StandardError
-          # No captions file or cannot be read, assume none present
-          []
-        end
-
-      temp_filename = new_caption_info['temp_filename']
-      raise InvalidCaptionError, 'Temp filename is blank' if temp_filename.nil? || temp_filename.empty?
-
-      src_filename = File.join(captions_inbox_dir, temp_filename)
-
-      langtag = Locale::Tag::Rfc.parse(new_caption_info['lang'])
-      raise InvalidCaptionError, 'Language tag is not well-formed' unless langtag
-
-      # Remove the info for an existing matching track, and add the new one
-      captions_info.delete_if do |caption_info|
-        caption_info['lang'] == new_caption_info['lang'] &&
-          caption_info['kind'] == new_caption_info['kind']
-      end
-      captions_info << {
-        'kind'   => new_caption_info['kind'],
-        'label'  => new_caption_info['label'],
-        'lang'   => langtag.to_s,
-        'source' => 'upload',
-      }
-
-      captions_work = File.join(captions_work_base, record_id)
-      FileUtils.mkdir_p(captions_work)
-      dest_filename = "#{new_caption_info['kind']}_#{new_caption_info['lang']}.vtt"
-      tmp_dest = File.join(captions_work, dest_filename)
-      final_dest_dir = File.join(captions_dir, record_id)
-      final_dest = File.join(final_dest_dir, dest_filename)
-        
-      presentation_dir = props['presentation_dir']
-      presentation_dest_dir = "#{presentation_dir}/#{record_id}/caption_en-US.vtt"
-      caption_json_file = "#{presentation_dir}/#{record_id}/captions.json"
-      
-      # en-US need by presentation 
-      new_caption_info['lang'] = new_caption_info['lang'].sub('_', '-')
-        
-      file =  File.open(caption_json_file, 'w')
-      file.puts "[{\"localeName\": \"#{new_caption_info['label']}\", \"locale\": \"#{new_caption_info['lang']}\"}]"
-      file.close
-        
-      # resetting en-US to en_US
-      new_caption_info['lang'] = new_caption_info['lang'].sub('-', '_')
-
-      
-      # Convert the received caption file to WebVTT
-      ffmpeg_cmd = [
-        'ffmpeg', '-y', '-v', 'warning', '-nostats', '-nostdin',
-        '-i', src_filename, '-map', '0:s',
-        '-f', 'webvtt', tmp_dest,
-      ]
-      ret = BigBlueButton.exec_ret(*ffmpeg_cmd)
-      raise InvalidCaptionError, 'FFmpeg could not read input' unless ret.zero?
-
-      FileUtils.mkdir_p(final_dest_dir)
-      FileUtils.mv(tmp_dest, final_dest)
-      FileUtils.cp(final_dest, presentation_dest_dir)
-
-      # Finally, save the updated index file that references the new caption
-      File.open(index_filename, 'w') do |file|
-        file.write(JSON.pretty_generate(captions_info))
+    index_filename = File.join(captions_dir, record_id, 'captions.json')
+    captions_info =
+      begin
+        File.open(index_filename) { |file| JSON.parse(file.read) }
+      rescue StandardError
+        # No captions file or cannot be read, assume none present
+        []
       end
 
-      Dir.glob(File.expand_path('captions/*', __dir__)) do |caption_script|
-        next unless File.file?(caption_script) && File.executable?(caption_script)
+    temp_filename = new_caption_info['temp_filename']
+    raise InvalidCaptionError, 'Temp filename is blank' if temp_filename.nil? || temp_filename.empty?
 
-        logger.info("Running caption integration script #{caption_script}")
-        ret = BigBlueButton.exec_ret(caption_script, '--record-id', record_id)
-        logger.warn('Caption integration script failed') unless ret.zero?
-      end
+    src_filename = File.join(captions_inbox_dir, temp_filename)
 
-      logger.info('Removing files from inbox directory')
-      FileUtils.rm_f(src_filename) if src_filename
-      FileUtils.rm_f(json_filename)
-    rescue InvalidCaptionError => e
-      logger.exception(e)
+    langtag = Locale::Tag::Rfc.parse(new_caption_info['lang'])
+    raise InvalidCaptionError, 'Language tag is not well-formed' unless langtag
 
-      logger.info('Deleting invalid files from inbox directory')
-      FileUtils.rm_f(src_filename) if src_filename
-      FileUtils.rm_f(json_filename)
-    ensure
-      FileUtils.rm_rf(File.join(captions_work_base, record_id))
+    # Remove the info for an existing matching track, and add the new one
+    captions_info.delete_if do |caption_info|
+      caption_info['lang'] == new_caption_info['lang'] &&
+        caption_info['kind'] == new_caption_info['kind']
     end
+    captions_info << {
+      'kind'   => new_caption_info['kind'],
+      'label'  => new_caption_info['label'],
+      'lang'   => langtag.to_s,
+      'source' => 'upload',
+    }
+
+    captions_work = File.join(captions_work_base, record_id)
+    FileUtils.mkdir_p(captions_work)
+    dest_filename = "#{new_caption_info['kind']}_#{new_caption_info['lang']}.vtt"
+    tmp_dest = File.join(captions_work, dest_filename)
+    final_dest_dir = File.join(captions_dir, record_id)
+    final_dest = File.join(final_dest_dir, dest_filename)
+
+    presentation_dir = props['presentation_dir']
+    presentation_dest_dir = "#{presentation_dir}/#{record_id}/caption_en-US.vtt"
+    caption_json_file = "#{presentation_dir}/#{record_id}/captions.json"
+
+    # en-US need by presentation
+    new_caption_info['lang'] = new_caption_info['lang'].sub('_', '-')
+
+    file = File.open(caption_json_file, 'w')
+    file.puts "[{\"localeName\": \"#{new_caption_info['label']}\", \"locale\": \"#{new_caption_info['lang']}\"}]"
+    file.close
+
+    # resetting en-US to en_US
+    new_caption_info['lang'] = new_caption_info['lang'].sub('-', '_')
+
+    # Convert the received caption file to WebVTT
+    ffmpeg_cmd = [
+      'ffmpeg', '-y', '-v', 'warning', '-nostats', '-nostdin',
+      '-i', src_filename, '-map', '0:s',
+      '-f', 'webvtt', tmp_dest,
+    ]
+    ret = BigBlueButton.exec_ret(*ffmpeg_cmd)
+    raise InvalidCaptionError, 'FFmpeg could not read input' unless ret.zero?
+
+    FileUtils.mkdir_p(final_dest_dir)
+    FileUtils.mv(tmp_dest, final_dest)
+    FileUtils.cp(final_dest, presentation_dest_dir)
+
+    # Finally, save the updated index file that references the new caption
+    File.open(index_filename, 'w') do |file|
+      file.write(JSON.pretty_generate(captions_info))
+    end
+
+    Dir.glob(File.expand_path('captions/*', __dir__)) do |caption_script|
+      next unless File.file?(caption_script) && File.executable?(caption_script)
+
+      logger.info("Running caption integration script #{caption_script}")
+      ret = BigBlueButton.exec_ret(caption_script, '--record-id', record_id)
+      logger.warn('Caption integration script failed') unless ret.zero?
+    end
+
+    logger.info('Removing files from inbox directory')
+    FileUtils.rm_f(src_filename) if src_filename
+    FileUtils.rm_f(json_filename)
+  rescue InvalidCaptionError => e
+    logger.exception(e)
+
+    logger.info('Deleting invalid files from inbox directory')
+    FileUtils.rm_f(src_filename) if src_filename
+    FileUtils.rm_f(json_filename)
+  ensure
+    FileUtils.rm_rf(File.join(captions_work_base, record_id))
   end
 end
 

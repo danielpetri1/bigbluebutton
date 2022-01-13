@@ -134,7 +134,7 @@ end
 
 logger.info('Saving updated playback captions list')
 # Sort the list by label so the selection menu looks nice
-playback_captions.sort { |a, b| a['localeName'] <=> b['localeName'] }
+playback_captions.sort_by { |a| a['localeName'] }
 File.open(playback_captions_path, 'w') do |json|
   json.write(JSON.pretty_generate(playback_captions))
 end

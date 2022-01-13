@@ -24,26 +24,26 @@
 # require File.expand_path('../../../../core/lib/recordandplayback', __FILE__)
 
 # For PRODUCTION
-require File.expand_path('../../../lib/recordandplayback', __FILE__)
+require File.expand_path('../../lib/recordandplayback', __dir__)
 
 require 'rubygems'
 require 'optimist'
 require 'yaml'
 require 'json'
 
-opts = Optimist::options do
-  opt :meeting_id, "Meeting id to archive", :type => String
+opts = Optimist.options do
+  opt :meeting_id, 'Meeting id to archive', type: String
 end
 
 meeting_id = opts[:meeting_id]
 
 # This script lives in scripts/archive/steps while properties.yaml lives in scripts/
-props = YAML::load(File.open('../../core/scripts/bigbluebutton.yml'))
+props = YAML.load(File.open('../../core/scripts/bigbluebutton.yml'))
 
 recording_dir = props['recording_dir']
 raw_archive_dir = "#{recording_dir}/raw/#{meeting_id}"
-BigBlueButton.logger.info("Setting process dir")
-BigBlueButton.logger.info("setting captions dir")
+BigBlueButton.logger.info('Setting process dir')
+BigBlueButton.logger.info('setting captions dir')
 captions_dir = props['captions_dir']
 
 log_dir = props['log_dir']
@@ -52,7 +52,7 @@ target_dir = "#{recording_dir}/process/presentation/#{meeting_id}"
 
 # Generate captions.json for API
 def create_api_captions_file(captions_meeting_dir)
-  BigBlueButton.logger.info("Generating closed captions for API")
+  BigBlueButton.logger.info('Generating closed captions for API')
 
   captions = JSON.load(File.new("#{captions_meeting_dir}/captions_playback.json"))
   captions_json = []
@@ -65,33 +65,30 @@ def create_api_captions_file(captions_meeting_dir)
     captions_json << caption
   end
 
-  File.open("#{captions_meeting_dir}/captions.json", "w") do |f|
+  File.open("#{captions_meeting_dir}/captions.json", 'w') do |f|
     f.write(captions_json.to_json)
   end
 end
 
-if not FileTest.directory?(target_dir)
+unless FileTest.directory?(target_dir)
 
   captions_meeting_dir = "#{captions_dir}/#{meeting_id}"
 
   FileUtils.mkdir_p "#{log_dir}/presentation"
   logger = Logger.new("#{log_dir}/presentation/process-#{meeting_id}.log", 'daily')
   BigBlueButton.logger = logger
-  BigBlueButton.logger.info("Processing script captions.rb")
+  BigBlueButton.logger.info('Processing script captions.rb')
   FileUtils.mkdir_p target_dir
 
   begin
-    BigBlueButton.logger.info("Generating closed captions")
+    BigBlueButton.logger.info('Generating closed captions')
     FileUtils.mkdir_p captions_meeting_dir
     ret = BigBlueButton.exec_ret('utils/gen_webvtt', '-i', raw_archive_dir, '-o', captions_meeting_dir)
-    if ret != 0
-      raise "Generating closed caption files failed"
-    end
+    raise 'Generating closed caption files failed' if ret != 0
 
     FileUtils.cp("#{captions_meeting_dir}/captions.json", "#{captions_meeting_dir}/captions_playback.json")
     create_api_captions_file(captions_meeting_dir)
     FileUtils.rm "#{captions_meeting_dir}/captions_playback.json"
-
   rescue Exception => e
     BigBlueButton.logger.error(e.message)
     e.backtrace.each do |traceline|

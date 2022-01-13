@@ -1,4 +1,3 @@
-
 #
 # BigBlueButton open source conferencing system - http://www.bigbluebutton.org/
 #
@@ -19,27 +18,25 @@
 
 require 'fileutils'
 
-Given /^the raw recorded events$/ do
-  @tmp_archive_dir = "/tmp/archive"
-  if FileTest.directory?(@tmp_archive_dir)
-    FileUtils.remove_dir @tmp_archive_dir
-  end
+Given(/^the raw recorded events$/) do
+  @tmp_archive_dir = '/tmp/archive'
+  FileUtils.remove_dir @tmp_archive_dir if FileTest.directory?(@tmp_archive_dir)
   FileUtils.mkdir_p @tmp_archive_dir
-  
-  @meeting_id = "1b199e88-7df7-4842-a5f1-0e84b781c5c8"
-  
-  @raw_dir = "resources/raw/#{@meeting_id}" 
+
+  @meeting_id = '1b199e88-7df7-4842-a5f1-0e84b781c5c8'
+
+  @raw_dir = "resources/raw/#{@meeting_id}"
   FileUtils.cp_r(@raw_dir, @tmp_archive_dir)
 end
 
-Given /^the processed recorded audio$/ do
+Given(/^the processed recorded audio$/) do
   pending # express the regexp above with the code you wish you had
 end
 
-Given /^the raw recorded video$/ do
+Given(/^the raw recorded video$/) do
   pending # express the regexp above with the code you wish you had
 end
 
-When /^processing the audio and video for playback$/ do
+When(/^processing the audio and video for playback$/) do
   pending # express the regexp above with the code you wish you had
 end

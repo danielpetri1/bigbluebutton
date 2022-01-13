@@ -19,7 +19,6 @@
 # with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
 #
 
-
 require 'rubygems'
 require 'nokogiri'
 
@@ -27,18 +26,18 @@ module BigBlueButton
   class Presentation
     # Get the presentations.
     def self.get_presentations(events_xml)
-      BigBlueButton.logger.info("Task: Getting presentations from events")      
+      BigBlueButton.logger.info('Task: Getting presentations from events')
       presentations = []
       doc = Nokogiri::XML(File.open(events_xml))
       doc.xpath("//event[@eventname='SharePresentationEvent']").each do |presentation_event|
-        presentations << presentation_event.xpath("presentationName").text
+        presentations << presentation_event.xpath('presentationName').text
       end
       presentations
     end
 
     # Determine the number pages in a presentation.
     def self.get_number_of_pages_for(presentation_dir)
-      BigBlueButton.logger.info("Task: Getting number of pages in presentation")      
+      BigBlueButton.logger.info('Task: Getting number of pages in presentation')
       Dir.glob("#{presentation_dir}/thumbnails/*.png").size
     end
 
@@ -76,10 +75,10 @@ module BigBlueButton
     ensure
       FileUtils.rm_f(temp_out)
     end
-    
+
     # Convert a pdf page to a png.
     def self.convert_pdf_to_png(pdf_page, png_out)
-      self.extract_png_page_from_pdf(1, pdf_page, png_out, '800x600')
+      extract_png_page_from_pdf(1, pdf_page, png_out, '800x600')
     end
 
     # Convert an image to a png
@@ -87,7 +86,7 @@ module BigBlueButton
       # In order to handle portrait docs better, scale to a square based on
       # the larger of height, width in the resize parameter.
       scale = resize.split('x').map(&:to_i).max
-      BigBlueButton.logger.info("Task: Converting image to .png")
+      BigBlueButton.logger.info('Task: Converting image to .png')
       command = "convert #{image} -resize #{scale}x#{scale} -background white -flatten #{png_image}"
       status = BigBlueButton.execute(command, false)
       if !status.success? or !File.exist?(png_image)
@@ -101,10 +100,10 @@ module BigBlueButton
     def self.get_text_from_slide(textfiles_dir, slide_num)
       text_from_slide = nil
       begin
-        text_from_slide = File.open("#{textfiles_dir}/slide-#{slide_num}.txt") {|f| f.readline}
-        text_from_slide = text_from_slide.strip.encode(:xml => :text) unless text_from_slide == nil
+        text_from_slide = File.open("#{textfiles_dir}/slide-#{slide_num}.txt") { |f| f.readline }
+        text_from_slide = text_from_slide.strip.encode(xml: :text) unless text_from_slide.nil?
       rescue Exception => e
-        #do nothing
+        # do nothing
       end
       text_from_slide
     end
@@ -112,32 +111,31 @@ module BigBlueButton
     # Get from events the presentation that will be used for preview.
     def self.get_presentation_for_preview(process_dir)
       events_xml = "#{process_dir}/events.xml"
-      BigBlueButton.logger.info("Task: Getting from events the presentation to be used for preview")
+      BigBlueButton.logger.info('Task: Getting from events the presentation to be used for preview')
       presentation = {}
       doc = Nokogiri::XML(File.open(events_xml))
       doc.xpath("//event[@eventname='SharePresentationEvent']").each do |presentation_event|
         # Extract presentation data from events
-        presentation_id = presentation_event.xpath("presentationName").text
-        presentation_filename = presentation_event.xpath("originalFilename").text
+        presentation_id = presentation_event.xpath('presentationName').text
+        presentation_filename = presentation_event.xpath('originalFilename').text
         # Set textfile directory
         textfiles_dir = "#{process_dir}/presentation/#{presentation_id}/textfiles"
         # Set presentation hashmap to be returned
-        unless presentation_filename == "default.pdf"
-          presentation[:id] = presentation_id
-          presentation[:filename] = presentation_filename
-          presentation[:slides] = {}
-          for i in 1..3
-            if File.file?("#{textfiles_dir}/slide-#{i}.txt")
-              text_from_slide = self.get_text_from_slide(textfiles_dir, i)
-              presentation[:slides][i] = { :alt => text_from_slide == nil ? '' : text_from_slide }
-            end
+        next if presentation_filename == 'default.pdf'
+
+        presentation[:id] = presentation_id
+        presentation[:filename] = presentation_filename
+        presentation[:slides] = {}
+        (1..3).each do |i|
+          if File.file?("#{textfiles_dir}/slide-#{i}.txt")
+            text_from_slide = get_text_from_slide(textfiles_dir, i)
+            presentation[:slides][i] = { alt: text_from_slide.nil? ? '' : text_from_slide }
           end
-          # Break because something else than default.pdf was found
-          break
         end
+        # Break because something else than default.pdf was found
+        break
       end
       presentation
     end
   end
-
 end

@@ -1,5 +1,3 @@
-# encoding: UTF-8
-
 # BigBlueButton open source conferencing system - http://www.bigbluebutton.org/
 #
 # Copyright (c) 2013 BigBlueButton Inc. and by respective authors.
@@ -15,10 +13,10 @@
 # details.
 #
 # You should have received a copy of the GNU Lesser General Public License
-# along with BigBlueButton.  If not, see <http://www.gnu.org/licenses/>. 
+# along with BigBlueButton.  If not, see <http://www.gnu.org/licenses/>.
 
-require File.expand_path('../edl/video', __FILE__)
-require File.expand_path('../edl/audio', __FILE__)
+require File.expand_path('edl/video', __dir__)
+require File.expand_path('edl/audio', __dir__)
 
 module BigBlueButton
   module EDL
@@ -35,13 +33,9 @@ module BigBlueButton
         ffmpeg_cmd = FFMPEG
         ffmpeg_cmd += ['-i', video] if video
         if audio
-          if audio_offset != 0
-            ffmpeg_cmd += ['-itsoffset', ms_to_s(audio_offset)]
-          end
+          ffmpeg_cmd += ['-itsoffset', ms_to_s(audio_offset)] if audio_offset != 0
           # Ensure that the entire contents of freeswitch wav files are read
-          if BigBlueButton::EDL::Audio.audio_info(audio)[:format][:format_name] == 'wav'
-            ffmpeg_cmd += ['-ignore_length', '1']
-          end
+          ffmpeg_cmd += ['-ignore_length', '1'] if BigBlueButton::EDL::Audio.audio_info(audio)[:format][:format_name] == 'wav'
           ffmpeg_cmd += ['-i', audio]
         end
         ffmpeg_cmd += [*pass, '-passlogfile', output_basename, lastoutput]
@@ -77,14 +71,13 @@ module BigBlueButton
 
       FileUtils.mv(lastoutput, output)
 
-      return output
+      output
     end
 
     def self.ms_to_s(timestamp)
       s = timestamp / 1000
       ms = timestamp % 1000
-      "%d.%03d" % [s, ms]
-    end    
-
+      format('%d.%03d', s, ms)
+    end
   end
 end

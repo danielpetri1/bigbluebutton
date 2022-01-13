@@ -1,5 +1,3 @@
-# encoding: UTF-8
-
 # BigBlueButton open source conferencing system - http://www.bigbluebutton.org/
 #
 # Copyright (c) 2013 BigBlueButton Inc. and by respective authors.
@@ -20,29 +18,29 @@
 module BigBlueButton
   module EDL
     module Audio
-      FFMPEG_AEVALSRC = "aevalsrc=s=48000:c=stereo:exprs=0|0"
-      FFMPEG_AFORMAT = "aresample=async=1000,aformat=sample_fmts=s16:sample_rates=48000:channel_layouts=stereo"
+      FFMPEG_AEVALSRC = 'aevalsrc=s=48000:c=stereo:exprs=0|0'
+      FFMPEG_AFORMAT = 'aresample=async=1000,aformat=sample_fmts=s16:sample_rates=48000:channel_layouts=stereo'
       FFMPEG_WF_CODEC = 'libvorbis'
       FFMPEG_WF_ARGS = ['-c:a', FFMPEG_WF_CODEC, '-q:a', '2', '-f', 'ogg']
       WF_EXT = 'ogg'
 
       def self.dump(edl)
-        BigBlueButton.logger.debug "EDL Dump:"
+        BigBlueButton.logger.debug 'EDL Dump:'
         edl.each do |entry|
-          BigBlueButton.logger.debug "---"
+          BigBlueButton.logger.debug '---'
           BigBlueButton.logger.debug "  Timestamp: #{entry[:timestamp]}"
-          BigBlueButton.logger.debug "  Audio:"
+          BigBlueButton.logger.debug '  Audio:'
           audio = entry[:audio]
           if audio
             BigBlueButton.logger.debug "    #{audio[:filename]} at #{audio[:timestamp]}"
           else
-            BigBlueButton.logger.debug "    silence"
+            BigBlueButton.logger.debug '    silence'
           end
         end
       end
 
       def self.mixer(inputs, output_basename)
-        BigBlueButton.logger.debug "Mixing audio files"
+        BigBlueButton.logger.debug 'Mixing audio files'
 
         ffmpeg_cmd = [*FFMPEG]
         inputs.each do |input|
@@ -53,7 +51,7 @@ module BigBlueButton
         output = "#{output_basename}.#{WF_EXT}"
         ffmpeg_cmd += ['-vn', *FFMPEG_WF_ARGS, output]
 
-        BigBlueButton.logger.info "Running audio mixer..."
+        BigBlueButton.logger.info 'Running audio mixer...'
         exitstatus = BigBlueButton.exec_ret(*ffmpeg_cmd)
         raise "ffmpeg failed, exit code #{exitstatus}" if exitstatus != 0
 
@@ -65,22 +63,20 @@ module BigBlueButton
 
         corrupt_audios = Set.new
 
-        BigBlueButton.logger.info "Pre-processing EDL"
-        for i in 0...(edl.length - 1)
+        BigBlueButton.logger.info 'Pre-processing EDL'
+        (0...(edl.length - 1)).each do |i|
           # The render scripts use this to calculate cut lengths
-          edl[i][:next_timestamp] = edl[i+1][:timestamp]
+          edl[i][:next_timestamp] = edl[i + 1][:timestamp]
           # Build a list of audio files to read information from
-          if edl[i][:audio]
-            audioinfo[edl[i][:audio][:filename]] = {}
-          end
+          audioinfo[edl[i][:audio][:filename]] = {} if edl[i][:audio]
         end
 
-        BigBlueButton.logger.info "Reading source audio information"
+        BigBlueButton.logger.info 'Reading source audio information'
         audioinfo.keys.each do |audiofile|
           BigBlueButton.logger.debug "  #{audiofile}"
           info = audio_info(audiofile)
           if !info[:audio] || !info[:duration]
-            BigBlueButton.logger.warn "    This audio file is corrupt! It will be removed from the output."
+            BigBlueButton.logger.warn '    This audio file is corrupt! It will be removed from the output.'
             corrupt_audios << audiofile
             next
           end
@@ -92,11 +88,9 @@ module BigBlueButton
         end
 
         if corrupt_audios.length > 0
-          BigBlueButton.logger.info "Removing corrupt audio files from EDL"
+          BigBlueButton.logger.info 'Removing corrupt audio files from EDL'
           edl.each do |event|
-            if event[:audio] && corrupt_audios.include?(event[:audio][:filename])
-              event[:audio] = nil
-            end
+            event[:audio] = nil if event[:audio] && corrupt_audios.include?(event[:audio][:filename])
           end
 
           dump(edl)
@@ -104,8 +98,8 @@ module BigBlueButton
 
         ffmpeg_inputs = []
         ffmpeg_filter = ''
-        BigBlueButton.logger.info "Generating ffmpeg command"
-        for i in 0...(edl.length - 1)
+        BigBlueButton.logger.info 'Generating ffmpeg command'
+        (0...(edl.length - 1)).each do |i|
           entry = edl[i]
           audio = entry[:audio]
           duration = entry[:next_timestamp] - entry[:timestamp]
@@ -134,7 +128,7 @@ module BigBlueButton
               input_index = ffmpeg_inputs.length
               ffmpeg_inputs << {
                 filename: audio[:filename],
-                seek: seek
+                seek: seek,
               }
               ffmpeg_filter << "[#{input_index}]#{FFMPEG_AFORMAT},apad"
             else
@@ -143,9 +137,9 @@ module BigBlueButton
 
             ffmpeg_filter << ",atempo=#{speed},atrim=start=#{ms_to_s(audio[:timestamp])}" if speed != 1
 
-            ffmpeg_filter << ",asetpts=N"
+            ffmpeg_filter << ',asetpts=N'
           else
-            BigBlueButton.logger.info "  Generating silence"
+            BigBlueButton.logger.info '  Generating silence'
 
             ffmpeg_filter << "#{FFMPEG_AEVALSRC},#{FFMPEG_AFORMAT}"
           end
@@ -162,13 +156,9 @@ module BigBlueButton
         ffmpeg_inputs.each do |input|
           ffmpeg_cmd += ['-ss', ms_to_s(input[:seek])]
           # Ensure that the entire contents of freeswitch wav files are read
-          if audioinfo[input[:filename]][:format][:format_name] == 'wav'
-            ffmpeg_cmd += ['-ignore_length', '1']
-          end
+          ffmpeg_cmd += ['-ignore_length', '1'] if audioinfo[input[:filename]][:format][:format_name] == 'wav'
           # Prefer using the libopus decoder for opus files, it handles discontinuities better
-          if audioinfo[input[:filename]][:audio][:codec_name] == 'opus'
-            ffmpeg_cmd << '-c:a' << 'libopus'
-          end
+          ffmpeg_cmd << '-c:a' << 'libopus' if audioinfo[input[:filename]][:audio][:codec_name] == 'opus'
           ffmpeg_cmd += ['-i', input[:filename]]
         end
 
@@ -184,7 +174,7 @@ module BigBlueButton
         output = "#{output_basename}.#{WF_EXT}"
         ffmpeg_cmd += ['-vn', *FFMPEG_WF_ARGS, output]
 
-        BigBlueButton.logger.info "Running audio processing..."
+        BigBlueButton.logger.info 'Running audio processing...'
         exitstatus = BigBlueButton.exec_ret(*ffmpeg_cmd)
         raise "ffmpeg failed, exit code #{exitstatus}" if exitstatus != 0
 
@@ -197,26 +187,26 @@ module BigBlueButton
         IO.popen([*FFPROBE, filename]) do |probe|
           info = nil
           begin
-            info = JSON.parse(probe.read, :symbolize_names => true)
+            info = JSON.parse(probe.read, symbolize_names: true)
           rescue StandardError => e
             BigBlueButton.logger.warn("Couldn't parse audio info: #{e}")
           end
-          return {} if !info
-          return {} if !info[:streams]
-          return {} if !info[:format]
+          return {} unless info
+          return {} unless info[:streams]
+          return {} unless info[:format]
 
           info[:audio] = info[:streams].find do |stream|
             stream[:codec_type] == 'audio'
           end
-          return {} if !info[:audio]
+          return {} unless info[:audio]
 
           info[:sample_rate] = info[:audio][:sample_rate].to_i
 
           if info[:format][:format_name] == 'wav'
             # wav files generated by freeswitch can have incorrect length
             # field if longer than 4GB, so recalculate based on filesize (ouch!)
-            BigBlueButton.logger.debug("Recalculated duration from wav file length")
-            audio_offset = self.get_wave_data_offset(filename)
+            BigBlueButton.logger.debug('Recalculated duration from wav file length')
+            audio_offset = get_wave_data_offset(filename)
             audio_size = info[:format][:size].to_r - audio_offset
             info[:duration] = (audio_size * 8 / info[:audio][:bit_rate].to_i * 1000).to_i
           else
@@ -231,29 +221,27 @@ module BigBlueButton
       def self.ms_to_s(timestamp)
         s = timestamp / 1000
         ms = timestamp % 1000
-        "%d.%03d" % [s, ms]
+        format('%d.%03d', s, ms)
       end
 
       # Helper function for determining correct length of freeswitch's long wave files
       def self.get_wave_data_offset(filename)
         File.open(filename, 'rb') do |file|
           riff = file.read(4)
-          wavesize = file.read(4).unpack('V')[0].to_i
+          wavesize = file.read(4).unpack1('V').to_i
           wave = file.read(4)
-          if riff != 'RIFF' or wavesize.nil? or wave != 'WAVE'
-            return 0
-          end
+          return 0 if riff != 'RIFF' or wavesize.nil? or wave != 'WAVE'
+
           while true
             # Read chunks until we find one named 'data'
             chunkname = file.read(4)
-            chunksize = file.read(4).unpack('V')[0].to_i
-            if chunkname.nil? or chunksize.nil?
-              return 0
-            end
+            chunksize = file.read(4).unpack1('V').to_i
+            return 0 if chunkname.nil? or chunksize.nil?
             if chunkname == 'data'
               # This is a data chunk; we've found the start of the real audio data
               return file.tell
             end
+
             file.seek(chunksize, IO::SEEK_CUR)
           end
           return 0

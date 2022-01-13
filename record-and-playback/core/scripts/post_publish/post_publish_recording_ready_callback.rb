@@ -1,6 +1,4 @@
 #!/usr/bin/ruby
-# encoding: UTF-8
-
 #
 # BigBlueButton open source conferencing system - http://www.bigbluebutton.org/
 #
@@ -20,23 +18,23 @@
 # with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
 #
 
-require "optimist"
+require 'optimist'
 require 'net/http'
-require "jwt"
-require "java_properties"
-require File.expand_path('../../../lib/recordandplayback', __FILE__)
+require 'jwt'
+require 'java_properties'
+require File.expand_path('../../lib/recordandplayback', __dir__)
 
-logger = Logger.new("/var/log/bigbluebutton/post_publish.log", 'weekly' )
+logger = Logger.new('/var/log/bigbluebutton/post_publish.log', 'weekly')
 logger.level = Logger::INFO
 BigBlueButton.logger = logger
 
-opts = Optimist::options do
-  opt :meeting_id, "Meeting id to archive", :type => String
-  opt :format, "Playback format name", :type => String
+opts = Optimist.options do
+  opt :meeting_id, 'Meeting id to archive', type: String
+  opt :format, 'Playback format name', type: String
 end
 meeting_id = opts[:meeting_id]
 
-bbb_web_properties = "/etc/bigbluebutton/bbb-web.properties"
+bbb_web_properties = '/etc/bigbluebutton/bbb-web.properties'
 events_xml = "/var/bigbluebutton/recording/raw/#{meeting_id}/events.xml"
 
 def get_metadata(key, meeting_metadata)
@@ -46,15 +44,15 @@ end
 def get_callback_url(events_xml)
   meeting_metadata = BigBlueButton::Events.get_meeting_metadata(events_xml)
 
-  meta_bbb_rec_ready_url = "bbb-recording-ready-url"
+  meta_bbb_rec_ready_url = 'bbb-recording-ready-url'
 
   callback_url = get_metadata(meta_bbb_rec_ready_url, meeting_metadata)
 
   # For compatibility with some 3rd party implementations, look up for
   # bn-recording-ready-url or canvas-recording-ready, when bbb-recording-ready
   # is not included.
-  meta_bn_rec_ready_url = "bn-recording-ready-url"
-  meta_canvas_rec_ready_url = "canvas-recording-ready-url"
+  meta_bn_rec_ready_url = 'bn-recording-ready-url'
+  meta_canvas_rec_ready_url = 'canvas-recording-ready-url'
 
   callback_url ||= get_metadata(meta_bn_rec_ready_url, meeting_metadata)
   callback_url ||= get_metadata(meta_canvas_rec_ready_url, meeting_metadata)
@@ -71,7 +69,7 @@ begin
   callback_url = get_callback_url(events_xml)
 
   unless callback_url.nil?
-    BigBlueButton.logger.info("Making callback for recording ready notification")
+    BigBlueButton.logger.info('Making callback for recording ready notification')
 
     props = JavaProperties::Properties.new(bbb_web_properties)
     secret = props[:securitySalt]
@@ -102,12 +100,11 @@ begin
       BigBlueButton.logger.info("Recording notifier successful: #{meeting_id} (code #{code})")
     end
   end
-
-rescue => e
-  BigBlueButton.logger.info("Rescued")
+rescue StandardError => e
+  BigBlueButton.logger.info('Rescued')
   BigBlueButton.logger.info(e.to_s)
 end
 
-BigBlueButton.logger.info("Recording Ready notify ends")
+BigBlueButton.logger.info('Recording Ready notify ends')
 
 exit 0

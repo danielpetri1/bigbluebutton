@@ -24,7 +24,7 @@ require 'yaml'
 require 'fileutils'
 
 module BigBlueButton
-  $bbb_props = YAML::load(File.open(File.expand_path('../../../scripts/bigbluebutton.yml', __FILE__)))
+  $bbb_props = YAML.load(File.open(File.expand_path('../../scripts/bigbluebutton.yml', __dir__)))
   $recording_dir = $bbb_props['recording_dir']
   $raw_recording_dir = "#{$recording_dir}/raw"
   $store_recording_status = $bbb_props['store_recording_status']
@@ -33,12 +33,14 @@ module BigBlueButton
   # for testing
   class RedisWrapper
     def initialize(host, port, password)
-      @host, @port, @password = host, port, password
-      if password.nil?
-        @redis = Redis.new(:host => @host, :port => @port)
-      else
-        @redis = Redis.new(:host => @host, :port => @port, :password => @password)
-      end
+      @host = host
+      @port = port
+      @password = password
+      @redis = if password.nil?
+                 Redis.new(host: @host, port: @port)
+               else
+                 Redis.new(host: @host, port: @port, password: @password)
+               end
     end
 
     def connect
@@ -85,7 +87,7 @@ module BigBlueButton
       @redis.hgetall("recording:#{meeting_id}:#{event}")
     end
 
-    def delete_event_info_for(meeting_id,event)
+    def delete_event_info_for(meeting_id, event)
       @redis.del("recording:#{meeting_id}:#{event}")
     end
 
@@ -120,108 +122,105 @@ module BigBlueButton
     end
 
     def build_header(message_type)
-      return {
-        "timestamp" => BigBlueButton.monotonic_clock, #
-        "name" => message_type,
-        "current_time" => Time.now.to_i, # unix timestamp
-        "version" => "0.0.1"
+      {
+        'timestamp' => BigBlueButton.monotonic_clock,
+        'name' => message_type,
+        'current_time' => Time.now.to_i, # unix timestamp
+        'version' => '0.0.1',
       }
     end
 
     def build_message(header, payload)
-      return {
-        "header" => header,
-        "payload" => payload
+      {
+        'header' => header,
+        'payload' => payload,
       }
     end
 
-    RECORDINGS_CHANNEL = "bigbluebutton:from-rap"
-    RAP_STATUS_LIST = "bigbluebutton:rap:status"
+    RECORDINGS_CHANNEL = 'bigbluebutton:from-rap'
+    RAP_STATUS_LIST = 'bigbluebutton:rap:status'
 
     def put_message(message_type, meeting_id, additional_payload = {})
       events_xml = "#{$raw_recording_dir}/#{meeting_id}/events.xml"
       if File.exist?(events_xml)
         additional_payload.merge!({
-          "external_meeting_id" => BigBlueButton::Events.get_external_meeting_id(events_xml)
-        })
+                                    'external_meeting_id' => BigBlueButton::Events.get_external_meeting_id(events_xml),
+                                  })
       end
 
       msg = build_message build_header(message_type), additional_payload.merge({
-        "record_id" => meeting_id,
-        "meeting_id" => meeting_id
-      })
+                                                                                 'record_id' => meeting_id,
+                                                                                 'meeting_id' => meeting_id,
+                                                                               })
       @redis.publish RECORDINGS_CHANNEL, msg.to_json
 
-      if $store_recording_status
-        @redis.lpush RAP_STATUS_LIST, msg.to_json
-      end
-
+      @redis.lpush RAP_STATUS_LIST, msg.to_json if $store_recording_status
     end
 
     def put_message_workflow(message_type, workflow, meeting_id, additional_payload = {})
       put_message message_type, meeting_id, additional_payload.merge({
-        "workflow" => workflow
-      })
+                                                                       'workflow' => workflow,
+                                                                     })
     end
 
     def put_archive_norecord(meeting_id, additional_payload = {})
-      put_message "archive_norecord", meeting_id, additional_payload
+      put_message 'archive_norecord', meeting_id, additional_payload
     end
 
     def put_archive_started(meeting_id, additional_payload = {})
-      put_message "archive_started", meeting_id, additional_payload
+      put_message 'archive_started', meeting_id, additional_payload
     end
 
     def put_archive_ended(meeting_id, additional_payload = {})
-      put_message "archive_ended", meeting_id, additional_payload
+      put_message 'archive_ended', meeting_id, additional_payload
     end
 
     def put_sanity_started(meeting_id, additional_payload = {})
-      put_message "sanity_started", meeting_id, additional_payload
+      put_message 'sanity_started', meeting_id, additional_payload
     end
 
     def put_sanity_ended(meeting_id, additional_payload = {})
-      put_message "sanity_ended", meeting_id, additional_payload
+      put_message 'sanity_ended', meeting_id, additional_payload
     end
 
     def put_process_started(workflow, meeting_id, additional_payload = {})
-      put_message_workflow "process_started", workflow, meeting_id, additional_payload
+      put_message_workflow 'process_started', workflow, meeting_id, additional_payload
     end
 
     def put_process_ended(workflow, meeting_id, additional_payload = {})
-      put_message_workflow "process_ended", workflow, meeting_id, additional_payload
+      put_message_workflow 'process_ended', workflow, meeting_id, additional_payload
     end
 
     def put_publish_started(workflow, meeting_id, additional_payload = {})
-      put_message_workflow "publish_started", workflow, meeting_id, additional_payload
+      put_message_workflow 'publish_started', workflow, meeting_id, additional_payload
     end
 
     def put_publish_ended(workflow, meeting_id, additional_payload = {})
-      put_message_workflow "publish_ended", workflow, meeting_id, additional_payload
+      put_message_workflow 'publish_ended', workflow, meeting_id, additional_payload
     end
 
     def put_post_archive_started(workflow, meeting_id, additional_payload = {})
-      put_message_workflow "post_archive_started", workflow, meeting_id, additional_payload
+      put_message_workflow 'post_archive_started', workflow, meeting_id, additional_payload
     end
 
     def put_post_archive_ended(workflow, meeting_id, additional_payload = {})
-      put_message_workflow "post_archive_ended", workflow, meeting_id, additional_payload
+      put_message_workflow 'post_archive_ended', workflow, meeting_id, additional_payload
     end
 
     def put_post_process_started(workflow, meeting_id, additional_payload = {})
-      put_message_workflow "post_process_started", workflow, meeting_id, additional_payload
+      put_message_workflow 'post_process_started', workflow, meeting_id, additional_payload
     end
 
     def put_post_process_ended(workflow, meeting_id, additional_payload = {})
-      put_message_workflow "post_process_ended", workflow, meeting_id, additional_payload
+      put_message_workflow 'post_process_ended', workflow, meeting_id, additional_payload
     end
 
     def put_post_publish_started(workflow, meeting_id, additional_payload = {})
-      put_message_workflow "post_publish_started", workflow, meeting_id, additional_payload
+      put_message_workflow 'post_publish_started', workflow, meeting_id, additional_payload
     end
 
     def put_post_publish_ended(workflow, meeting_id, additional_payload = {})
-      put_message_workflow "post_publish_ended", workflow, meeting_id, additional_payload
+      put_message_workflow 'post_publish_ended', workflow, meeting_id, additional_payload
     end
   end
 
@@ -249,25 +248,24 @@ module BigBlueButton
     end
 
     def store_events(meeting_id, events_file, break_timestamp)
-      version = BigBlueButton.read_props["bbb_version"]
+      version = BigBlueButton.read_props['bbb_version']
 
       if File.exist?(events_file)
         io = File.open(events_file, 'rb')
         events_doc = Nokogiri::XML::Document.parse(io)
         io.close
         recording = events_doc.at_xpath('/recording')
-        if recording.nil?
-          raise "recording is nil"
-        end
+        raise 'recording is nil' if recording.nil?
+
         meeting = events_doc.at_xpath('/recording/meeting')
         metadata = events_doc.at_xpath('/recording/metadata')
         breakout = events_doc.at_xpath('/recording/breakout')
         breakoutRooms = events_doc.at_xpath('/recording/breakoutRooms')
       else
-        events_doc = Nokogiri::XML::Document.new()
+        events_doc = Nokogiri::XML::Document.new
         recording = events_doc.create_element('recording',
-                'meeting_id' => meeting_id,
-                'bbb_version' => version)
+                                              'meeting_id' => meeting_id,
+                                              'bbb_version' => version)
         events_doc.root = recording
       end
 
@@ -327,19 +325,19 @@ module BigBlueButton
       msgs.each_with_index do |msg, i|
         res = @redis.event_info_for(meeting_id, msg)
         event = events_doc.create_element('event',
-                'timestamp' => res[TIMESTAMP],
-                'module' => res[MODULE],
-                'eventname' => res[EVENTNAME])
+                                          'timestamp' => res[TIMESTAMP],
+                                          'module' => res[MODULE],
+                                          'eventname' => res[EVENTNAME])
         res.each do |k, v|
-          if ![TIMESTAMP, MODULE, EVENTNAME, MEETINGID].include?(k)
-            if res[MODULE] == 'PRESENTATION' and k == 'slidesInfo'
-              # The slidesInfo value is XML serialized info, just insert it
-              # directly into the event
-              event << v
-            else
-              event << events_doc.create_element(k, strip_control_chars(v))
-            end
-          end
+          next if [TIMESTAMP, MODULE, EVENTNAME, MEETINGID].include?(k)
+
+          event << if res[MODULE] == 'PRESENTATION' and k == 'slidesInfo'
+                     # The slidesInfo value is XML serialized info, just insert it
+                     # directly into the event
+                     v
+                   else
+                     events_doc.create_element(k, strip_control_chars(v))
+                   end
         end
 
         # Handle out of order events - if this event has an earlier timestamp than the last event
@@ -371,10 +369,10 @@ module BigBlueButton
 
       # Write the events file. Write to a temp file then rename so other
       # scripts running concurrently don't see a partially written file.
-      File.open(events_file + ".tmp", 'wb') do |io|
+      File.open(events_file + '.tmp', 'wb') do |io|
         io.write(events_doc.to_xml(indent: 2, encoding: 'UTF-8'))
       end
-      FileUtils.mv(events_file + ".tmp", events_file)
+      FileUtils.mv(events_file + '.tmp', events_file)
 
       # Once the events file has been written, we can delete this segment's
       # events from redis.
@@ -383,12 +381,11 @@ module BigBlueButton
         break if last_index >= 0 and i >= last_index
       end
       @redis.trim_events_for(meeting_id, last_index)
-
     end
 
     def delete_events(meeting_id)
       meeting_metadata = @redis.metadata_for(meeting_id)
-      if (meeting_metadata != nil)
+      unless meeting_metadata.nil?
         msgs = @redis.events_for(meeting_id)
         msgs.each do |msg|
           @redis.delete_event_info_for(meeting_id, msg)
@@ -399,6 +396,5 @@ module BigBlueButton
       @redis.delete_breakout_metadata_for(meeting_id)
       @redis.delete_breakout_rooms_for(meeting_id)
     end
-
   end
 end

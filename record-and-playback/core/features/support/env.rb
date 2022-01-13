@@ -16,6 +16,5 @@
 # with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
 #
 
-
-$LOAD_PATH << File.expand_path('../../../lib', __FILE__)
+$LOAD_PATH << File.expand_path('../../lib', __dir__)
 require 'recordandplayback'

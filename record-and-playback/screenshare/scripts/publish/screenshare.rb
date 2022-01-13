@@ -1,6 +1,4 @@
 #!/usr/bin/ruby
-# encoding: UTF-8
-
 # BigBlueButton open source conferencing system - http://www.bigbluebutton.org/
 #
 # Copyright (c) 2018 BigBlueButton Inc. and by respective authors.
@@ -18,27 +16,27 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BigBlueButton.  If not, see <http://www.gnu.org/licenses/>.
 
-require File.expand_path('../../../lib/recordandplayback', __FILE__)
+require File.expand_path('../../lib/recordandplayback', __dir__)
 require 'optimist'
 require 'yaml'
 
-opts = Optimist::options do
-  opt :meeting_id, "Meeting id to publish", :type => String
-  opt :stderr, "Log output to stderr"
+opts = Optimist.options do
+  opt :meeting_id, 'Meeting id to publish', type: String
+  opt :stderr, 'Log output to stderr'
 end
-Optimist::dir :meeting_id, "must be provided" unless opts[:meeting_id]
+Optimist.dir :meeting_id, 'must be provided' unless opts[:meeting_id]
 
 match = /(.*)-(.*)/.match(opts[:meeting_id])
 meeting_id = match[1]
 playback = match[2]
 if playback != 'screenshare'
-  warn "Playback format is not screenshare"
+  warn 'Playback format is not screenshare'
   exit 0
 end
 
 # Load parameters and set up paths
-props = YAML::load(File.open(File.expand_path('../../bigbluebutton.yml', __FILE__)))
-screenshare_props = YAML::load(File.open(File.expand_path('../../screenshare.yml', __FILE__)))
+props = YAML.load(File.open(File.expand_path('../bigbluebutton.yml', __dir__)))
+screenshare_props = YAML.load(File.open(File.expand_path('../screenshare.yml', __dir__)))
 
 process_dir = "#{props['recording_dir']}/process/screenshare/#{meeting_id}"
 publish_dir = "#{screenshare_props['publish_dir']}/#{meeting_id}"
@@ -46,57 +44,55 @@ process_donefile = "#{props['recording_dir']}/status/processed/#{meeting_id}-scr
 donefile = "#{props['recording_dir']}/status/published/#{meeting_id}-screenshare.done"
 logfile = "#{props['log_dir']}/screenshare/publish-#{meeting_id}.log"
 
-if opts[:stderr]
-  BigBlueButton.logger = Logger.new(STDERR)
-else
-  BigBlueButton.logger = Logger.new(logfile)
-end
+BigBlueButton.logger = if opts[:stderr]
+                         Logger.new(STDERR)
+                       else
+                         Logger.new(logfile)
+                       end
 logger = BigBlueButton.logger
 
-if !File.exists?(process_donefile)
-  logger.warn "No done file from the processing step, was processing successful?"
+unless File.exist?(process_donefile)
+  logger.warn 'No done file from the processing step, was processing successful?'
   exit 1
 end
 
 begin
+  FileUtils.mkdir_p publish_dir
 
-FileUtils.mkdir_p publish_dir
+  logger.info 'Copying files to publish directory'
 
-logger.info "Copying files to publish directory"
+  # Copy the index html file
+  FileUtils.cp("#{process_dir}/index.html", "#{publish_dir}/index.html")
 
-# Copy the index html file
-FileUtils.cp("#{process_dir}/index.html", "#{publish_dir}/index.html")
+  # Copy over generated video files
+  screenshare_props['formats'].each_with_index do |format, i|
+    FileUtils.cp("#{process_dir}/screenshare-#{i}.#{format[:extension]}",
+                 "#{publish_dir}/screenshare-#{i}.#{format[:extension]}")
+  end
 
-# Copy over generated video files
-screenshare_props['formats'].each_with_index do |format, i|
-  FileUtils.cp("#{process_dir}/screenshare-#{i}.#{format[:extension]}",
-               "#{publish_dir}/screenshare-#{i}.#{format[:extension]}")
-end
+  # Captions files
+  captions = JSON.load(File.new("#{process_dir}/captions.json", 'r'))
+  FileUtils.cp("#{process_dir}/captions.json", "#{publish_dir}/captions.json")
+  captions.each do |caption|
+    FileUtils.cp("#{process_dir}/caption_#{caption['locale']}.vtt",
+                 "#{publish_dir}/caption_#{caption['locale']}.vtt")
+  end
 
-# Captions files
-captions = JSON.load(File.new("#{process_dir}/captions.json", 'r'))
-FileUtils.cp("#{process_dir}/captions.json", "#{publish_dir}/captions.json")
-captions.each do |caption|
-  FileUtils.cp("#{process_dir}/caption_#{caption['locale']}.vtt",
-               "#{publish_dir}/caption_#{caption['locale']}.vtt")
-end
+  # Copy over metadata xml file
+  FileUtils.cp("#{process_dir}/metadata.xml", "#{publish_dir}/metadata.xml")
 
-# Copy over metadata xml file
-FileUtils.cp("#{process_dir}/metadata.xml", "#{publish_dir}/metadata.xml")
+  # Copy over css and js support files
+  FileUtils.cp_r("#{process_dir}/css", publish_dir)
+  FileUtils.cp_r("#{process_dir}/js", publish_dir)
+  FileUtils.cp_r("#{process_dir}/video-js", publish_dir)
 
-# Copy over css and js support files
-FileUtils.cp_r("#{process_dir}/css", publish_dir)
-FileUtils.cp_r("#{process_dir}/js", publish_dir)
-FileUtils.cp_r("#{process_dir}/video-js", publish_dir)
+  logger.info 'Cleaning up processed files'
+  FileUtils.rm_r(Dir.glob("#{process_dir}/*"))
 
-logger.info "Cleaning up processed files"
-FileUtils.rm_r(Dir.glob("#{process_dir}/*"))
-
-# Create the done file
-File.open(donefile, 'w') do |done|
-  done.write("Published #{meeting_id}")
-end
-
+  # Create the done file
+  File.open(donefile, 'w') do |done|
+    done.write("Published #{meeting_id}")
+  end
 rescue Exception => e
   warn e.message
   logger.error e.message

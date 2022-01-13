@@ -1,6 +1,4 @@
 #!/usr/bin/ruby
-# encoding: UTF-8
-
 # Copyright ⓒ 2017 BigBlueButton Inc. and by respective authors.
 #
 # This file is part of BigBlueButton open source conferencing system.
@@ -14,7 +12,7 @@
 # ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 # FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
 # details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with BigBlueButton.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -27,7 +25,9 @@ def process_archived_meetings(recording_dir)
   sanity_done_files = Dir.glob("#{recording_dir}/status/sanity/*.done")
 
   FileUtils.mkdir_p("#{recording_dir}/status/processed")
-  sanity_done_files.sort{ |a,b| BigBlueButton.done_to_timestamp(a) <=> BigBlueButton.done_to_timestamp(b) }.each do |sanity_done|
+  sanity_done_files.sort do |a, b|
+    BigBlueButton.done_to_timestamp(a) <=> BigBlueButton.done_to_timestamp(b)
+  end.each do |sanity_done|
     done_base = File.basename(sanity_done, '.done')
     meeting_id = nil
     break_timestamp = nil
@@ -46,22 +46,20 @@ def process_archived_meetings(recording_dir)
 
     # Generate captions
     ret = BigBlueButton.exec_ret('ruby', 'utils/captions.rb', '-m', meeting_id)
-    if ret != 0
-      BigBlueButton.logger.warn("Failed to generate caption files #{ret}")
-    end
+    BigBlueButton.logger.warn("Failed to generate caption files #{ret}") if ret != 0
 
     # Iterate over the list of recording processing scripts to find available
     # types. For now, we look for the ".rb" extension - TODO other scripting
     # languages?
-    Dir.glob("process/*.rb").sort.each do |process_script|
-      match2 = /([^\/]*).rb$/.match(process_script)
+    Dir.glob('process/*.rb').sort.each do |process_script|
+      match2 = %r{([^/]*).rb$}.match(process_script)
       process_type = match2[1]
 
       processed_done = "#{recording_dir}/status/processed/#{done_base}-#{process_type}.done"
-      next if File.exists?(processed_done)
+      next if File.exist?(processed_done)
 
       processed_fail = "#{recording_dir}/status/processed/#{done_base}-#{process_type}.fail"
-      if File.exists?(processed_fail)
+      if File.exist?(processed_fail)
         step_succeeded = false
         next
       end
@@ -73,25 +71,23 @@ def process_archived_meetings(recording_dir)
       FileUtils.rm_rf(process_dir)
 
       step_start_time = BigBlueButton.monotonic_clock
-      if !break_timestamp.nil?
-        ret = BigBlueButton.exec_ret('ruby', process_script,
+      ret = if !break_timestamp.nil?
+              BigBlueButton.exec_ret('ruby', process_script,
                                      '-m', meeting_id, '-b', break_timestamp)
-      else
-        ret = BigBlueButton.exec_ret('ruby', process_script, '-m', meeting_id)
-      end
+            else
+              BigBlueButton.exec_ret('ruby', process_script, '-m', meeting_id)
+            end
       step_stop_time = BigBlueButton.monotonic_clock
       step_time = step_stop_time - step_start_time
 
-      if File.directory?(process_dir)
-        IO.write("#{process_dir}/processing_time", step_time)
-      end
+      IO.write("#{process_dir}/processing_time", step_time) if File.directory?(process_dir)
 
-      step_succeeded = (ret == 0 and File.exists?(processed_done))
+      step_succeeded = (ret == 0 and File.exist?(processed_done))
 
       BigBlueButton.redis_publisher.put_process_ended(process_type, meeting_id, {
-        "success" => step_succeeded,
-        "step_time" => step_time
-      })
+                                                        'success' => step_succeeded,
+                                                        'step_time' => step_time,
+                                                      })
 
       if step_succeeded
         BigBlueButton.logger.info("Process format #{process_type} succeeded for #{meeting_id} break #{break_timestamp}")
@@ -112,32 +108,30 @@ def process_archived_meetings(recording_dir)
 end
 
 def post_process(meeting_id)
-  Dir.glob("post_process/*.rb").sort.each do |post_process_script|
-    match = /([^\/]*).rb$/.match(post_process_script)
+  Dir.glob('post_process/*.rb').sort.each do |post_process_script|
+    match = %r{([^/]*).rb$}.match(post_process_script)
     post_type = match[1]
     BigBlueButton.logger.info("Running post process script #{post_type}")
 
     BigBlueButton.redis_publisher.put_post_process_started post_type, meeting_id
 
     step_start_time = BigBlueButton.monotonic_clock
-    ret = BigBlueButton.exec_ret("ruby", post_process_script, "-m", meeting_id)
+    ret = BigBlueButton.exec_ret('ruby', post_process_script, '-m', meeting_id)
     step_stop_time = BigBlueButton.monotonic_clock
     step_time = step_stop_time - step_start_time
     step_succeeded = (ret == 0)
 
     BigBlueButton.redis_publisher.put_post_process_ended post_type, meeting_id, {
-      "success" => step_succeeded,
-      "step_time" => step_time
+      'success' => step_succeeded,
+      'step_time' => step_time,
     }
 
-    if not step_succeeded
-      BigBlueButton.logger.warn("Post process script #{post_process_script} failed")
-    end
+    BigBlueButton.logger.warn("Post process script #{post_process_script} failed") unless step_succeeded
   end
 end
 
 begin
-  props = YAML::load(File.open('bigbluebutton.yml'))
+  props = YAML.load(File.open('bigbluebutton.yml'))
   redis_host = props['redis_host']
   redis_port = props['redis_port']
   redis_password = props['redis_password']
@@ -150,12 +144,11 @@ begin
   logger.level = Logger::INFO
   BigBlueButton.logger = logger
 
-  BigBlueButton.logger.debug("Running rap-process-worker...")
-  
+  BigBlueButton.logger.debug('Running rap-process-worker...')
+
   process_archived_meetings(recording_dir)
 
-  BigBlueButton.logger.debug("rap-process-worker done")
-
+  BigBlueButton.logger.debug('rap-process-worker done')
 rescue Exception => e
   BigBlueButton.logger.error(e.message)
   e.backtrace.each do |traceline|

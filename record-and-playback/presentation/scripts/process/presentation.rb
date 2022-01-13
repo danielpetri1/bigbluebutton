@@ -1,6 +1,5 @@
-# frozen_string_literal: true
 # Set encoding to utf-8
-# encoding: UTF-8
+# frozen_string_literal: true
 
 #
 # BigBlueButton open source conferencing system - http://www.bigbluebutton.org/
@@ -25,7 +24,7 @@
 # require File.expand_path('../../../../core/lib/recordandplayback', __FILE__)
 
 # For PRODUCTION
-require File.expand_path('../../../lib/recordandplayback', __FILE__)
+require File.expand_path('../../lib/recordandplayback', __dir__)
 
 require 'rubygems'
 require 'optimist'
@@ -171,6 +170,7 @@ unless FileTest.directory?(target_dir)
               page, pres_pdf, "#{target_pres_dir}/slide-#{page}.png", '1600x1600'
             )
             next unless File.exist?("#{pres_dir}/textfiles/slide-#{page}.txt")
+
             t = File.read("#{pres_dir}/textfiles/slide-#{page}.txt", encoding: 'UTF-8')
             text["slide-#{page}"] = t.encode('UTF-8', invalid: :replace)
             FileUtils.cp("#{pres_dir}/textfiles/slide-#{page}.txt", "#{target_pres_dir}/textfiles")
@@ -190,6 +190,7 @@ unless FileTest.directory?(target_dir)
     BigBlueButton.logger.info('Generating closed captions')
     ret = BigBlueButton.exec_ret('utils/gen_webvtt', '-i', raw_archive_dir, '-o', target_dir)
     raise 'Generating closed caption files failed' if ret != 0
+
     captions = JSON.parse(File.read("#{target_dir}/captions.json"))
 
     unless presentation_text.empty?
@@ -218,7 +219,8 @@ unless FileTest.directory?(target_dir)
 
       webcam_framerate = 15 if webcam_framerate.nil?
       processed_audio_file = BigBlueButton::AudioProcessor.get_processed_audio_file(raw_archive_dir, "#{target_dir}/audio")
-      BigBlueButton.process_webcam_videos(target_dir, raw_archive_dir, webcam_width, webcam_height, webcam_framerate, presentation_props['audio_offset'], processed_audio_file, presentation_props['video_formats'])
+      BigBlueButton.process_webcam_videos(target_dir, raw_archive_dir, webcam_width, webcam_height, webcam_framerate,
+                                          presentation_props['audio_offset'], processed_audio_file, presentation_props['video_formats'])
     end
 
     if !Dir["#{raw_archive_dir}/deskshare/*"].empty? && presentation_props['include_deskshare']
@@ -227,7 +229,8 @@ unless FileTest.directory?(target_dir)
       deskshare_framerate = presentation_props['deskshare_output_framerate']
       deskshare_framerate = 5 if deskshare_framerate.nil?
 
-      BigBlueButton.process_deskshare_videos(target_dir, raw_archive_dir, deskshare_width, deskshare_height, deskshare_framerate, presentation_props['video_formats'])
+      BigBlueButton.process_deskshare_videos(target_dir, raw_archive_dir, deskshare_width, deskshare_height,
+                                             deskshare_framerate, presentation_props['video_formats'])
     end
 
     # Copy shared notes from raw files

@@ -24,22 +24,22 @@
 # require File.expand_path('../../../../core/lib/recordandplayback', __FILE__)
 
 # For PRODUCTION
-require File.expand_path('../../../lib/recordandplayback', __FILE__)
+require File.expand_path('../../lib/recordandplayback', __dir__)
 
 require 'rubygems'
 require 'optimist'
 require 'yaml'
 require 'json'
 
-opts = Optimist::options do
-  opt :meeting_id, "Meeting id to archive", :default => '58f4a6b3-cd07-444d-8564-59116cb53974', :type => String
+opts = Optimist.options do
+  opt :meeting_id, 'Meeting id to archive', default: '58f4a6b3-cd07-444d-8564-59116cb53974', type: String
 end
 
 meeting_id = opts[:meeting_id]
 
 # This script lives in scripts/archive/steps while properties.yaml lives in scripts/
-props = YAML::load(File.open('../../core/scripts/bigbluebutton.yml'))
-notes_props = YAML::load(File.open('notes.yml'))
+props = YAML.load(File.open('../../core/scripts/bigbluebutton.yml'))
+notes_props = YAML.load(File.open('notes.yml'))
 format = notes_props['format']
 
 recording_dir = props['recording_dir']
@@ -48,17 +48,17 @@ log_dir = props['log_dir']
 note_file = "#{raw_archive_dir}/notes/notes.#{format}"
 
 target_dir = "#{recording_dir}/process/notes/#{meeting_id}"
-if not FileTest.directory?(target_dir)
+unless FileTest.directory?(target_dir)
   FileUtils.mkdir_p "#{log_dir}/notes"
-  logger = Logger.new("#{log_dir}/notes/process-#{meeting_id}.log", 'daily' )
+  logger = Logger.new("#{log_dir}/notes/process-#{meeting_id}.log", 'daily')
   BigBlueButton.logger = logger
-  BigBlueButton.logger.info("Processing script notes.rb")
+  BigBlueButton.logger.info('Processing script notes.rb')
   FileUtils.mkdir_p target_dir
 
   # Early exit if there isn't notes for this meeting
-  if not File.exists? note_file
+  unless File.exist? note_file
     BigBlueButton.logger.info("There wasn't any note for #{meeting_id}")
-    process_done = File.new("#{recording_dir}/status/processed/#{meeting_id}-notes.done", "w")
+    process_done = File.new("#{recording_dir}/status/processed/#{meeting_id}-notes.done", 'w')
     process_done.write("Processed #{meeting_id}")
     process_done.close
     exit 0
@@ -66,29 +66,29 @@ if not FileTest.directory?(target_dir)
 
   begin
     # Create initial metadata.xml
-    b = Builder::XmlMarkup.new(:indent => 2)
-    metaxml = b.recording {
+    b = Builder::XmlMarkup.new(indent: 2)
+    metaxml = b.recording do
       b.id(meeting_id)
-      b.state("processing")
+      b.state('processing')
       b.published(false)
       b.start_time
       b.end_time
       b.participants
       b.playback
       b.meta
-    }
-    metadata_xml = File.new("#{target_dir}/metadata.xml","w")
+    end
+    metadata_xml = File.new("#{target_dir}/metadata.xml", 'w')
     metadata_xml.write(metaxml)
     metadata_xml.close
-    BigBlueButton.logger.info("Created inital metadata.xml")
+    BigBlueButton.logger.info('Created inital metadata.xml')
 
     FileUtils.cp(note_file, "#{target_dir}/notes.#{format}")
 
     # Get the real-time start and end timestamp
     @doc = Nokogiri::XML(File.open("#{raw_archive_dir}/events.xml"))
 
-    meeting_start = @doc.xpath("//event")[0][:timestamp]
-    meeting_end = @doc.xpath("//event").last()[:timestamp]
+    meeting_start = @doc.xpath('//event')[0][:timestamp]
+    meeting_end = @doc.xpath('//event').last[:timestamp]
 
     match = /.*-(\d+)$/.match(meeting_id)
     real_start_time = match[1]
@@ -100,30 +100,24 @@ if not FileTest.directory?(target_dir)
     ## Add start_time and end_time
     recording = metadata.root
     ### Date Format for recordings: Thu Mar 04 14:05:56 UTC 2010
-    start_time = recording.at_xpath("start_time")
+    start_time = recording.at_xpath('start_time')
     start_time.content = real_start_time
-    end_time = recording.at_xpath("end_time")
+    end_time = recording.at_xpath('end_time')
     end_time.content = real_end_time
 
     ## Copy the breakout and breakout rooms node from
     ## events.xml if present.
-    breakout_xpath = @doc.xpath("//breakout")
-    breakout_rooms_xpath = @doc.xpath("//breakoutRooms")
-    meeting_xpath = @doc.xpath("//meeting")
+    breakout_xpath = @doc.xpath('//breakout')
+    breakout_rooms_xpath = @doc.xpath('//breakoutRooms')
+    meeting_xpath = @doc.xpath('//meeting')
 
-    if (meeting_xpath != nil)
-      recording << meeting_xpath
-    end
+    recording << meeting_xpath unless meeting_xpath.nil?
 
-    if (breakout_xpath != nil)
-      recording << breakout_xpath
-    end
+    recording << breakout_xpath unless breakout_xpath.nil?
 
-    if (breakout_rooms_xpath != nil)
-      recording << breakout_rooms_xpath
-    end
+    recording << breakout_rooms_xpath unless breakout_rooms_xpath.nil?
 
-    participants = recording.at_xpath("participants")
+    participants = recording.at_xpath('participants')
     participants.content = BigBlueButton::Events.get_num_participants(@doc)
 
     ## Remove empty meta
@@ -132,18 +126,18 @@ if not FileTest.directory?(target_dir)
     end
     ## Add the actual meta
     metadata_with_playback = Nokogiri::XML::Builder.with(metadata.at('recording')) do |xml|
-      xml.meta {
-        BigBlueButton::Events.get_meeting_metadata("#{raw_archive_dir}/events.xml").each { |k,v| xml.method_missing(k,v) }
-      }
+      xml.meta do
+        BigBlueButton::Events.get_meeting_metadata("#{raw_archive_dir}/events.xml").each { |k, v| xml.method_missing(k, v) }
+      end
     end
     ## Write the new metadata.xml
-    metadata_file = File.new("#{target_dir}/metadata.xml","w")
+    metadata_file = File.new("#{target_dir}/metadata.xml", 'w')
     metadata = Nokogiri::XML(metadata.to_xml) { |x| x.noblanks }
     metadata_file.write(metadata.root)
     metadata_file.close
-    BigBlueButton.logger.info("Created an updated metadata.xml with start_time and end_time")
+    BigBlueButton.logger.info('Created an updated metadata.xml with start_time and end_time')
 
-    process_done = File.new("#{recording_dir}/status/processed/#{meeting_id}-notes.done", "w")
+    process_done = File.new("#{recording_dir}/status/processed/#{meeting_id}-notes.done", 'w')
     process_done.write("Processed #{meeting_id}")
     process_done.close
 
@@ -152,14 +146,13 @@ if not FileTest.directory?(target_dir)
     metadata = Nokogiri::XML(File.open("#{target_dir}/metadata.xml"))
     ## Update status
     recording = metadata.root
-    state = recording.at_xpath("state")
-    state.content = "processed"
+    state = recording.at_xpath('state')
+    state.content = 'processed'
     ## Write the new metadata.xml
-    metadata_file = File.new("#{target_dir}/metadata.xml","w")
+    metadata_file = File.new("#{target_dir}/metadata.xml", 'w')
     metadata_file.write(metadata.root)
     metadata_file.close
-    BigBlueButton.logger.info("Created an updated metadata.xml with state=processed")
-
+    BigBlueButton.logger.info('Created an updated metadata.xml with state=processed')
   rescue Exception => e
     BigBlueButton.logger.error(e.message)
     e.backtrace.each do |traceline|

@@ -22,21 +22,20 @@ require 'fileutils'
 
 module BigBlueButton
   describe Presentation do
-    context "#success" do
-      it "should generate a complete audio file for the recording" do
-        dir = "resources/raw/1b199e88-7df7-4842-a5f1-0e84b781c5c8"
+    context '#success' do
+      it 'should generate a complete audio file for the recording' do
+        dir = 'resources/raw/1b199e88-7df7-4842-a5f1-0e84b781c5c8'
         events_xml = "#{dir}/events.xml"
         presentations_dir = "#{dir}/presentations"
         BigBlueButton::Presentation.get_presentations(events_xml).size.should equal(2)
       end
-      
-      it "should determine the number of pages in a presentation" do
-        dir = "resources/raw/1b199e88-7df7-4842-a5f1-0e84b781c5c8"
+
+      it 'should determine the number of pages in a presentation' do
+        dir = 'resources/raw/1b199e88-7df7-4842-a5f1-0e84b781c5c8'
         events_xml = "#{dir}/events.xml"
         presentations_dir = "#{dir}/presentations/aSimple-Layout"
         BigBlueButton::Presentation.get_number_of_pages_for(presentations_dir).should equal(6)
       end
-      
     end
   end
 end

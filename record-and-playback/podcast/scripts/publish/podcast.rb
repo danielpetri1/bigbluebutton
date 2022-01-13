@@ -28,13 +28,12 @@ require 'yaml'
 require 'builder'
 require 'fastimage' # require fastimage to get the image size of the slides (gem install fastimage)
 
-
 # This script lives in scripts/archive/steps while properties.yaml lives in scripts/
-bbb_props = YAML::load(File.open('../../core/scripts/bigbluebutton.yml'))
-podcast_props = YAML::load(File.open('podcast.yml'))
+bbb_props = YAML.load(File.open('../../core/scripts/bigbluebutton.yml'))
+podcast_props = YAML.load(File.open('podcast.yml'))
 
-opts = Optimist::options do
-  opt :meeting_id, "Meeting id to archive", :default => '58f4a6b3-cd07-444d-8564-59116cb53974', :type => String
+opts = Optimist.options do
+  opt :meeting_id, 'Meeting id to archive', default: '58f4a6b3-cd07-444d-8564-59116cb53974', type: String
 end
 
 meeting_id = opts[:meeting_id]
@@ -47,12 +46,11 @@ puts meeting_id
 puts playback
 
 begin
-
-  if (playback == "podcast")
+  if playback == 'podcast'
 
     log_dir = bbb_props['log_dir']
 
-    logger = Logger.new("#{log_dir}/podcast/publish-#{meeting_id}.log", 'daily' )
+    logger = Logger.new("#{log_dir}/podcast/publish-#{meeting_id}.log", 'daily')
     BigBlueButton.logger = logger
 
     recording_dir = bbb_props['recording_dir']
@@ -63,8 +61,8 @@ begin
     playback_host = bbb_props['playback_host']
     target_dir = "#{recording_dir}/publish/podcast/#{meeting_id}"
 
-    if not FileTest.directory?(target_dir)
-      BigBlueButton.logger.info("Making dir target_dir")
+    if !FileTest.directory?(target_dir)
+      BigBlueButton.logger.info('Making dir target_dir')
       FileUtils.mkdir_p target_dir
 
       BigBlueButton.logger.info("copying: #{process_dir}/audio.ogg to -> #{target_dir}")
@@ -73,46 +71,43 @@ begin
       @doc = Nokogiri::XML(File.open("#{raw_archive_dir}/events.xml"))
       recording_time = BigBlueButton::Events.get_recording_length(@doc)
 
-      BigBlueButton.logger.info("Creating metadata.xml")
+      BigBlueButton.logger.info('Creating metadata.xml')
 
       #### INSTEAD OF CREATING THE WHOLE metadata.xml FILE AGAIN, ONLY ADD <playback>
       # Copy metadata.xml from process_dir
       FileUtils.cp("#{process_dir}/metadata.xml", target_dir)
-      BigBlueButton.logger.info("Copied metadata.xml file")
+      BigBlueButton.logger.info('Copied metadata.xml file')
 
       # Update state and add playback to metadata.xml
       ## Load metadata.xml
       metadata = Nokogiri::XML(File.open("#{target_dir}/metadata.xml"))
       ## Update state
       recording = metadata.root
-      state = recording.at_xpath("state")
-      state.content = "published"
-      published = recording.at_xpath("published")
-      published.content = "true"
+      state = recording.at_xpath('state')
+      state.content = 'published'
+      published = recording.at_xpath('published')
+      published.content = 'true'
       ## Remove empty playback
       metadata.search('//recording/playback').each do |playback|
         playback.remove
       end
       ## Add the actual playback
       metadata_with_playback = Nokogiri::XML::Builder.with(metadata.at('recording')) do |xml|
-        xml.playback {
-          xml.format("podcast")
+        xml.playback do
+          xml.format('podcast')
           xml.link("#{playback_protocol}://#{playback_host}/podcast/#{meeting_id}/audio.ogg")
-          xml.duration("#{recording_time}")
-        }
+          xml.duration(recording_time.to_s)
+        end
       end
       ## Write the new metadata.xml
-      metadata_file = File.new("#{target_dir}/metadata.xml","w")
+      metadata_file = File.new("#{target_dir}/metadata.xml", 'w')
       metadata = Nokogiri::XML(metadata.to_xml) { |x| x.noblanks }
       metadata_file.write(metadata.root)
       metadata_file.close
-      BigBlueButton.logger.info("Added playback to metadata.xml")
-
+      BigBlueButton.logger.info('Added playback to metadata.xml')
 
       # Now publish this recording files by copying them into the publish folder.
-      if not FileTest.directory?(publish_dir)
-        FileUtils.mkdir_p publish_dir
-      end
+      FileUtils.mkdir_p publish_dir unless FileTest.directory?(publish_dir)
 
       # Get raw size of recording files
       raw_dir = "#{recording_dir}/raw/#{meeting_id}"
@@ -121,15 +116,15 @@ begin
       BigBlueButton.add_playback_size_to_metadata(target_dir)
 
       FileUtils.cp_r(target_dir, publish_dir) # Copy all the files.
-      BigBlueButton.logger.info("Finished publishing script podcast.rb successfully.")
+      BigBlueButton.logger.info('Finished publishing script podcast.rb successfully.')
 
-      BigBlueButton.logger.info("Removing processed files.")
+      BigBlueButton.logger.info('Removing processed files.')
       FileUtils.rm_r(process_dir)
 
-      BigBlueButton.logger.info("Removing published files.")
+      BigBlueButton.logger.info('Removing published files.')
       FileUtils.rm_r(target_dir)
 
-      publish_done = File.new("#{recording_dir}/status/published/#{meeting_id}-podcast.done", "w")
+      publish_done = File.new("#{recording_dir}/status/published/#{meeting_id}-podcast.done", 'w')
       publish_done.write("Published #{meeting_id}")
       publish_done.close
 
@@ -137,17 +132,14 @@ begin
       BigBlueButton.logger.info("#{target_dir} is already there")
     end
   end
-
-
 rescue Exception => e
   BigBlueButton.logger.error(e.message)
   e.backtrace.each do |traceline|
     BigBlueButton.logger.error(traceline)
   end
-  publish_done = File.new("#{recording_dir}/status/published/#{meeting_id}-podcast.fail", "w")
+  publish_done = File.new("#{recording_dir}/status/published/#{meeting_id}-podcast.fail", 'w')
   publish_done.write("Failed Publishing #{meeting_id}")
   publish_done.close
 
   exit 1
 end
-

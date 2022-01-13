@@ -15,10 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with BigBlueButton.  If not, see <http://www.gnu.org/licenses/>.
 
-require File.expand_path('../../edl', __FILE__)
+require File.expand_path('../edl', __dir__)
 
 module BigBlueButton
-
   # Convert a caption file in some format to WebVTT.
   #
   # content_type is optional - if provided it should be the mime type of
@@ -27,15 +26,15 @@ module BigBlueButton
   #
   # Returns true on success, and false on failure. If conversion fails, the
   # out_filename file will be deleted.
-  def self.convert_caption_webvtt(in_filename, content_type, out_filename)
+  def self.convert_caption_webvtt(in_filename, _content_type, out_filename)
     ffmpeg_cmd = [*FFMPEG]
     # Input. For now ignore content type and use only automatic probing.
-    ffmpeg_cmd += ["-i", in_filename]
+    ffmpeg_cmd += ['-i', in_filename]
     # Select only the first subtitle track. This makes ffmpeg error out if
     # it doesn't find a subtitle track.
-    ffmpeg_cmd += ["-map", "0:s"]
+    ffmpeg_cmd += ['-map', '0:s']
     # Output.
-    ffmpeg_cmd += ["-f", "webvtt", out_filename]
+    ffmpeg_cmd += ['-f', 'webvtt', out_filename]
     Dir.chdir(File.dirname(out_filename)) do
       exitstatus = exec_ret(*ffmpeg_cmd)
       return true if exitstatus == 0
@@ -43,7 +42,6 @@ module BigBlueButton
 
     # FFmpeg creates the output file even if conversion fails. Clean it up.
     FileUtils.rm_f(out_filename)
-    return false
+    false
   end
-
 end

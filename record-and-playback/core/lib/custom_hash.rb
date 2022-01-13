@@ -25,12 +25,10 @@ require 'nokogiri'
 class Hash
   class << self
     def from_xml(xml_io)
-      begin
-        result = Nokogiri::XML(xml_io)
-        return { result.root.name.to_sym => xml_node_to_hash(result.root)}
-      rescue Exception => e
-        # raise your custom exception here
-      end
+      result = Nokogiri::XML(xml_io)
+      { result.root.name.to_sym => xml_node_to_hash(result.root) }
+    rescue Exception => e
+      # raise your custom exception here
     end
 
     def xml_node_to_hash(node)
@@ -47,10 +45,8 @@ class Hash
           node.children.each do |child|
             result = xml_node_to_hash(child)
 
-            if child.name == "text"
-              unless child.next_sibling || child.previous_sibling
-                return prepare(result)
-              end
+            if child.name == 'text'
+              return prepare(result) unless child.next_sibling || child.previous_sibling
             elsif result_hash[child.name.to_sym]
               if result_hash[child.name.to_sym].is_a?(Object::Array)
                 result_hash[child.name.to_sym] << prepare(result)
@@ -62,21 +58,21 @@ class Hash
             end
           end
 
-          return result_hash
+          result_hash
         else
-          return result_hash
+          result_hash
         end
       else
-        return prepare(node.content.to_s)
+        prepare(node.content.to_s)
       end
     end
 
     def prepare(data)
-      (data.class == String && data.to_i.to_s == data) ? data.to_i : data
+      data.instance_of?(String) && data.to_i.to_s == data ? data.to_i : data
     end
   end
 
   def to_struct(struct_name)
-      Struct.new(struct_name,*keys).new(*values)
+    Struct.new(struct_name, *keys).new(*values)
   end
 end

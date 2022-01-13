@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License along
 # with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
 
-require File.expand_path('../../../lib/recordandplayback', __FILE__)
+require File.expand_path('../../lib/recordandplayback', __dir__)
 require 'logger'
 require 'optimist'
 require 'yaml'
@@ -28,7 +28,7 @@ AUDIO_ARCHIVE_FORMAT = {
   # overkill if freeswitch is configured in a mono or low quality profile
   parameters: [
     %w[-c:a libopus -b:a 128K -f ogg],
-  ]
+  ],
 }.freeze
 
 def archive_events(meeting_id, redis_host, redis_port, redis_password, raw_archive_dir, break_timestamp)
@@ -59,9 +59,7 @@ def archive_notes(meeting_id, notes_endpoint, notes_formats, raw_archive_dir)
     # If the notes are empty, do not archive them
     blank = false
     content = File.open(tmp_note).read
-    if content.strip.empty?
-      blank = true
-    end
+    blank = true if content.strip.empty?
     FileUtils.rm_f(tmp_note)
     if blank
       BigBlueButton.logger.info("Empty notes for #{meeting_id}")
@@ -112,10 +110,8 @@ def archive_directory(source, dest)
   BigBlueButton.logger.info("Archiving contents of #{source}")
   FileUtils.mkdir_p(dest)
   ret = BigBlueButton.exec_ret('rsync', '-rstv',
-          "#{source}/", "#{dest}/")
-  if ret != 0
-    BigBlueButton.logger.warn("Failed to archive contents of #{source}")
-  end
+                               "#{source}/", "#{dest}/")
+  BigBlueButton.logger.warn("Failed to archive contents of #{source}") if ret != 0
 end
 
 def archive_has_recording_marks?(meeting_id, raw_archive_dir, break_timestamp)
@@ -125,41 +121,43 @@ def archive_has_recording_marks?(meeting_id, raw_archive_dir, break_timestamp)
 
   # Find the start and stop timestamps for the current recording segment
   start_timestamp = BigBlueButton::Events.get_segment_start_timestamp(
-          doc, break_timestamp)
+    doc, break_timestamp
+  )
   end_timestamp = BigBlueButton::Events.get_segment_end_timestamp(
-          doc, break_timestamp)
+    doc, break_timestamp
+  )
   BigBlueButton.logger.info("Segment start: #{start_timestamp}, end: #{end_timestamp}")
 
   BigBlueButton.logger.info("Checking for recording marks for #{meeting_id} segment #{break_timestamp}")
   rec_events = BigBlueButton::Events.match_start_and_stop_rec_events(
-          BigBlueButton::Events.get_start_and_stop_rec_events(doc, true))
+    BigBlueButton::Events.get_start_and_stop_rec_events(doc, true)
+  )
   has_recording_marks = false
   # Scan for a set of recording start/stop events which fits any of these cases:
   # - Recording started during segment
   # - Recording stopped during segment
   # - Recording started before segment and stopped after segment
   rec_events.each do |rec_event|
-    if (rec_event[:start_timestamp] > start_timestamp and
+    next unless (rec_event[:start_timestamp] > start_timestamp and
         rec_event[:start_timestamp] < end_timestamp) or
-       (rec_event[:stop_timestamp] > start_timestamp and
-        rec_event[:stop_timestamp] < end_timestamp) or
-       (rec_event[:start_timestamp] <= start_timestamp and
-        rec_event[:stop_timestamp] >= end_timestamp)
-      has_recording_marks = true
-    end
+                (rec_event[:stop_timestamp] > start_timestamp and
+                 rec_event[:stop_timestamp] < end_timestamp) or
+                (rec_event[:start_timestamp] <= start_timestamp and
+                 rec_event[:stop_timestamp] >= end_timestamp)
+
+    has_recording_marks = true
   end
   BigBlueButton.logger.info("Recording marks found: #{has_recording_marks}")
   has_recording_marks
 end
 
-
 ################## START ################################
 
-opts = Optimist::options do
-  opt :meeting_id, "Meeting id to archive", type: :string
-  opt :break_timestamp, "Chapter break end timestamp", type: :integer
+opts = Optimist.options do
+  opt :meeting_id, 'Meeting id to archive', type: :string
+  opt :break_timestamp, 'Chapter break end timestamp', type: :integer
 end
-Optimist::die :meeting_id, "must be provided" if opts[:meeting_id].nil?
+Optimist.die :meeting_id, 'must be provided' if opts[:meeting_id].nil?
 
 meeting_id = opts[:meeting_id]
 break_timestamp = opts[:break_timestamp]
@@ -184,15 +182,15 @@ notes_endpoint = props['notes_endpoint']
 notes_formats = props['notes_formats']
 
 # Determine the filenames for the done and fail files
-if !break_timestamp.nil?
-  done_base = "#{meeting_id}-#{break_timestamp}"
-else
-  done_base = meeting_id
-end
+done_base = if !break_timestamp.nil?
+              "#{meeting_id}-#{break_timestamp}"
+            else
+              meeting_id
+            end
 archive_done_file = "#{recording_dir}/status/archived/#{done_base}.done"
 archive_norecord_file = "#{recording_dir}/status/archived/#{done_base}.norecord"
 
-BigBlueButton.logger = Logger.new("#{log_dir}/archive-#{meeting_id}.log", 'daily' )
+BigBlueButton.logger = Logger.new("#{log_dir}/archive-#{meeting_id}.log", 'daily')
 
 target_dir = "#{raw_archive_dir}/#{meeting_id}"
 FileUtils.mkdir_p target_dir
@@ -231,24 +229,24 @@ if break_timestamp.nil?
   FileUtils.rm_rf("#{mediasoup_video_dir}/#{meeting_id}")
 end
 
-if not archive_has_recording_marks?(meeting_id, raw_archive_dir, break_timestamp)
+if !archive_has_recording_marks?(meeting_id, raw_archive_dir, break_timestamp)
   BigBlueButton.logger.info("There's no recording marks for #{meeting_id}, not processing recording.")
 
   if break_timestamp.nil?
     # we need to delete the keys here because the sanity phase might not
     # automatically happen for this recording
-    BigBlueButton.logger.info("Deleting redis keys")
+    BigBlueButton.logger.info('Deleting redis keys')
     redis = BigBlueButton::RedisWrapper.new(redis_host, redis_port, redis_password)
     events_archiver = BigBlueButton::RedisEventsArchiver.new(redis)
     events_archiver.delete_events(meeting_id)
   end
 
-  File.open(archive_norecord_file, "w") do |archive_norecord|
+  File.open(archive_norecord_file, 'w') do |archive_norecord|
     archive_norecord.write("Archived #{meeting_id} (no recording marks")
   end
 
 else
-  File.open(archive_done_file, "w") do |archive_done|
+  File.open(archive_done_file, 'w') do |archive_done|
     archive_done.write("Archived #{meeting_id}")
   end
 end

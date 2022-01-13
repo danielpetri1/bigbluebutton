@@ -46,7 +46,7 @@ begin
   Resque.redis = "#{redis_host}:#{redis_port}"
 
   common_opts = {
-    'single_step': false
+    'single_step': false,
   }
 
   step = ARGV.shift

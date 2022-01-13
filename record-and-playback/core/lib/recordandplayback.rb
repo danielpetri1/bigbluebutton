@@ -52,9 +52,7 @@ module BigBlueButton
       @detailedStatus = nil
     end
 
-    attr_accessor :output
-    attr_accessor :errors
-    attr_accessor :detailedStatus
+    attr_accessor :output, :errors, :detailedStatus
 
     def success?
       @detailedStatus.success?
@@ -94,7 +92,7 @@ module BigBlueButton
   end
 
   def self.redis_publisher
-    return @redis_publisher
+    @redis_publisher
   end
 
   def self.execute(command, fail_on_error = true)
@@ -122,7 +120,7 @@ module BigBlueButton
     BigBlueButton.logger.info "Executing: #{Shellwords.join(command)}"
     BigBlueButton.logger.info "Sending output to #{outio}"
     IO.pipe do |r, w|
-      pid = spawn(*command, :out => outio, :err => w)
+      pid = spawn(*command, out: outio, err: w)
       w.close
       r.each_line do |line|
         BigBlueButton.logger.info line.chomp
@@ -134,28 +132,26 @@ module BigBlueButton
   end
 
   def self.hash_to_str(hash)
-    return PP.pp(hash, "")
+    PP.pp(hash, '')
   end
 
-  def self.monotonic_clock()
-    return (AbsoluteTime.now * 1000).to_i
+  def self.monotonic_clock
+    (AbsoluteTime.now * 1000).to_i
   end
 
   def self.download(url, output)
     BigBlueButton.logger.info "Downloading #{url} to #{output}"
 
     uri = URI.parse(url)
-    if ["http", "https", "ftp"].include? uri.scheme
-      response = Net::HTTP.start(uri.host, uri.port) {|http|
+    if %w[http https ftp].include? uri.scheme
+      response = Net::HTTP.start(uri.host, uri.port) do |http|
         http.head(uri.request_uri)
-      }
-      unless response.is_a? Net::HTTPSuccess
-        raise "File not available: #{response.message}"
       end
+      raise "File not available: #{response.message}" unless response.is_a? Net::HTTPSuccess
     end
 
     if uri.scheme.nil?
-      url = "file://" + url
+      url = 'file://' + url
       uri = URI.parse(url)
     end
 
@@ -172,65 +168,61 @@ module BigBlueButton
   end
 
   def self.try_download(url, output)
-    begin
-      self.download(url, output)
-    rescue Exception => e
-      BigBlueButton.logger.error "Failed to download file: #{e.to_s}"
-      FileUtils.rm_f output
-    end
+    download(url, output)
+  rescue Exception => e
+    BigBlueButton.logger.error "Failed to download file: #{e}"
+    FileUtils.rm_f output
   end
 
   def self.get_dir_size(dir_name)
     size = 0
-    if FileTest.directory?(dir_name)
-      Find.find(dir_name) {|f| size += File.size(f)}
-    end
+    Find.find(dir_name) { |f| size += File.size(f) } if FileTest.directory?(dir_name)
     size.to_s
   end
 
   def self.add_tag_to_xml(xml_filename, parent_xpath, tag, content)
     if File.exist? xml_filename
-      doc = Nokogiri::XML(File.read(xml_filename)) {|x| x.noblanks}
+      doc = Nokogiri::XML(File.read(xml_filename)) { |x| x.noblanks }
 
       node = doc.at_xpath("#{parent_xpath}/#{tag}")
-      node.remove if not node.nil?
+      node.remove unless node.nil?
 
       node = Nokogiri::XML::Node.new tag, doc
       node.content = content
 
       doc.at(parent_xpath) << node
 
-      xml_file = File.new(xml_filename, "w")
-      xml_file.write(doc.to_xml(:indent => 2))
+      xml_file = File.new(xml_filename, 'w')
+      xml_file.write(doc.to_xml(indent: 2))
       xml_file.close
     end
   end
 
   def self.add_raw_size_to_metadata(dir_name, raw_dir_name)
     size = BigBlueButton.get_dir_size(raw_dir_name)
-    BigBlueButton.add_tag_to_xml("#{dir_name}/metadata.xml", "//recording", "raw_size", size)
+    BigBlueButton.add_tag_to_xml("#{dir_name}/metadata.xml", '//recording', 'raw_size', size)
   end
 
   def self.add_playback_size_to_metadata(dir_name)
     size = BigBlueButton.get_dir_size(dir_name)
-    BigBlueButton.add_tag_to_xml("#{dir_name}/metadata.xml", "//recording/playback", "size", size)
+    BigBlueButton.add_tag_to_xml("#{dir_name}/metadata.xml", '//recording/playback', 'size', size)
   end
 
   def self.add_download_size_to_metadata(dir_name)
     size = BigBlueButton.get_dir_size(dir_name)
-    BigBlueButton.add_tag_to_xml("#{dir_name}/metadata.xml", "//recording/download", "size", size)
+    BigBlueButton.add_tag_to_xml("#{dir_name}/metadata.xml", '//recording/download', 'size', size)
   end
 
   def self.record_id_to_timestamp(r)
-    r.split("-")[1].to_i / 1000
+    r.split('-')[1].to_i / 1000
   end
 
   def self.done_to_timestamp(r)
-    BigBlueButton.record_id_to_timestamp(File.basename(r, ".done"))
+    BigBlueButton.record_id_to_timestamp(File.basename(r, '.done'))
   end
 
   def self.rap_core_path
-    File.expand_path('../../', __FILE__)
+    File.expand_path('..', __dir__)
   end
 
   def self.rap_scripts_path
@@ -241,7 +233,7 @@ module BigBlueButton
     return @props if @props
 
     filepath = File.join(BigBlueButton.rap_scripts_path, 'bigbluebutton.yml')
-    @props = YAML::load(File.open(filepath))
+    @props = YAML.load(File.open(filepath))
   end
 
   def self.create_redis_publisher

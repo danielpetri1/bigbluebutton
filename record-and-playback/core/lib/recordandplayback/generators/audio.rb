@@ -19,7 +19,6 @@
 # with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
 #
 
-
 require 'fileutils'
 require 'rubygems'
 require 'nokogiri'
@@ -27,7 +26,6 @@ require 'builder'
 
 module BigBlueButton
   class AudioEvents
-
     def self.create_audio_edl(events, archive_dir)
       audio_edl = []
       audio_dir = "#{archive_dir}/audio"
@@ -37,8 +35,8 @@ module BigBlueButton
 
       # Initially start with silence
       audio_edl << {
-        :timestamp => 0,
-        :audio => nil
+        timestamp: 0,
+        audio: nil,
       }
 
       # Add events for recording start/stop
@@ -49,8 +47,8 @@ module BigBlueButton
           filename = event.at_xpath('filename').text
           filename = "#{audio_dir}/#{File.basename(filename)}"
           audio_edl << {
-            :timestamp => timestamp,
-            :audio => { :filename => filename, :timestamp => 0 }
+            timestamp: timestamp,
+            audio: { filename: filename, timestamp: 0 },
           }
         when 'StopRecordingEvent'
           filename = event.at_xpath('filename').text
@@ -58,19 +56,19 @@ module BigBlueButton
           if audio_edl.last[:audio] && audio_edl.last[:audio][:filename] == filename
             audio_edl.last[:original_duration] = timestamp - audio_edl.last[:timestamp]
             audio_edl << {
-              :timestamp => timestamp,
-              :audio => nil
+              timestamp: timestamp,
+              audio: nil,
             }
           end
         end
       end
 
       audio_edl << {
-        :timestamp => final_timestamp - initial_timestamp,
-        :audio => nil
+        timestamp: final_timestamp - initial_timestamp,
+        audio: nil,
       }
 
-      return audio_edl
+      audio_edl
     end
 
     def self.create_deskshare_audio_edl(events, deskshare_dir)
@@ -78,12 +76,12 @@ module BigBlueButton
 
       initial_timestamp = BigBlueButton::Events.first_event_timestamp(events)
       final_timestamp = BigBlueButton::Events.last_event_timestamp(events)
-      filename = ""
+      filename = ''
 
       # Initially start with silence
       audio_edl << {
-        :timestamp => 0,
-        :audio => nil
+        timestamp: 0,
+        audio: nil,
       }
 
       events.xpath('/recording/event[@module="bbb-webrtc-sfu" and (@eventname="StartWebRTCDesktopShareEvent" or @eventname="StopWebRTCDesktopShareEvent")]').each do |event|
@@ -95,16 +93,17 @@ module BigBlueButton
           filename = "#{deskshare_dir}/#{File.basename(uri)}"
         end
         raise "Couldn't determine audio filename" if filename.nil?
+
         # check if deskshare has audio
         fileHasAudio = !BigBlueButton::EDL::Audio.audio_info(filename)[:audio].nil?
-        if (fileHasAudio)
+        if fileHasAudio
           timestamp = event['timestamp'].to_i - initial_timestamp
           # Add the audio to the EDL
           case event['eventname']
           when 'StartWebRTCDesktopShareEvent'
             audio_edl << {
-              :timestamp => timestamp,
-              :audio => { :filename => filename, :timestamp => 0 }
+              timestamp: timestamp,
+              audio: { filename: filename, timestamp: 0 },
             }
           when 'StopWebRTCDesktopShareEvent'
             if audio_edl.last[:audio] && audio_edl.last[:audio][:filename] == filename
@@ -117,23 +116,22 @@ module BigBlueButton
                 audio_edl.last[:original_duration] = timestamp - audio_edl.last[:timestamp]
               end
               audio_edl << {
-                :timestamp => timestamp,
-                :audio => nil
+                timestamp: timestamp,
+                audio: nil,
               }
             end
           end
         else
-          BigBlueButton.logger.debug " Screenshare without audio, ignoring..."
+          BigBlueButton.logger.debug ' Screenshare without audio, ignoring...'
         end
       end
 
       audio_edl << {
-        :timestamp => final_timestamp - initial_timestamp,
-        :audio => nil
+        timestamp: final_timestamp - initial_timestamp,
+        audio: nil,
       }
 
-      return audio_edl
+      audio_edl
     end
-
   end
 end
