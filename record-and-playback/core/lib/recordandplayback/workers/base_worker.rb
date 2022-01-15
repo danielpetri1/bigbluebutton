@@ -122,8 +122,8 @@ module BigBlueButton
         @logger.info("Scheduling next step for #{@step_name}")
 
         opts = {
-          'meeting_id': @meeting_id,
-          'single_step': false,
+          meeting_id: @meeting_id,
+          single_step: false,
         }
 
         # get the steps from the properties files

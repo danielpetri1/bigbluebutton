@@ -61,7 +61,9 @@ begin
     playback_host = bbb_props['playback_host']
     target_dir = "#{recording_dir}/publish/podcast/#{meeting_id}"
 
-    if !FileTest.directory?(target_dir)
+    if FileTest.directory?(target_dir)
+      BigBlueButton.logger.info("#{target_dir} is already there")
+    else
       BigBlueButton.logger.info('Making dir target_dir')
       FileUtils.mkdir_p target_dir
 
@@ -128,8 +130,6 @@ begin
       publish_done.write("Published #{meeting_id}")
       publish_done.close
 
-    else
-      BigBlueButton.logger.info("#{target_dir} is already there")
     end
   end
 rescue Exception => e

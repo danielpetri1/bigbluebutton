@@ -109,11 +109,11 @@ module BigBlueButton
             if audio_edl.last[:audio] && audio_edl.last[:audio][:filename] == filename
               # Fill in the original/expected audo duration when available
               duration = event.at_xpath('duration')
-              if !duration.nil?
+              if duration.nil?
+                audio_edl.last[:original_duration] = timestamp - audio_edl.last[:timestamp]
+              else
                 duration = duration.text.to_i
                 audio_edl.last[:original_duration] = duration * 1000
-              else
-                audio_edl.last[:original_duration] = timestamp - audio_edl.last[:timestamp]
               end
               audio_edl << {
                 timestamp: timestamp,

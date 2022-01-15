@@ -46,7 +46,7 @@ begin
   Resque.redis = "#{redis_host}:#{redis_port}"
 
   common_opts = {
-    'single_step': false,
+    single_step: false,
   }
 
   step = ARGV.shift
@@ -67,7 +67,7 @@ begin
       next
     end
 
-    opts = common_opts.merge('meeting_id': meeting_id)
+    opts = common_opts.merge(meeting_id: meeting_id)
 
     warn "Enqueing #{step_name} worker with #{opts.inspect}"
     ::Resque.enqueue(klass, opts)

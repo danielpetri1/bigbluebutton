@@ -74,12 +74,12 @@ module BigBlueButton
           if prev_entry
             next_entry[:areas].each do |area, videos|
               add_areas[area] = []
-              if !prev_entry[:areas][area]
-                add_areas[area] = videos
-              else
+              if prev_entry[:areas][area]
                 videos.each do |video|
                   add_areas[area] << video unless prev_entry[:areas][area].find { |v| v[:filename] == video[:filename] }
                 end
+              else
+                add_areas[area] = videos
               end
             end
           else
@@ -91,12 +91,12 @@ module BigBlueButton
           if prev_entry
             prev_entry[:areas].each do |area, videos|
               del_areas[area] = []
-              if !next_entry[:areas][area]
-                del_areas[area] = videos
-              else
+              if next_entry[:areas][area]
                 videos.each do |video|
                   del_areas[area] << video unless next_entry[:areas][area].find { |v| v[:filename] == video[:filename] }
                 end
+              else
+                del_areas[area] = videos
               end
             end
           end
@@ -131,10 +131,10 @@ module BigBlueButton
           end
           # Add new videos
           add_areas.each do |area, videos|
-            if !merged_entry[:areas][area]
-              merged_entry[:areas][area] = videos
-            else
+            if merged_entry[:areas][area]
               merged_entry[:areas][area] += videos
+            else
+              merged_entry[:areas][area] = videos
             end
           end
 
@@ -178,10 +178,7 @@ module BigBlueButton
         videoinfo.keys.each do |videofile|
           BigBlueButton.logger.debug "  #{videofile}"
           info = video_info(videofile)
-          if !info[:video]
-            BigBlueButton.logger.warn '    This video file is corrupt! It will be removed from the output.'
-            corrupt_videos << videofile
-          else
+          if info[:video]
             BigBlueButton.logger.debug "    width: #{info[:width]}, height: #{info[:height]}, duration: #{info[:duration]}, start_time: #{info[:start_time]}"
             if info[:video][:deskshare_timestamp_bug]
               BigBlueButton.logger.debug('    has early 1.1 deskshare timestamp bug')
@@ -189,6 +186,9 @@ module BigBlueButton
               BigBlueButton.logger.debug('    has large start time, needs remuxing')
               remux_flv_videos << videofile
             end
+          else
+            BigBlueButton.logger.warn '    This video file is corrupt! It will be removed from the output.'
+            corrupt_videos << videofile
           end
 
           videoinfo[videofile] = info

@@ -71,11 +71,11 @@ def process_archived_meetings(recording_dir)
       FileUtils.rm_rf(process_dir)
 
       step_start_time = BigBlueButton.monotonic_clock
-      ret = if !break_timestamp.nil?
+      ret = if break_timestamp.nil?
+              BigBlueButton.exec_ret('ruby', process_script, '-m', meeting_id)
+            else
               BigBlueButton.exec_ret('ruby', process_script,
                                      '-m', meeting_id, '-b', break_timestamp)
-            else
-              BigBlueButton.exec_ret('ruby', process_script, '-m', meeting_id)
             end
       step_stop_time = BigBlueButton.monotonic_clock
       step_time = step_stop_time - step_start_time

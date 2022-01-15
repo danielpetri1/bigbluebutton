@@ -310,10 +310,10 @@ module BigBlueButton
         breakout_rooms.each do |breakout_room|
           newBreakoutRooms << events_doc.create_element('breakoutRoom', breakout_room)
         end
-        if !breakoutRooms.nil?
-          breakoutRooms.replace(newBreakoutRooms)
-        else
+        if breakoutRooms.nil?
           recording << newBreakoutRooms
+        else
+          breakoutRooms.replace(newBreakoutRooms)
         end
       end
 

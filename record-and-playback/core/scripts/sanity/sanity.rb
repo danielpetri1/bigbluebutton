@@ -76,10 +76,10 @@ def repair_red5_ser(directory)
 end
 
 # Determine the filenames for the done and fail files
-done_base = if !break_timestamp.nil?
-              "#{meeting_id}-#{break_timestamp}"
-            else
+done_base = if break_timestamp.nil?
               meeting_id
+            else
+              "#{meeting_id}-#{break_timestamp}"
             end
 sanity_done_file = "#{recording_dir}/status/sanity/#{done_base}.done"
 sanity_fail_file = "#{recording_dir}/status/sanity/#{done_base}.fail"

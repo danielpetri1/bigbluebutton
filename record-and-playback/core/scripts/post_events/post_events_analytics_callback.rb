@@ -66,7 +66,7 @@ process_dir = "#{recording_dir}/process/events/#{meeting_id}"
 
 def send_data(analytics_url, secret, payload)
   # Setup a token that expires in 24hrs
-  exp = Time.now.to_i + 24 * 3600
+  exp = Time.now.to_i + (24 * 3600)
   exp_payload = { exp: exp }
   token = JWT.encode exp_payload, secret, 'HS512', { typ: 'JWT' }
 

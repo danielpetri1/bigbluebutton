@@ -182,10 +182,10 @@ notes_endpoint = props['notes_endpoint']
 notes_formats = props['notes_formats']
 
 # Determine the filenames for the done and fail files
-done_base = if !break_timestamp.nil?
-              "#{meeting_id}-#{break_timestamp}"
-            else
+done_base = if break_timestamp.nil?
               meeting_id
+            else
+              "#{meeting_id}-#{break_timestamp}"
             end
 archive_done_file = "#{recording_dir}/status/archived/#{done_base}.done"
 archive_norecord_file = "#{recording_dir}/status/archived/#{done_base}.norecord"
@@ -229,7 +229,11 @@ if break_timestamp.nil?
   FileUtils.rm_rf("#{mediasoup_video_dir}/#{meeting_id}")
 end
 
-if !archive_has_recording_marks?(meeting_id, raw_archive_dir, break_timestamp)
+if archive_has_recording_marks?(meeting_id, raw_archive_dir, break_timestamp)
+  File.open(archive_done_file, 'w') do |archive_done|
+    archive_done.write("Archived #{meeting_id}")
+  end
+else
   BigBlueButton.logger.info("There's no recording marks for #{meeting_id}, not processing recording.")
 
   if break_timestamp.nil?
@@ -245,8 +249,4 @@ if !archive_has_recording_marks?(meeting_id, raw_archive_dir, break_timestamp)
     archive_norecord.write("Archived #{meeting_id} (no recording marks")
   end
 
-else
-  File.open(archive_done_file, 'w') do |archive_done|
-    archive_done.write("Archived #{meeting_id}")
-  end
 end

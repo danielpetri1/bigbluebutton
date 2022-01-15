@@ -808,10 +808,10 @@ module BigBlueButton
     # for the last segment (which has no break timestamp), we return the
     # recording end timestamp (last event) instead.
     def self.get_segment_end_timestamp(events_xml, break_timestamp)
-      if !break_timestamp.nil?
-        break_timestamp
-      else
+      if break_timestamp.nil?
         BigBlueButton::Events.last_event_timestamp(events_xml)
+      else
+        break_timestamp
       end
     end
 

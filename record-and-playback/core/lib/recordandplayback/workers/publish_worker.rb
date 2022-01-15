@@ -81,14 +81,14 @@ module BigBlueButton
 
             @publisher.put_publish_ended(
               @format_name, @meeting_id,
-              'success': step_succeeded,
-              'step_time': step_time,
-              'playback': playback,
-              'metadata': metadata,
-              'download': download,
-              'raw_size': raw_size,
-              'start_time': start_time,
-              'end_time': end_time
+              success: step_succeeded,
+              step_time: step_time,
+              playback: playback,
+              metadata: metadata,
+              download: download,
+              raw_size: raw_size,
+              start_time: start_time,
+              end_time: end_time
             )
           else
             @logger.warn("Processed recording found for #{@meeting_id}/#{@format_name}, but no publish script exists")
