@@ -6,7 +6,6 @@ import NoteService from '/imports/ui/components/note/service';
 import Styled from './styles';
 import { PANELS, ACTIONS } from '../layout/enums';
 import browserInfo from '/imports/utils/browserInfo';
-
 import { makeCall } from '/imports/ui/services/api';
 
 const intlMessages = defineMessages({
@@ -76,12 +75,12 @@ const Note = ({
             label={intl.formatMessage(intlMessages.title)}
             icon={isRTL ? 'right_arrow' : 'left_arrow'}
           />
-          <Styled.HideButton
+        </Styled.Title>
+        <Styled.ConvertAndUpload
             onClick={convertAndUpload}
             label={intl.formatMessage(intlMessages.convertAndUploadLabel)}
             icon={'upload'}
-          />
-        </Styled.Title>
+        />
       </Styled.Header>
       <Styled.IFrame
         title="etherpad"
@@ -100,30 +99,17 @@ const Note = ({
 
 Note.propTypes = propTypes;
 
-function connect_to_pad(){
-  // @ts-ignore
-  api = require('etherpad-lite-client')
-  etherpad = api.connect({
-    apikey: '43e8b017852cfc393feef498c57e6ef9e882d139e0de058a226c0092973eb131',
-    host: 'vmott40.in.tum.de/pad',
-    port: 9001,
-    ssl: true,
-    rejectUnauthorized: false
-  });
-
-  var args = {
-    groupID: 'g.yJPG7ywIW6zPEQla',
-    padName: 'testpad',
-    text: 'Hello world!',
-  }
-
-  etherpad.createGroupPad(args, function(error, data) {
-    if(error) console.error('Error creating pad: ' + error.message)
-    else console.log('New pad created: ' + data.padID)
-  })
-  
-
+async function connect_to_pad(){
   makeCall('userActivitySign');
+
+  var noteId = await NoteService.getNoteId()
+  console.log(noteId)
+  // getPadID(readOnlyID)
+  
+  var res = await NoteService.getHtml()
+  console.log(res)
+
+  
 }
 
 export default injectWbResizeEvent(injectIntl(Note));
