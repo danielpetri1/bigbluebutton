@@ -14,7 +14,7 @@ const getReadOnlyIdURL = padId => `${BASE_URL}/getReadOnlyID?apikey=${ETHERPAD.a
 
 const appendTextURL = (padId, text) => `${BASE_URL}/appendText?apikey=${ETHERPAD.apikey}&padID=${padId}&text=${encodeURIComponent(text)}`;
 
-const getNoteHtml = (padId) => `${BASE_URL}/setHTML?apikey=${ETHERPAD.apikey}&padID=${padId}`;
+const getNoteHtml = (padId) => `${BASE_URL}/getHTML?apikey=${ETHERPAD.apikey}&padID=${padId}`;
 
 const getPadId = (readOnlyId) => `${BASE_URL}/getPadID?apikey=${ETHERPAD.apikey}&readOnlyID=${readOnlyId}`;
 
