@@ -6,7 +6,6 @@ import NoteService from '/imports/ui/components/note/service';
 import Styled from './styles';
 import { PANELS, ACTIONS } from '../layout/enums';
 import browserInfo from '/imports/utils/browserInfo';
-import { makeCall } from '/imports/ui/services/api';
 
 const intlMessages = defineMessages({
   hideNoteLabel: {
@@ -99,17 +98,8 @@ const Note = ({
 
 Note.propTypes = propTypes;
 
-async function connect_to_pad(){
-  makeCall('userActivitySign');
-
-  var noteId = await NoteService.getNoteId()
-  console.log(noteId)
-  // getPadID(readOnlyID)
-  
-  var res = await NoteService.getHtml()
-  console.log(res)
-
-  
+function connect_to_pad(){
+  return NoteService.getPdf();
 }
 
 export default injectWbResizeEvent(injectIntl(Note));

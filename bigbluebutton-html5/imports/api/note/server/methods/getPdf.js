@@ -4,7 +4,7 @@ import Users from '/imports/api/users';
 import Meetings from '/imports/api/meetings';
 import Logger from '/imports/startup/server/logger';
 import { extractCredentials } from '/imports/api/common/server/helpers';
-import { getNoteHtml } from '/imports/api/common/server/etherpad';
+import { getAppHost, getNotePdf } from '/imports/api/common/server/etherpad';
 
 const ROLE_VIEWER = Meteor.settings.public.user.role_viewer;
 
@@ -40,10 +40,10 @@ const hasNoteAccess = (meetingId, userId) => {
   return true;
 };
 
-export default function getHtml() {
+export default async function getPdf() {
   const REDIS_CONFIG = Meteor.settings.private.redis;
   const CHANNEL = REDIS_CONFIG.channels.toAkkaApps;
-  const EVENT_NAME = 'ConvertAndUploadSharedNotes';
+  const EVENT_NAME = 'ConvertAndUploadSharedNotesReqMsg';
   
   try {
     const { meetingId, requesterUserId } = extractCredentials(this.userId);
@@ -60,11 +60,19 @@ export default function getHtml() {
 
     if (note) {
       if (hasNoteAccess(meetingId, requesterUserId)) {
-        var getHtmlUrl = getNoteHtml(note.noteId)
-        console.log(getHtmlUrl)
+        var sharedNotesAsPdf = await getNotePdf(note.noteId)
+
+        const sharedNotesBinaryData = sharedNotesAsPdf.data
+        const callbackUrlBase = getAppHost()
+
+        const buff = Buffer.from(sharedNotesBinaryData, 'utf-8');
+        const sharedNotesData = buff.toString('base64');
+
+        console.log(sharedNotesData)
 
         const payload = {
-          getHtmlUrl,
+          sharedNotesData,
+          callbackUrlBase,
         }
 
         return RedisPubSub.publishUserMessage(CHANNEL, EVENT_NAME, meetingId, requesterUserId, payload);
@@ -74,6 +82,6 @@ export default function getHtml() {
     return null;
 
   } catch (err) {
-      Logger.error(`Exception while invoking method getHtml ${err.stack}`);
+      Logger.error(`Exception while invoking method getPdf ${err.stack}`);
   }
 }

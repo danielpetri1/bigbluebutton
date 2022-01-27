@@ -5,7 +5,10 @@ import createNote from '/imports/api/note/server/methods/createNote';
 import createCaptions from '/imports/api/captions/server/methods/createCaptions';
 
 const ETHERPAD = Meteor.settings.private.etherpad;
+const APP = Meteor.settings.private.app;
+
 const BASE_URL = `http://${ETHERPAD.host}:${ETHERPAD.port}/api/${ETHERPAD.version}`;
+const BASE_SESSION_URL = `http://${ETHERPAD.host}:${ETHERPAD.port}/p`
 const HASH_SIZE = 36;
 
 const createPadURL = padId => `${BASE_URL}/createPad?apikey=${ETHERPAD.apikey}&padID=${padId}`;
@@ -14,9 +17,9 @@ const getReadOnlyIdURL = padId => `${BASE_URL}/getReadOnlyID?apikey=${ETHERPAD.a
 
 const appendTextURL = (padId, text) => `${BASE_URL}/appendText?apikey=${ETHERPAD.apikey}&padID=${padId}&text=${encodeURIComponent(text)}`;
 
-const getNoteHtml = (padId) => `${BASE_URL}/getHTML?apikey=${ETHERPAD.apikey}&padID=${padId}`;
+const getAppHost = () => APP.host;
 
-const getPadId = (readOnlyId) => `${BASE_URL}/getPadID?apikey=${ETHERPAD.apikey}&readOnlyID=${readOnlyId}`;
+const getNotePdf = (padId) => axios.get(`${BASE_SESSION_URL}/${padId}/export/pdf`, {responseType: 'json'});
 
 const checkTokenURL = () => `${BASE_URL}/checkToken?apikey=${ETHERPAD.apikey}`;
 
@@ -52,8 +55,8 @@ export {
   createPadURL,
   getReadOnlyIdURL,
   appendTextURL,
-  getNoteHtml,
-  getPadId,
+  getAppHost,
+  getNotePdf,
   initPads,
   withInstaceId,
 }

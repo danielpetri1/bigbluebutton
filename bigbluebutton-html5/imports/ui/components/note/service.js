@@ -49,7 +49,7 @@ const isLocked = () => {
 };
 
 const getNoteId = () => makeCall('getNoteId');
-const getHtml = () => makeCall('getHtml')
+const getPdf = () => makeCall('getPdf')
 
 const buildNoteURL = (noteId) => {
   if (noteId) {
@@ -117,7 +117,7 @@ const toggleNotePanel = (sidebarContentPanel, layoutContextDispatch) => {
 
 export default {
   getNoteId,
-  getHtml,
+  getPdf,
   buildNoteURL,
   toggleNotePanel,
   isLocked,
