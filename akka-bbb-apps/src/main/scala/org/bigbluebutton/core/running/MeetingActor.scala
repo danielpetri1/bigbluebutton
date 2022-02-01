@@ -47,6 +47,7 @@ import org.bigbluebutton.core2.message.senders.{ MsgBuilder, Sender }
 import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scalaj.http._
+import scala.io.Source
 
 object MeetingActor {
   def props(
@@ -1024,37 +1025,27 @@ class MeetingActor(
     val meetingId = msg.header.meetingId
     val presentationUploadToken: String = PresentationPodsApp.generateToken("DEFAULT_PRESENTATION_POD", userId)
 
-    // ${msg.body.callbackUrlBase}
-
     val callbackUrl = s"https://vmott40.in.tum.de/bigbluebutton/presentation/${presentationUploadToken}/upload"
 
-    val file = msg.body.sharedNotesData
+    val file = Base64.decodeString(msg.body.sharedNotesData)
     val filename = s"SharedNotes-${liveMeeting.props.meetingProp.name}"
 
-    val params = Map()
-
+    // callbackUrlBase
     // Inform BBB-Web about the token
     outGW.send(buildPresentationUploadTokenSysPubMsg(meetingId, userId, presentationUploadToken, filename))
 
     // Upload the PDF file
-    // Http(callbackUrl).postMulti(MultiPart(params)).asString
-    
-    // Needs to be multipart request
-    Http(callbackUrl).postForm(Seq(
-      "presentation_name" -> s"${filename}.pdf",
-      "Filename" -> s"${filename}.pdf",
-      "fileUpload" -> "/home/petriroc/lol.pdf",
-      "conference" -> meetingId,
-      "room" -> meetingId,
-      "pod_id" -> "DEFAULT_PRESENTATION_POD",
-      "is_downloadable" -> "true"
-    )).asString
+    val res = Http(callbackUrl)
+      .postMulti(MultiPart("fileUpload", s"${filename}.pdf", "application/pdf", file))
+      .params(Seq(
+        "presentation_name" -> s"${filename}.pdf",
+        "Filename" -> s"${filename}.pdf",
+        "conference" -> meetingId,
+        "room" -> meetingId,
+        "pod_id" -> "DEFAULT_PRESENTATION_POD",
+        "is_downloadable" -> "false"
+      )).asString.body
 
-    println("**********")
-    println("Received ConvertAndUploadSharedNotesReqMsg")
-    println("Sent a new presention upload token to BBB-Web: " + presentationUploadToken)
-    println("Callback URL: " + callbackUrl)
-    println("File name: " + filename)
-    println("**********")
+    // Callback URL debugging: "http://httpbin.org/anything"
   }
 }

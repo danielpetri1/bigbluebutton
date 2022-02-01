@@ -99,7 +99,7 @@ const Note = ({
 Note.propTypes = propTypes;
 
 function connect_to_pad(){
-  return NoteService.getPdf();
+  return NoteService.getPadContents();
 }
 
 export default injectWbResizeEvent(injectIntl(Note));
