@@ -4,7 +4,7 @@ import Users from '/imports/api/users';
 import Meetings from '/imports/api/meetings';
 import Logger from '/imports/startup/server/logger';
 import { extractCredentials } from '/imports/api/common/server/helpers';
-import { getAppHost, getNotePdf, getNoteHtml, getNoteHtmlLink } from '/imports/api/common/server/etherpad';
+import { getNotePdf } from '/imports/api/common/server/etherpad';
 
 const ROLE_VIEWER = Meteor.settings.public.user.role_viewer;
 
@@ -60,23 +60,15 @@ export default async function getPadContents() {
 
     if (note) {
       if (hasNoteAccess(meetingId, requesterUserId)) {
-        
-        var sharedNotesAsHtml = await getNoteHtml(note.noteId)
-        
-        const sharedNotesBinaryData = sharedNotesAsHtml.data.data.html
-
-        console.log(res)
-
-        const callbackUrlBase = getAppHost()
-        
-        const buff = Buffer.from(sharedNotesBinaryData, 'utf-8');
+        console.log(note.noteId)
+        var sharedNotesAsPDF = await getNotePdf(note.noteId)
+        const buff = Buffer.from(sharedNotesAsPDF.data, 'utf-8');
         const sharedNotesData = buff.toString('base64');
 
         console.log(sharedNotesData)
 
         const payload = {
           sharedNotesData,
-          callbackUrlBase,
         }
 
         return RedisPubSub.publishUserMessage(CHANNEL, EVENT_NAME, meetingId, requesterUserId, payload);
@@ -86,6 +78,6 @@ export default async function getPadContents() {
     return null;
 
   } catch (err) {
-      Logger.error(`Exception while invoking method getHtml ${err.stack}`);
+      Logger.error(`Exception while invoking method getPdf ${err.stack}`);
   }
 }

@@ -1030,7 +1030,6 @@ class MeetingActor(
     val file = Base64.decodeString(msg.body.sharedNotesData)
     val filename = s"SharedNotes-${liveMeeting.props.meetingProp.name}"
 
-    // callbackUrlBase
     // Inform BBB-Web about the token
     outGW.send(buildPresentationUploadTokenSysPubMsg(meetingId, userId, presentationUploadToken, filename))
 
