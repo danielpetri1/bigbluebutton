@@ -1025,26 +1025,46 @@ class MeetingActor(
     val meetingId = msg.header.meetingId
     val presentationUploadToken: String = PresentationPodsApp.generateToken("DEFAULT_PRESENTATION_POD", userId)
 
+    // val callbackUrl = s"https://${httpHost}:8090/bigbluebutton/presentation/${presentationUploadToken}/upload"
+
     val callbackUrl = s"https://vmott40.in.tum.de/bigbluebutton/presentation/${presentationUploadToken}/upload"
 
-    val file = Base64.decodeString(msg.body.sharedNotesData)
+    val fileUrl: String = msg.body.sharedNotesData
     val filename = s"SharedNotes-${liveMeeting.props.meetingProp.name}"
+    val format = ".pdf"
 
     // Inform BBB-Web about the token
     outGW.send(buildPresentationUploadTokenSysPubMsg(meetingId, userId, presentationUploadToken, filename))
 
-    // Upload the PDF file
-    val res = Http(callbackUrl)
-      .postMulti(MultiPart("fileUpload", s"${filename}.pdf", "application/pdf", file))
+    // Get the PDF file from the response JSON
+    val request: HttpResponse[Array[Byte]] = Http(fileUrl).param("Content-Type", "application/json").asBytes
+    val file: Array[Byte] = request.body
+
+    var upload_pdf = Http(callbackUrl)
+      .header("Accept", "*/*")
+      .postMulti(MultiPart("fileUpload", s"${filename}.${format}", "application/octet-stream", file))
       .params(Seq(
-        "presentation_name" -> s"${filename}.pdf",
-        "Filename" -> s"${filename}.pdf",
+        "presentation_name" -> s"${filename}.${format}",
+        "Filename" -> s"${filename}.${format}",
         "conference" -> meetingId,
         "room" -> meetingId,
         "pod_id" -> "DEFAULT_PRESENTATION_POD",
         "is_downloadable" -> "false"
       )).asString.body
 
-    // Callback URL debugging: "http://httpbin.org/anything"
+    println(upload_pdf)
+    // println(presentationUploadToken)
+
+    // Working for text format
+    // val res = Http(callbackUrl)
+    //   .postMulti(MultiPart("fileUpload", s"${filename}.txt", "text/plain", file))
+    //   .params(Seq(
+    //     "presentation_name" -> s"${filename}.txt",
+    //     "Filename" -> s"${filename}.txt",
+    //     "conference" -> meetingId,
+    //     "room" -> meetingId,
+    //     "pod_id" -> "DEFAULT_PRESENTATION_POD",
+    //     "is_downloadable" -> "false"
+    //   )).asString.body
   }
 }

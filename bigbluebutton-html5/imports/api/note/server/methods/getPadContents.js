@@ -4,7 +4,7 @@ import Users from '/imports/api/users';
 import Meetings from '/imports/api/meetings';
 import Logger from '/imports/startup/server/logger';
 import { extractCredentials } from '/imports/api/common/server/helpers';
-import { getNotePdf } from '/imports/api/common/server/etherpad';
+import { getNoteText, getNotePdf, getNotePdfLink } from '/imports/api/common/server/etherpad';
 
 const ROLE_VIEWER = Meteor.settings.public.user.role_viewer;
 
@@ -60,13 +60,9 @@ export default async function getPadContents() {
 
     if (note) {
       if (hasNoteAccess(meetingId, requesterUserId)) {
-        console.log(note.noteId)
-        var sharedNotesAsPDF = await getNotePdf(note.noteId)
-        const buff = Buffer.from(sharedNotesAsPDF.data, 'utf-8');
-        const sharedNotesData = buff.toString('base64');
-
-        console.log(sharedNotesData)
-
+        // var sharedNotesFile = await getNoteText(note.noteId)
+        // var sharedNotesFile = await getNotePdf(note.noteId)
+        const sharedNotesData = getNotePdfLink(note.noteId) // sharedNotesFile.data
         const payload = {
           sharedNotesData,
         }
