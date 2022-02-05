@@ -26,7 +26,7 @@ const intlMessages = defineMessages({
   },
 });
 
-const convertAndUpload = () => connect_to_pad();
+const convertAndUpload = () => connectToPad();
 
 const propTypes = {
   isLocked: PropTypes.bool.isRequired,
@@ -40,6 +40,7 @@ const Note = ({
   isLocked,
   intl,
   isRTL,
+  amIModerator,
   layoutContextDispatch,
   isResizing,
 }) => {
@@ -53,52 +54,91 @@ const Note = ({
   }, [isLocked, isRTL]);
 
   useEffect(() => () => NoteService.setLastRevs(), []);
-
-  return (
-    <Styled.Note data-test="note" isChrome={isChrome}>
-      <Styled.Header>
-        <Styled.Title data-test="noteTitle">
-          <Styled.HideButton
-            onClick={() => {
-              layoutContextDispatch({
-                type: ACTIONS.SET_SIDEBAR_CONTENT_IS_OPEN,
-                value: false,
-              });
-              layoutContextDispatch({
-                type: ACTIONS.SET_SIDEBAR_CONTENT_PANEL,
-                value: PANELS.NONE,
-              });
-            }}
-            data-test="hideNoteLabel"
-            aria-label={intl.formatMessage(intlMessages.hideNoteLabel)}
-            label={intl.formatMessage(intlMessages.title)}
-            icon={isRTL ? 'right_arrow' : 'left_arrow'}
+  
+  if (amIModerator){
+    return (
+      <Styled.Note data-test="note" isChrome={isChrome}>
+        <Styled.Header>
+          <Styled.Title data-test="noteTitle">
+            <Styled.HideButton
+              onClick={() => {
+                layoutContextDispatch({
+                  type: ACTIONS.SET_SIDEBAR_CONTENT_IS_OPEN,
+                  value: false,
+                });
+                layoutContextDispatch({
+                  type: ACTIONS.SET_SIDEBAR_CONTENT_PANEL,
+                  value: PANELS.NONE,
+                });
+              }}
+              data-test="hideNoteLabel"
+              aria-label={intl.formatMessage(intlMessages.hideNoteLabel)}
+              label={intl.formatMessage(intlMessages.title)}
+              icon={isRTL ? 'right_arrow' : 'left_arrow'}
+            />
+          </Styled.Title>
+          <Styled.ConvertAndUpload
+              onClick={convertAndUpload}
+              label={intl.formatMessage(intlMessages.convertAndUploadLabel)}
+              icon={'upload'}
           />
-        </Styled.Title>
-        <Styled.ConvertAndUpload
-            onClick={convertAndUpload}
-            label={intl.formatMessage(intlMessages.convertAndUploadLabel)}
-            icon={'upload'}
+        </Styled.Header>
+        <Styled.IFrame
+          title="etherpad"
+          src={noteURL}
+          aria-describedby="sharedNotesEscapeHint"
+          style={{
+            pointerEvents: isResizing ? 'none' : 'inherit',
+          }}
         />
-      </Styled.Header>
-      <Styled.IFrame
-        title="etherpad"
-        src={noteURL}
-        aria-describedby="sharedNotesEscapeHint"
-        style={{
-          pointerEvents: isResizing ? 'none' : 'inherit',
-        }}
-      />
-      <Styled.Hint id="sharedNotesEscapeHint" aria-hidden>
-        {intl.formatMessage(intlMessages.tipLabel)}
-      </Styled.Hint>
-    </Styled.Note>
-  );
+        <Styled.Hint id="sharedNotesEscapeHint" aria-hidden>
+          {intl.formatMessage(intlMessages.tipLabel)}
+        </Styled.Hint>
+      </Styled.Note>
+    );
+  }
+  else {
+    return (
+      <Styled.Note data-test="note" isChrome={isChrome}>
+        <Styled.Header>
+          <Styled.Title data-test="noteTitle">
+            <Styled.HideButton
+              onClick={() => {
+                layoutContextDispatch({
+                  type: ACTIONS.SET_SIDEBAR_CONTENT_IS_OPEN,
+                  value: false,
+                });
+                layoutContextDispatch({
+                  type: ACTIONS.SET_SIDEBAR_CONTENT_PANEL,
+                  value: PANELS.NONE,
+                });
+              }}
+              data-test="hideNoteLabel"
+              aria-label={intl.formatMessage(intlMessages.hideNoteLabel)}
+              label={intl.formatMessage(intlMessages.title)}
+              icon={isRTL ? 'right_arrow' : 'left_arrow'}
+            />
+          </Styled.Title>
+        </Styled.Header>
+        <Styled.IFrame
+          title="etherpad"
+          src={noteURL}
+          aria-describedby="sharedNotesEscapeHint"
+          style={{
+            pointerEvents: isResizing ? 'none' : 'inherit',
+          }}
+        />
+        <Styled.Hint id="sharedNotesEscapeHint" aria-hidden>
+          {intl.formatMessage(intlMessages.tipLabel)}
+        </Styled.Hint>
+      </Styled.Note>
+    );
+  }
 };
 
 Note.propTypes = propTypes;
 
-function connect_to_pad(){
+function connectToPad(){
   return NoteService.getPadContents();
 }
 

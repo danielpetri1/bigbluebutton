@@ -4,7 +4,7 @@ import Users from '/imports/api/users';
 import Meetings from '/imports/api/meetings';
 import Logger from '/imports/startup/server/logger';
 import { extractCredentials } from '/imports/api/common/server/helpers';
-import { getNoteText, getNotePdf, getNotePdfLink } from '/imports/api/common/server/etherpad';
+import { getNoteText, getNotePdf } from '/imports/api/common/server/etherpad';
 
 const ROLE_VIEWER = Meteor.settings.public.user.role_viewer;
 
@@ -40,7 +40,7 @@ const hasNoteAccess = (meetingId, userId) => {
   return true;
 };
 
-export default async function getPadContents() {
+export default function getPadContents() {
   const REDIS_CONFIG = Meteor.settings.private.redis;
   const CHANNEL = REDIS_CONFIG.channels.toAkkaApps;
   const EVENT_NAME = 'ConvertAndUploadSharedNotesReqMsg';
@@ -60,9 +60,7 @@ export default async function getPadContents() {
 
     if (note) {
       if (hasNoteAccess(meetingId, requesterUserId)) {
-        // var sharedNotesFile = await getNoteText(note.noteId)
-        // var sharedNotesFile = await getNotePdf(note.noteId)
-        const sharedNotesData = getNotePdfLink(note.noteId) // sharedNotesFile.data
+        const sharedNotesData = getNotePdf(note.noteId)
         const payload = {
           sharedNotesData,
         }

@@ -16,9 +16,7 @@ const getReadOnlyIdURL = padId => `${BASE_URL}/getReadOnlyID?apikey=${ETHERPAD.a
 
 const appendTextURL = (padId, text) => `${BASE_URL}/appendText?apikey=${ETHERPAD.apikey}&padID=${padId}&text=${encodeURIComponent(text)}`;
 
-const getNotePdfLink = (padId) => `${EXPORT_URL}/${padId}/export/pdf`;
-
-const getNotePdf = (padId) => axios.get(`${EXPORT_URL}/${padId}/export/pdf`, { responseType: 'json' } );
+const getNotePdf = (padId) => `${EXPORT_URL}/${padId}/export/pdf`;
 
 const getNoteText = (padId) => axios.get(`${EXPORT_URL}/${padId}/export/txt`, { responseType: 'json' } );
 
@@ -58,7 +56,6 @@ export {
   appendTextURL,
   getNotePdf,
   getNoteText,
-  getNotePdfLink,
   initPads,
   withInstaceId,
 }
