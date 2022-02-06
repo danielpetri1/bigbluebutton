@@ -56,6 +56,7 @@
     "app.title.defaultViewLabel": "Default presentation view",
     "app.note.title": "Shared Notes",
     "app.note.convertAndUpload": "Move notes to whiteboard",
+    "app.note.uploadSharedNotes": "Uploading shared notes...",
     "app.note.label": "Note",
     "app.note.hideNoteLabel": "Hide note",
     "app.note.tipLabel": "Press Esc to focus editor toolbar",

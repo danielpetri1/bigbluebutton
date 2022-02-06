@@ -1025,7 +1025,7 @@ class MeetingActor(
     val meetingId = msg.header.meetingId
     val presentationUploadToken: String = PresentationPodsApp.generateToken("DEFAULT_PRESENTATION_POD", userId)
 
-    val callbackUrl = s"http://127.0.0.1:8090/bigbluebutton/presentation/${presentationUploadToken}/upload"
+    val callbackUrl = s"http://${bbbWebHost}:${bbbWebPort}/bigbluebutton/presentation/${presentationUploadToken}/upload"
     val fileUrl: String = msg.body.sharedNotesData
     val filename = s"SharedNotes-${liveMeeting.props.meetingProp.name}"
     val format = "pdf"

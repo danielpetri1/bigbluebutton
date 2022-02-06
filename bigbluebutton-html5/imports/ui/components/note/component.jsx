@@ -6,6 +6,7 @@ import NoteService from '/imports/ui/components/note/service';
 import Styled from './styles';
 import { PANELS, ACTIONS } from '../layout/enums';
 import browserInfo from '/imports/utils/browserInfo';
+import { notify } from '/imports/ui/services/notification';
 
 const intlMessages = defineMessages({
   hideNoteLabel: {
@@ -23,6 +24,10 @@ const intlMessages = defineMessages({
   convertAndUploadLabel: {
     id: 'app.note.convertAndUpload',
     description: 'Export shared notes as a PDF and upload to the main room',
+  },
+  uploadSharedNotes: {
+    id: 'app.note.uploadSharedNotes',
+    description: 'Upload shared notes toast notification',
   },
 });
 
@@ -56,6 +61,8 @@ const Note = ({
   useEffect(() => () => NoteService.setLastRevs(), []);
   
   if (amIModerator){
+    const toast = () => notify(intl.formatMessage(intlMessages.uploadSharedNotes), 'info', 'upload')
+
     return (
       <Styled.Note data-test="note" isChrome={isChrome}>
         <Styled.Header>
@@ -78,7 +85,7 @@ const Note = ({
             />
           </Styled.Title>
           <Styled.ConvertAndUpload
-              onClick={convertAndUpload}
+              onClick={function(){ convertAndUpload(); toast()}}
               label={intl.formatMessage(intlMessages.convertAndUploadLabel)}
               icon={'upload'}
           />
