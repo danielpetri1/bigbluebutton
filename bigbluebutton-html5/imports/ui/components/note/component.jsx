@@ -31,7 +31,9 @@ const intlMessages = defineMessages({
   },
 });
 
-const convertAndUpload = () => connectToPad();
+function convertAndUpload() {
+  return NoteService.getPadContents();
+}
 
 const propTypes = {
   isLocked: PropTypes.bool.isRequired,
@@ -59,9 +61,9 @@ const Note = ({
   }, [isLocked, isRTL]);
 
   useEffect(() => () => NoteService.setLastRevs(), []);
-  
-  if (amIModerator){
-    const toast = () => notify(intl.formatMessage(intlMessages.uploadSharedNotes), 'info', 'upload')
+
+  if (amIModerator) {
+    const toast = () => notify(intl.formatMessage(intlMessages.uploadSharedNotes), 'info', 'upload');
 
     return (
       <Styled.Note data-test="note" isChrome={isChrome}>
@@ -85,9 +87,9 @@ const Note = ({
             />
           </Styled.Title>
           <Styled.ConvertAndUpload
-              onClick={function(){ convertAndUpload(); toast()}}
-              label={intl.formatMessage(intlMessages.convertAndUploadLabel)}
-              icon={'upload'}
+            onClick={() => { convertAndUpload(); toast(); }}
+            label={intl.formatMessage(intlMessages.convertAndUploadLabel)}
+            icon="upload"
           />
         </Styled.Header>
         <Styled.IFrame
@@ -104,49 +106,44 @@ const Note = ({
       </Styled.Note>
     );
   }
-  else {
-    return (
-      <Styled.Note data-test="note" isChrome={isChrome}>
-        <Styled.Header>
-          <Styled.Title data-test="noteTitle">
-            <Styled.HideButton
-              onClick={() => {
-                layoutContextDispatch({
-                  type: ACTIONS.SET_SIDEBAR_CONTENT_IS_OPEN,
-                  value: false,
-                });
-                layoutContextDispatch({
-                  type: ACTIONS.SET_SIDEBAR_CONTENT_PANEL,
-                  value: PANELS.NONE,
-                });
-              }}
-              data-test="hideNoteLabel"
-              aria-label={intl.formatMessage(intlMessages.hideNoteLabel)}
-              label={intl.formatMessage(intlMessages.title)}
-              icon={isRTL ? 'right_arrow' : 'left_arrow'}
-            />
-          </Styled.Title>
-        </Styled.Header>
-        <Styled.IFrame
-          title="etherpad"
-          src={noteURL}
-          aria-describedby="sharedNotesEscapeHint"
-          style={{
-            pointerEvents: isResizing ? 'none' : 'inherit',
-          }}
-        />
-        <Styled.Hint id="sharedNotesEscapeHint" aria-hidden>
-          {intl.formatMessage(intlMessages.tipLabel)}
-        </Styled.Hint>
-      </Styled.Note>
-    );
-  }
+
+  return (
+    <Styled.Note data-test="note" isChrome={isChrome}>
+      <Styled.Header>
+        <Styled.Title data-test="noteTitle">
+          <Styled.HideButton
+            onClick={() => {
+              layoutContextDispatch({
+                type: ACTIONS.SET_SIDEBAR_CONTENT_IS_OPEN,
+                value: false,
+              });
+              layoutContextDispatch({
+                type: ACTIONS.SET_SIDEBAR_CONTENT_PANEL,
+                value: PANELS.NONE,
+              });
+            }}
+            data-test="hideNoteLabel"
+            aria-label={intl.formatMessage(intlMessages.hideNoteLabel)}
+            label={intl.formatMessage(intlMessages.title)}
+            icon={isRTL ? 'right_arrow' : 'left_arrow'}
+          />
+        </Styled.Title>
+      </Styled.Header>
+      <Styled.IFrame
+        title="etherpad"
+        src={noteURL}
+        aria-describedby="sharedNotesEscapeHint"
+        style={{
+          pointerEvents: isResizing ? 'none' : 'inherit',
+        }}
+      />
+      <Styled.Hint id="sharedNotesEscapeHint" aria-hidden>
+        {intl.formatMessage(intlMessages.tipLabel)}
+      </Styled.Hint>
+    </Styled.Note>
+  );
 };
 
 Note.propTypes = propTypes;
-
-function connectToPad(){
-  return NoteService.getPadContents();
-}
 
 export default injectWbResizeEvent(injectIntl(Note));
