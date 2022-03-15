@@ -105,7 +105,7 @@ enableUFWRules() {
 
 
 enableMultipleKurentos() {
-  echo "  - Configuring three Kurento Media Servers (listen only, webcam, and screenshare)"
+  echo "  - Configuring three Kurento Media Servers (listen only, webcam, and screeshare)"
 
   # Step 1.  Setup shared certificate between FreeSWITCH and Kurento
 
