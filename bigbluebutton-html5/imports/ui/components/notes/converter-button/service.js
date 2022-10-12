@@ -6,13 +6,12 @@ import { UploadingPresentations } from '/imports/api/presentations';
 import _ from 'lodash';
 
 const PADS_CONFIG = Meteor.settings.public.pads;
-const PRESENTATION_CONFIG = Meteor.settings.public.presentation;
 
 async function convertAndUpload() {
-
   let filename = 'Shared_Notes';
   const presentations = PresentationUploaderService.getPresentations();
-  const duplicates = presentations.filter((pres) => pres.filename?.startsWith(filename) || pres.name?.startsWith(filename)).length;
+  const duplicates = presentations.filter((pres) => pres.filename?.startsWith(filename)
+                      || pres.name?.startsWith(filename)).length;
 
   if (duplicates !== 0) { filename = `${filename}(${duplicates})`; }
 
@@ -28,10 +27,10 @@ async function convertAndUpload() {
     lastModifiedUploader: false,
     upload: {
       done: false,
-      error: false
+      error: false,
     },
-    uploadTimestamp: new Date()
-  })
+    uploadTimestamp: new Date(),
+  });
 
   const exportUrl = Auth.authenticateURL(`${PADS_CONFIG.url}/p/${padId}/export/${extension}?${params}`);
   const sharedNotesAsFile = await fetch(exportUrl, { credentials: 'include' });
@@ -42,7 +41,7 @@ async function convertAndUpload() {
     type: data.type,
   });
 
-  PresentationUploaderService.handleSavePresentation([], isFromPresentationUploaderInterface = false, {
+  PresentationUploaderService.handleSavePresentation([], false, {
     file: sharedNotesData,
     isDownloadable: false, // by default new presentations are set not to be downloadable
     isRemovable: true,
@@ -55,7 +54,7 @@ async function convertAndUpload() {
     onUpload: () => {},
     onProgress: () => {},
     onDone: () => {},
-  })
+  });
 }
 
 export default {
