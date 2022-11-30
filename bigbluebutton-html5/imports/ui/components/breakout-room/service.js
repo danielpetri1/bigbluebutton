@@ -224,6 +224,12 @@ const isUserInBreakoutRoom = (joinedUsers) => {
   return !!joinedUsers.find((user) => user.userId.startsWith(userId));
 };
 
+const breakoutRoomSnapshot = (breakoutId) => {
+  console.log(breakoutId);
+  makeCall('breakoutRoomSnapshot', breakoutId);
+  return true;
+};
+
 export default {
   findBreakouts,
   endAllBreakouts,
@@ -245,4 +251,5 @@ export default {
   isUserInBreakoutRoom,
   checkInviteModerators,
   setCapturedNotesUploading,
+  breakoutRoomSnapshot,
 };

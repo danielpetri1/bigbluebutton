@@ -221,4 +221,10 @@ trait PresentationWithAnnotationsMsgHdlr extends RightsManagementTrait {
 
     bus.outGW.send(job)
   }
+
+  def handle(m: BreakoutSnapshotReqMsg, state: MeetingState2x, liveMeeting: LiveMeeting, bus: MessageBus): Unit = {
+
+    val msg = new CapturePresentationReqInternalMsg("system", m.body.parentMeetingId, m.body.allPages);
+    handle(msg, state, liveMeeting, bus);
+  }
 }

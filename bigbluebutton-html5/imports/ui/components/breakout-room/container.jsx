@@ -40,6 +40,7 @@ export default withTracker((props) => {
     meetingId,
     amIModerator,
     isUserInBreakoutRoom,
+    breakoutRoomSnapshot,
   } = Service;
 
   const breakoutRooms = findBreakouts();
@@ -96,5 +97,6 @@ export default withTracker((props) => {
     isReconnecting,
     setBreakoutAudioTransferStatus,
     getBreakoutAudioTransferStatus,
+    breakoutRoomSnapshot,
   };
 })(BreakoutContainer);

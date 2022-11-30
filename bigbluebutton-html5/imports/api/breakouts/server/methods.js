@@ -4,6 +4,7 @@ import requestJoinURL from './methods/requestJoinURL';
 import endAllBreakouts from './methods/endAllBreakouts';
 import setBreakoutsTime from '/imports/api/breakouts/server/methods/setBreakoutsTime';
 import sendMessageToAllBreakouts from './methods/sendMessageToAllBreakouts';
+import breakoutRoomSnapshot from './methods/breakoutRoomSnapshot';
 import moveUser from '/imports/api/breakouts/server/methods/moveUser';
 
 Meteor.methods({
@@ -13,4 +14,5 @@ Meteor.methods({
   setBreakoutsTime,
   sendMessageToAllBreakouts,
   moveUser,
+  breakoutRoomSnapshot,
 });

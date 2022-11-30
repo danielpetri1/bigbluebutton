@@ -38,6 +38,10 @@ const intlMessages = defineMessages({
     id: 'app.createBreakoutRoom.join',
     description: 'label for join breakout room',
   },
+  breakoutSnapshot: {
+    id: 'app.createBreakoutRoom.breakoutSnapshot',
+    description: 'label for taking a snapshot of the breakout room',
+  },
   breakoutJoinAudio: {
     id: 'app.createBreakoutRoom.joinAudio',
     description: 'label for option to transfer audio',
@@ -393,6 +397,12 @@ class BreakoutRoom extends PureComponent {
               />
             )
         }
+        <Styled.BreakoutSnapshot
+          label={intl.formatMessage(intlMessages.breakoutSnapshot)}
+          onClick={() => {
+            Service.breakoutRoomSnapshot(breakoutId);
+          }}
+        />
         {
           moderatorJoinedAudio
             ? [

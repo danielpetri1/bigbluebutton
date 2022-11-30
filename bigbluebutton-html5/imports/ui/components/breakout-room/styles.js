@@ -50,6 +50,14 @@ const JoinButton = styled(Button)`
   padding: 0 .5rem 0 .5rem !important;
 `;
 
+const BreakoutSnapshot = styled(Button)`
+  flex: 0 1 48%;
+  color: ${colorPrimary};
+  margin: 0;
+  font-weight: inherit;
+  padding: 0 .5rem 0 .5rem !important;
+`;
+
 const AudioButton = styled(Button)`
   flex: 0 1 48%;
   color: ${colorPrimary};
@@ -250,6 +258,7 @@ export default {
   BreakoutActions,
   AlreadyConnected,
   JoinButton,
+  BreakoutSnapshot,
   AudioButton,
   BreakoutItems,
   Content,

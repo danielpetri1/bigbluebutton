@@ -1039,6 +1039,7 @@
     "app.createBreakoutRoom.room": "Room {0}",
     "app.createBreakoutRoom.notAssigned": "Not assigned ({0})",
     "app.createBreakoutRoom.join": "Join room",
+    "app.createBreakoutRoom.breakoutSnapshot": "Peek",
     "app.createBreakoutRoom.joinAudio": "Join audio",
     "app.createBreakoutRoom.returnAudio": "Return audio",
     "app.createBreakoutRoom.alreadyConnected": "Already in room",
