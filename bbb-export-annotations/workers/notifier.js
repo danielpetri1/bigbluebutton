@@ -16,8 +16,9 @@ const job = fs.readFileSync(path.join(dropbox, 'job'));
 const exportJob = JSON.parse(job);
 
 /** Notify Meeting Actor of file availability by
- * sending a message through Redis PubSub */
-async function notifyMeetingActor() {
+ * sending a message through Redis PubSub
+ * @param {String} destinationMeetingId Meeting to send file URL to. */
+async function notifyMeetingActor(destinationMeetingId = exportJob.parentMeetingId) {
   const client = redis.createClient({
     host: config.redis.host,
     port: config.redis.port,
@@ -42,7 +43,7 @@ async function notifyMeetingActor() {
     core: {
       header: {
         name: config.notifier.msgName,
-        meetingId: exportJob.parentMeetingId,
+        meetingId: destinationMeetingId,
         userId: '',
       },
       body: {
@@ -81,6 +82,8 @@ async function upload(filePath) {
 
 if (jobType == 'PresentationWithAnnotationDownloadJob') {
   notifyMeetingActor();
+} else if (jobType == 'RoomSnapshotJob') {
+  notifyMeetingActor(exportJob.presentationUploadToken);
 } else if (jobType == 'PresentationWithAnnotationExportJob') {
   const filePath = `${exportJob.presLocation}/pdfs/${jobId}/${filename}`;
   upload(filePath);
@@ -92,8 +95,8 @@ if (jobType == 'PresentationWithAnnotationDownloadJob') {
 }
 
 // Delete temporary files
-fs.rm(dropbox, {recursive: true}, (err) => {
-  if (err) {
-    throw err;
-  }
-});
+// fs.rm(dropbox, {recursive: true}, (err) => {
+//   if (err) {
+//     throw err;
+//   }
+// });

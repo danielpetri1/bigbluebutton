@@ -211,7 +211,7 @@ function renderToastItem(item, intl) {
 					<Styled.ToastItemIcon
 						done={!isProcessing && !hasError}
 						error={hasError}
-						loading={ isProcessing }
+						loading={isProcessing}
 						iconName={icon}
 					/>
 				</Styled.StatusIcon>

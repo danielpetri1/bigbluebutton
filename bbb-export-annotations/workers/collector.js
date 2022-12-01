@@ -186,6 +186,7 @@ async function collectSharedNotes(retries = 3) {
 switch (jobType) {
   case 'PresentationWithAnnotationExportJob': return collectAnnotationsFromRedis();
   case 'PresentationWithAnnotationDownloadJob': return collectAnnotationsFromRedis();
+  case 'RoomSnapshotJob': return collectAnnotationsFromRedis();
   case 'PadCaptureJob': return collectSharedNotes();
   default: return logger.error(`Unknown job type ${jobType}`);
 }

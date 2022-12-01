@@ -110,7 +110,7 @@ case class SendMessageToAllBreakoutRoomsReqMsgBody(meetingId: String, msg: Strin
 
 object BreakoutSnapshotReqMsg { val NAME = "BreakoutSnapshotReqMsg" }
 case class BreakoutSnapshotReqMsg (header: BbbClientMsgHeader, body: BreakoutSnapshotReqMsgBody) extends StandardMsg
-case class BreakoutSnapshotReqMsgBody(parentMeetingId: String, allPages: Boolean)
+case class BreakoutSnapshotReqMsgBody(parentMeetingId: String, shortName: String)
 
 object SendMessageToAllBreakoutRoomsEvtMsg { val NAME = "SendMessageToAllBreakoutRoomsEvtMsg" }
 case class SendMessageToAllBreakoutRoomsEvtMsg(header: BbbClientMsgHeader, body: SendMessageToAllBreakoutRoomsEvtMsgBody) extends BbbCoreMsg

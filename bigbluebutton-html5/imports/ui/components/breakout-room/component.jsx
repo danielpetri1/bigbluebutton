@@ -16,6 +16,7 @@ import BreakoutDropdown from '/imports/ui/components/breakout-room/breakout-drop
 import Users from '/imports/api/users';
 import Auth from '/imports/ui/services/auth';
 import Header from '/imports/ui/components/common/control-header/component';
+import Presentations from '/imports/api/presentations';
 
 const intlMessages = defineMessages({
   breakoutTitle: {
@@ -397,12 +398,22 @@ class BreakoutRoom extends PureComponent {
               />
             )
         }
-        <Styled.BreakoutSnapshot
-          label={intl.formatMessage(intlMessages.breakoutSnapshot)}
-          onClick={() => {
-            Service.breakoutRoomSnapshot(breakoutId);
-          }}
-        />
+        {
+          amIModerator
+            ? [
+              <Styled.BreakoutSnapshot
+                label={intl.formatMessage(intlMessages.breakoutSnapshot)}
+                key={`breakoutSnapshot-${breakoutId}`}
+                onClick={() => {
+                  Service.breakoutRoomSnapshot(breakoutId, shortName);
+                }}
+                onMouseOver={() => {
+                  // const peeking = Presentations.findOne({ current: true });
+                  console.log(shortName);
+                }}
+              />]
+            : null
+        }
         {
           moderatorJoinedAudio
             ? [

@@ -224,7 +224,36 @@ trait PresentationWithAnnotationsMsgHdlr extends RightsManagementTrait {
 
   def handle(m: BreakoutSnapshotReqMsg, state: MeetingState2x, liveMeeting: LiveMeeting, bus: MessageBus): Unit = {
 
-    val msg = new CapturePresentationReqInternalMsg("system", m.body.parentMeetingId, m.body.allPages);
-    handle(msg, state, liveMeeting, bus);
+    val breakoutId = liveMeeting.props.meetingProp.intId
+    val parentMeetingId = m.body.parentMeetingId
+    // val userId = m.header.userId
+    val presentationPods: Vector[PresentationPod] = state.presentationPodManager.getAllPresentationPodsInMeeting()
+    val currentPres: Option[PresentationInPod] = presentationPods.flatMap(_.getCurrentPresentation()).headOption
+
+    // Still need to ensure current presentation is set!
+
+    val jobId: String = RandomStringGenerator.randomAlphanumericString(16);
+    val jobType: String = "RoomSnapshotJob"
+    val pageCount = currentPres.get.pages.size
+
+    val presId: String = PresentationPodsApp.getAllPresentationPodsInMeeting(state).flatMap(_.getCurrentPresentation.map(_.id)).mkString
+    val presLocation = List("var", "bigbluebutton", breakoutId, breakoutId, presId).mkString(File.separator, File.separator, "");
+    val pagesRange: List[Int] = (1 to pageCount).toList
+
+    val filename = "annotated_slides" // m.body.shortName
+
+    // Here the breakoutId is where you want to send the file to. Used in the link
+    // Hack -- pass recipient meetingId as token for now
+    // Later use shortname as filename
+    val exportJob: ExportJob = new ExportJob(jobId, jobType, filename, presId, presLocation, false, pagesRange, breakoutId, parentMeetingId);
+    val storeAnnotationPages: List[PresentationPageForExport] = getPresentationPagesForExport(pagesRange, pageCount, presId, currentPres, liveMeeting);
+
+    // Send Export Job to Redis
+    val job = buildStoreExportJobInRedisSysMsg(exportJob, liveMeeting)
+    bus.outGW.send(job)
+
+    // Send Annotations to Redis
+    val annotations = new StoredAnnotations(jobId, presId, storeAnnotationPages)
+    bus.outGW.send(buildStoreAnnotationsInRedisSysMsg(annotations, liveMeeting))
   }
 }
