@@ -5,6 +5,7 @@ const collectionOptions = Meteor.isClient ? {
 } : {};
 
 const Breakouts = new Mongo.Collection('breakouts', collectionOptions);
+export const BreakoutSnapshots = new Mongo.Collection('breakoutSnapshots', collectionOptions);
 
 if (Meteor.isServer) {
   // types of queries for the breakouts:

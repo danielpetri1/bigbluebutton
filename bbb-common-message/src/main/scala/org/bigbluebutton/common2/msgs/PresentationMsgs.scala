@@ -18,6 +18,10 @@ object NewPresAnnFileAvailableMsg { val NAME = "NewPresAnnFileAvailableMsg" }
 case class NewPresAnnFileAvailableMsg(header: BbbClientMsgHeader, body: NewPresAnnFileAvailableMsgBody) extends StandardMsg
 case class NewPresAnnFileAvailableMsgBody(fileURI: String, presId: String)
 
+object NewBreakoutSnapshotFileAvailableMsg { val NAME = "NewBreakoutSnapshotFileAvailableMsg" }
+case class NewBreakoutSnapshotFileAvailableMsg(header: BbbClientMsgHeader, body: NewBreakoutSnapshotFileAvailableMsgBody) extends StandardMsg
+case class NewBreakoutSnapshotFileAvailableMsgBody(fileURI: String, presId: String, parentMeetingId: String, breakoutId: String)
+
 object PresAnnStatusMsg { val NAME = "PresAnnStatusMsg" }
 case class PresAnnStatusMsg(header: BbbClientMsgHeader, body: PresAnnStatusMsgBody) extends StandardMsg
 case class PresAnnStatusMsgBody(presId: String, pageNumber: Int, totalPages: Int, status: String, error: Boolean);
@@ -40,6 +44,10 @@ case class NewPresentationEvtMsgBody(presentation: PresentationVO)
 object NewPresAnnFileAvailableEvtMsg { val NAME = "NewPresAnnFileAvailableEvtMsg" }
 case class NewPresAnnFileAvailableEvtMsg(header: BbbClientMsgHeader, body: NewPresAnnFileAvailableEvtMsgBody) extends BbbCoreMsg
 case class NewPresAnnFileAvailableEvtMsgBody(fileURI: String, presId: String)
+
+object NewBreakoutSnapshotFileAvailableEvtMsg { val NAME = "NewBreakoutSnapshotFileAvailableEvtMsg" }
+case class NewBreakoutSnapshotFileAvailableEvtMsg(header: BbbClientMsgHeader, body: NewBreakoutSnapshotFileAvailableEvtMsgBody) extends BbbCoreMsg
+case class NewBreakoutSnapshotFileAvailableEvtMsgBody(fileURI: String, presId: String, parentMeetingId: String, breakoutId: String)
 
 object PresAnnStatusEvtMsg { val NAME = "PresAnnStatusEvtMsg" }
 case class PresAnnStatusEvtMsg(header: BbbClientMsgHeader, body: PresAnnStatusEvtMsgBody) extends BbbCoreMsg

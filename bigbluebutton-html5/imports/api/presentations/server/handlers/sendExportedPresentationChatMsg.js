@@ -1,5 +1,6 @@
 import addSystemMsg from '/imports/api/group-chat-msg/server/modifiers/addSystemMsg';
 import Presentations from '/imports/api/presentations';
+// import PresentationSnapshots from 'import/api/presentations';
 
 const DEFAULT_FILENAME = 'annotated_slides.pdf';
 
@@ -29,6 +30,16 @@ export default function sendExportedPresentationChatMsg(meetingId, presentationI
     message: '',
     extra,
   };
+
+  // PresentationSnapshots.upsert({
+  //   meetingId,
+  // }, {
+  //   $set: {
+  //     meetingId,
+  //     presentationId,
+  //     fileURI,
+  //   },
+  // });
 
   return addSystemMsg(meetingId, PUBLIC_GROUP_CHAT_ID, payload);
 }

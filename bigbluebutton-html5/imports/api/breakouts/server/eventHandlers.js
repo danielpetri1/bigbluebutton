@@ -5,6 +5,7 @@ import handleUpdateTimeRemaining from './handlers/updateTimeRemaining';
 import handleBreakoutClosed from './handlers/breakoutClosed';
 import joinedUsersChanged from './handlers/joinedUsersChanged';
 import userBreakoutChanged from '/imports/api/breakouts/server/handlers/userBreakoutChanged';
+import handleBreakoutSnapshot from '/imports/api/breakouts/server/handlers/breakoutSnapshot';
 
 RedisPubSub.on('BreakoutRoomsListEvtMsg', handleBreakoutRoomsList);
 RedisPubSub.on('BreakoutRoomJoinURLEvtMsg', handleBreakoutJoinURL);
@@ -12,3 +13,4 @@ RedisPubSub.on('BreakoutRoomsTimeRemainingUpdateEvtMsg', handleUpdateTimeRemaini
 RedisPubSub.on('BreakoutRoomEndedEvtMsg', handleBreakoutClosed);
 RedisPubSub.on('UpdateBreakoutUsersEvtMsg', joinedUsersChanged);
 RedisPubSub.on('ChangeUserBreakoutEvtMsg', userBreakoutChanged);
+RedisPubSub.on('NewBreakoutSnapshotFileAvailableEvtMsg', handleBreakoutSnapshot);

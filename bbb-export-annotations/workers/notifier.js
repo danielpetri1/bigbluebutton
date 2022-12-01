@@ -59,6 +59,52 @@ async function notifyMeetingActor(destinationMeetingId = exportJob.parentMeeting
   client.disconnect();
 }
 
+/** Notify Meeting Actor of file availability by
+ * sending a message through Redis PubSub
+ * @param {String} destinationMeetingId Meeting to send file URL to. */
+ async function notifyMeetingActor2(destinationMeetingId = exportJob.parentMeetingId) {
+  const client = redis.createClient({
+    host: config.redis.host,
+    port: config.redis.port,
+    password: config.redis.password,
+  });
+
+  await client.connect();
+  client.on('error', (err) => logger.info('Redis Client Error', err));
+
+  const link = path.join(`${path.sep}bigbluebutton`, 'presentation',
+      exportJob.parentMeetingId, exportJob.parentMeetingId,
+      exportJob.presId, 'pdf', jobId, filename);
+
+  const notification = {
+    envelope: {
+      name: 'NewBreakoutSnapshotFileAvailableMsg',
+      routing: {
+        sender: exportJob.module,
+      },
+      timestamp: (new Date()).getTime(),
+    },
+    core: {
+      header: {
+        name: 'NewBreakoutSnapshotFileAvailableMsg',
+        meetingId: destinationMeetingId,
+        userId: '',
+      },
+      body: {
+        fileURI: link,
+        presId: exportJob.presId,
+        parentMeetingId: exportJob.presentationUploadToken,
+        breakoutId: exportJob.parentMeetingId,
+      },
+    },
+  };
+
+  logger.info(`Annotated PDF available at ${link}`);
+  await client.publish(config.redis.channels.publish,
+      JSON.stringify(notification));
+  client.disconnect();
+}
+
 /** Upload PDF to a BBB room
  * @param {String} filePath - Absolute path to the file, including the extension
 */
@@ -83,7 +129,7 @@ async function upload(filePath) {
 if (jobType == 'PresentationWithAnnotationDownloadJob') {
   notifyMeetingActor();
 } else if (jobType == 'RoomSnapshotJob') {
-  notifyMeetingActor(exportJob.presentationUploadToken);
+  notifyMeetingActor2(exportJob.presentationUploadToken);
 } else if (jobType == 'PresentationWithAnnotationExportJob') {
   const filePath = `${exportJob.presLocation}/pdfs/${jobId}/${filename}`;
   upload(filePath);

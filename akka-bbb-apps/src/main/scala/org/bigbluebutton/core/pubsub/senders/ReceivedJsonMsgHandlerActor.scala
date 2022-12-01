@@ -318,6 +318,8 @@ class ReceivedJsonMsgHandlerActor(
         routeGenericMsg[MakePresentationWithAnnotationDownloadReqMsg](envelope, jsonNode)
       case NewPresAnnFileAvailableMsg.NAME =>
         routeGenericMsg[NewPresAnnFileAvailableMsg](envelope, jsonNode)
+      case NewBreakoutSnapshotFileAvailableMsg.NAME =>
+        routeGenericMsg[NewBreakoutSnapshotFileAvailableMsg](envelope, jsonNode)
       case PresAnnStatusMsg.NAME =>
         routeGenericMsg[PresAnnStatusMsg](envelope, jsonNode)
 

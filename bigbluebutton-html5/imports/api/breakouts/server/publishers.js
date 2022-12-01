@@ -1,5 +1,5 @@
 import { Meteor } from 'meteor/meteor';
-import Breakouts from '/imports/api/breakouts';
+import Breakouts, { BreakoutSnapshots } from '/imports/api/breakouts';
 import Users from '/imports/api/users';
 import Logger from '/imports/startup/server/logger';
 import AuthTokenValidation, { ValidationStates } from '/imports/api/auth-token-validation';
@@ -33,6 +33,7 @@ function breakouts() {
       shortName: 1,
       timeRemaining: 1,
       captureNotes: 1,
+      fileURI: 1,
     },
   };
 
@@ -83,4 +84,21 @@ function publish(...args) {
   return boundBreakouts(...args);
 }
 
+function breakoutSnapshots() {
+  Logger.info('Publishing Breakout Snapshots');
+  const fields = {
+    fields: {
+      fileURI: 1,
+      presId: 1,
+    },
+  };
+  return BreakoutSnapshots.find({}, fields);
+}
+
+function publishBreakoutSnapshots(...args) {
+  const boundBreakouts = breakoutSnapshots.bind(this);
+  return boundBreakouts(...args);
+}
+
 Meteor.publish('breakouts', publish);
+Meteor.publish('breakoutSnapshots', publishBreakoutSnapshots);

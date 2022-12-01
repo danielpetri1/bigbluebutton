@@ -26,7 +26,7 @@ const SUBSCRIPTIONS = [
   'voiceUsers', 'whiteboard-multi-user', 'screenshare', 'group-chat',
   'presentation-pods', 'users-settings', 'guestUser', 'users-infos', 'meeting-time-remaining',
   'local-settings', 'users-typing', 'record-meetings', 'video-streams',
-  'connection-status', 'voice-call-states', 'external-video-meetings', 'breakouts', 'breakouts-history',
+  'connection-status', 'voice-call-states', 'external-video-meetings', 'breakouts', 'breakoutSnapshots', 'breakouts-history',
   'pads', 'pads-sessions', 'pads-updates', 'notifications', 'audio-captions',
   'layout-meetings',
 ];

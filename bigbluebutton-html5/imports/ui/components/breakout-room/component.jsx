@@ -16,7 +16,7 @@ import BreakoutDropdown from '/imports/ui/components/breakout-room/breakout-drop
 import Users from '/imports/api/users';
 import Auth from '/imports/ui/services/auth';
 import Header from '/imports/ui/components/common/control-header/component';
-import Presentations from '/imports/api/presentations';
+import Breakouts from '/imports/api/breakouts';
 
 const intlMessages = defineMessages({
   breakoutTitle: {
@@ -405,13 +405,16 @@ class BreakoutRoom extends PureComponent {
                 label={intl.formatMessage(intlMessages.breakoutSnapshot)}
                 key={`breakoutSnapshot-${breakoutId}`}
                 onClick={() => {
-                  Service.breakoutRoomSnapshot(breakoutId, shortName);
+                  const url = Breakouts.find({ breakoutId }).fetch()[0];
+                  if (url?.fileURI) {
+                    window.open(url.fileURI, '_blank', 'noopener,noreferrer');
+                  }
                 }}
                 onMouseOver={() => {
-                  // const peeking = Presentations.findOne({ current: true });
-                  console.log(shortName);
+                  Service.breakoutRoomSnapshot(breakoutId, shortName);
                 }}
-              />]
+              />,
+            ]
             : null
         }
         {

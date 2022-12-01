@@ -43,6 +43,16 @@ trait PresentationWithAnnotationsMsgHdlr extends RightsManagementTrait {
     BbbCommonEnvCoreMsg(envelope, event)
   }
 
+  def buildBroadcastNewBreakoutSnapshotFileAvailableMsg(newBreakoutSnapshotFileAvailableMsg: NewBreakoutSnapshotFileAvailableMsg, liveMeeting: LiveMeeting): BbbCommonEnvCoreMsg = {
+    val routing = Routing.addMsgToClientRouting(MessageTypes.BROADCAST_TO_MEETING, liveMeeting.props.meetingProp.intId, "not-used")
+    val envelope = BbbCoreEnvelope(PresentationPageConvertedEventMsg.NAME, routing)
+    val header = BbbClientMsgHeader(NewBreakoutSnapshotFileAvailableEvtMsg.NAME, liveMeeting.props.meetingProp.intId, "not-used")
+    val body = NewBreakoutSnapshotFileAvailableEvtMsgBody(fileURI = newBreakoutSnapshotFileAvailableMsg.body.fileURI, presId = newBreakoutSnapshotFileAvailableMsg.body.presId, parentMeetingId = newBreakoutSnapshotFileAvailableMsg.body.parentMeetingId, breakoutId = newBreakoutSnapshotFileAvailableMsg.body.breakoutId)
+    val event = NewBreakoutSnapshotFileAvailableEvtMsg(header, body)
+
+    BbbCommonEnvCoreMsg(envelope, event)
+  }
+
   def buildBroadcastPresAnnStatusMsg(presAnnStatusMsg: PresAnnStatusMsg, liveMeeting: LiveMeeting): BbbCommonEnvCoreMsg = {
     val routing = Routing.addMsgToClientRouting(MessageTypes.BROADCAST_TO_MEETING, liveMeeting.props.meetingProp.intId, "not-used")
     val envelope = BbbCoreEnvelope(PresentationPageConvertedEventMsg.NAME, routing)
@@ -189,6 +199,12 @@ trait PresentationWithAnnotationsMsgHdlr extends RightsManagementTrait {
     log.info("Received NewPresAnnFileAvailableMsg meetingId={} presId={} fileUrl={}", liveMeeting.props.meetingProp.intId, m.body.presId, m.body.fileURI)
 
     bus.outGW.send(buildBroadcastNewPresAnnFileAvailable(m, liveMeeting))
+  }
+
+  def handle(m: NewBreakoutSnapshotFileAvailableMsg, liveMeeting: LiveMeeting, bus: MessageBus): Unit = {
+    log.info("Received NewBreakoutSnapshotFileAvailableMsg meetingId={} presId={} fileUrl={}", liveMeeting.props.meetingProp.intId, m.body.presId, m.body.fileURI)
+
+    bus.outGW.send(buildBroadcastNewBreakoutSnapshotFileAvailableMsg(m, liveMeeting))
   }
 
   def handle(m: CaptureSharedNotesReqInternalMsg, liveMeeting: LiveMeeting, bus: MessageBus): Unit = {
