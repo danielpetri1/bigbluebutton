@@ -140,9 +140,8 @@ if (jobType == 'PresentationWithAnnotationDownloadJob') {
   logger.error(`Notifier received unknown job type ${jobType}`);
 }
 
-// Delete temporary files
-// fs.rm(dropbox, {recursive: true}, (err) => {
-//   if (err) {
-//     throw err;
-//   }
-// });
+fs.rm(dropbox, {recursive: true}, (err) => {
+  if (err) {
+    throw err;
+  }
+});

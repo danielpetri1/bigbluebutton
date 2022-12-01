@@ -410,7 +410,7 @@ class BreakoutRoom extends PureComponent {
               />,
               <iframe
                 key={`breakoutSnapshotIframe-${breakoutId}`}
-                src={Breakouts.find({ breakoutId }).fetch()[0].fileURI}
+                src={Breakouts.find({ breakoutId })?.fetch()[0]?.fileURI}
                 title={`breakout-${shortName}`}
               />,
             ]
