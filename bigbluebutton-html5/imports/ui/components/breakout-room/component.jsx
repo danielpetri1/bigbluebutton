@@ -405,14 +405,13 @@ class BreakoutRoom extends PureComponent {
                 label={intl.formatMessage(intlMessages.breakoutSnapshot)}
                 key={`breakoutSnapshot-${breakoutId}`}
                 onClick={() => {
-                  const url = Breakouts.find({ breakoutId }).fetch()[0];
-                  if (url?.fileURI) {
-                    window.open(url.fileURI, '_blank', 'noopener,noreferrer');
-                  }
-                }}
-                onMouseOver={() => {
                   Service.breakoutRoomSnapshot(breakoutId, shortName);
                 }}
+              />,
+              <iframe
+                key={`breakoutSnapshotIframe-${breakoutId}`}
+                src={Breakouts.find({ breakoutId }).fetch()[0].fileURI}
+                title={`breakout-${shortName}`}
               />,
             ]
             : null
