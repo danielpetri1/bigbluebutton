@@ -6,110 +6,56 @@ import {
 } from '/imports/ui/stylesheets/styled-components/typography';
 import Button from '/imports/ui/components/common/button/component';
 
-const TldrawGlobalStyle = createGlobalStyle`
-  ${({ hideContextMenu }) => hideContextMenu && `
-    #TD-ContextMenu {
+const TldrawV2GlobalStyle = createGlobalStyle`
+  ${({ isPresenter, hasWBAccess }) => (!isPresenter && hasWBAccess) && `
+    [data-testid="tools.hand"] {
       display: none;
     }
   `}
-  ${({ menuOffset }) => `
-    #TD-StylesMenu {
-      position: relative;
-      right: ${menuOffset};
-    }
-  `}
-  #TD-PrimaryTools-Image {
+  #presentationInnerWrapper > div:last-child {
+    position: relative;
+    height: 100%;
+  }
+
+  #presentationInnerWrapper > div:last-child > * {
+    position: relative; 
+    height: 100%;
+  }
+
+  #presentationInnerWrapper > div:last-child .tl-overlays {
+    left: 0px;
+    bottom: 0px;
+  }
+
+  .tlui-navigation-zone,
+  .tlui-help-menu,
+  .tlui-debug-panel {
     display: none;
   }
-  #slide-background-shape div {
-    pointer-events: none;
-    user-select: none;
+
+  .tlui-menu-zone {
+    left: 3.5rem;
   }
-  div[dir*="ltr"]:has(button[aria-expanded*="false"][aria-controls*="radix-"]) {
-    pointer-events: none;
+
+  .tlui-style-panel__wrapper {
+    right: 4rem;
+    position: relative;
   }
-  [aria-expanded*="false"][aria-controls*="radix-"] {
+
+  // Add the following lines to override height and width attributes for .tl-overlays__item
+  .tl-overlays__item {
+    height: auto !important;
+    width: auto !important;
+  }
+
+  [data-testid="tools.laser"],
+  [data-testid="tools.asset"],
+  .tlui-menu-zone__controls > :nth-child(1),
+  .tlui-menu-zone__controls > :nth-child(2),
+  .tlui-menu-zone__controls > :nth-child(3),
+  .tlui-menu-zone__controls > :nth-child(4) {
     display: none;
   }
-  [class$="-side-right"] {
-    top: -1px;
-  }
-  ${({ hasWBAccess, isPresenter, size }) => (hasWBAccess || isPresenter) && `
-    #TD-Tools-Dots {
-      height: ${size}px;
-      width: ${size}px;
-    }
-    #TD-Delete {
-      & button {
-        height: ${size}px;
-        width: ${size}px;
-      }
-    }
-    #TD-PrimaryTools button {
-        height: ${size}px;
-        width: ${size}px;
-    }
-    #TD-Styles {
-      border-width: ${borderSize};
-    }
-    #TD-TopPanel-Undo,
-    #TD-TopPanel-Redo,
-    #TD-Styles {
-      height: 92%;
-      border-radius: 7px;
-
-      &:hover {
-        border: solid ${borderSize} #ECECEC;
-        background-color: #ECECEC;
-      }
-      &:focus {
-        border: solid ${borderSize} ${colorBlack};
-      }
-    }
-    #TD-Styles,
-    #TD-TopPanel-Undo,
-    #TD-TopPanel-Redo {
-      margin: ${borderSize} ${borderSizeLarge} 0px ${borderSizeLarge};
-    }
-  `}
-  ${({ hasWBAccess, isPresenter, panSelected }) => (hasWBAccess || isPresenter) && panSelected && `
-    [id^="TD-PrimaryTools-"] {
-      &:hover > div,
-      &:focus > div {
-        background-color: var(--colors-hover) !important;
-      }
-    }
-  `}
-  ${({ darkTheme }) => darkTheme && `
-    #TD-TopPanel-Undo,
-    #TD-TopPanel-Redo,
-    #TD-Styles {
-      &:focus {
-        border: solid ${borderSize} ${colorWhite} !important;
-      }
-    }
-    [id="TD-Styles-Color-Container"],
-    [id="TD-StylesMenu"] {
-      filter: invert(0%) hue-rotate(180deg) contrast(100%) !important;
-    }
-  `}
-  ${({ isPresenter, hasWBAccess }) => (!isPresenter && !hasWBAccess) && `
-    #presentationInnerWrapper div{
-      cursor: default !important;
-    }
-  `}
-
-  ${({ isToolbarVisible }) => (!isToolbarVisible) && `
-    #TD-Tools {
-      visibility: hidden;
-    }
-    #TD-Styles-Parent {
-      visibility: hidden;
-    }
-    #WhiteboardOptionButton {
-      opacity: 0.2;
-    }
-  `}
 `;
 
 const EditableWBWrapper = styled.div`
@@ -118,34 +64,7 @@ const EditableWBWrapper = styled.div`
   }
 `;
 
-const PanTool = styled(Button)`
-  border: none !important;
-  padding: 0;
-  margin: 0;
-  border-radius: 7px;
-  background-color: ${colorWhite};
-  color: ${toolbarButtonColor};
-
-  & > i {
-    font-size: ${fontSizeLarger} !important;
-    [dir="rtl"] & {
-      -webkit-transform: scale(-1, 1);
-      -moz-transform: scale(-1, 1);
-      -ms-transform: scale(-1, 1);
-      -o-transform: scale(-1, 1);
-      transform: scale(-1, 1);
-    }
-  }
-  ${({ panSelected }) => !panSelected && `
-    &:hover,
-    &:focus {
-      background-color: var(--colors-hover) !important;
-    }
-  `}
-`;
-
 export default {
-  TldrawGlobalStyle,
+  TldrawV2GlobalStyle,
   EditableWBWrapper,
-  PanTool,
 };

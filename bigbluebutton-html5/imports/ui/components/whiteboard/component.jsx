@@ -1,24 +1,38 @@
-import * as React from 'react';
-import PropTypes from 'prop-types';
-import { TldrawApp, Tldraw } from '@tldraw/tldraw';
-import SlideCalcUtil, { HUNDRED_PERCENT, MAX_PERCENT } from '/imports/utils/slideCalcUtils';
+import * as React from "react";
+import PropTypes from "prop-types";
+import { Tldraw, track, useEditor } from "@tldraw/tldraw";
+import "@tldraw/tldraw/tldraw.css";
+import SlideCalcUtil, { HUNDRED_PERCENT, MAX_PERCENT } from "/imports/utils/slideCalcUtils";
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { Utils } from '@tldraw/core';
-import Cursors from './cursors/container';
-import Settings from '/imports/ui/services/settings';
-import logger from '/imports/startup/client/logger';
-import KEY_CODES from '/imports/utils/keyCodes';
+import Settings from "/imports/ui/services/settings";
+import logger from "/imports/startup/client/logger";
+import KEY_CODES from "/imports/utils/keyCodes";
 import {
   presentationMenuHeight,
   styleMenuOffset,
-  styleMenuOffsetSmall
-} from '/imports/ui/stylesheets/styled-components/general';
-import Styled from './styles';
-import PanToolInjector from './pan-tool-injector/component';
+  styleMenuOffsetSmall,
+} from "/imports/ui/stylesheets/styled-components/general";
+import Styled from "./styles";
 import {
-  findRemoved, filterInvalidShapes, mapLanguage, sendShapeChanges, usePrevious,
-} from './utils';
-import { isEqual } from 'radash';
+  findRemoved,
+  filterInvalidShapes,
+  mapLanguage,
+  sendShapeChanges,
+  usePrevious,
+} from "./utils";
+// import { throttle } from "/imports/utils/throttle";
+import { isEqual, clone } from "radash";
+import { InstancePresenceRecordType } from "@tldraw/tldraw";
+import {
+  AssetRecordType,
+  createShapeId,
+  TLAsset,
+  TLExternalAssetContent,
+  getHashForString,
+} from "@tldraw/tldraw";
+import { PageRecordType } from "@tldraw/editor";
+import { useRef } from "react";
+import { debounce, throttle } from "radash";
 
 const SMALL_HEIGHT = 435;
 const SMALLEST_DOCK_HEIGHT = 475;
@@ -27,6 +41,66 @@ const SMALLEST_DOCK_WIDTH = 710;
 const TOOLBAR_SMALL = 28;
 const TOOLBAR_LARGE = 32;
 const MOUNTED_RESIZE_DELAY = 1500;
+
+// Shallow cloning with nested structures
+const deepCloneUsingShallow = (obj) => {
+  const clonedObj = clone(obj);
+  if (obj.props) {
+    clonedObj.props = clone(obj.props);
+  }
+  if (obj.props) {
+    clonedObj.meta = clone(obj.meta);
+  }
+  return clonedObj;
+};
+
+// Helper functions
+const getBackgroundShapesAndAssets = (curPres, slidePosition) => {
+  const bgAssets = [];
+  const bgShapes = [];
+
+  curPres?.pages?.forEach((entry) => {
+    const assetId = AssetRecordType.createId(entry?.id);
+    bgAssets.push({
+      id: assetId,
+      typeName: "asset",
+      type: "image",
+      props: {
+        w: 1,
+        h: 1,
+        src: entry?.svgUri,
+        name: "",
+        isAnimated: false,
+        mimeType: null,
+      },
+      meta: {},
+    });
+
+    bgShapes.push({
+      x: 1,
+      y: 1,
+      rotation: 0,
+      isLocked: true,
+      opacity: 1,
+      meta: {},
+      id: `shape:${entry?.id}`,
+      type: "image",
+      props: {
+        w: slidePosition?.width || 1,
+        h: slidePosition?.height || 1,
+        assetId: assetId,
+        playing: true,
+        url: "",
+        crop: null,
+      },
+      parentId: `page:${entry?.num}`,
+      index: "a0",
+      typeName: "shape",
+    });
+  });
+
+  return { bgAssets, bgShapes };
+};
 
 export default function Whiteboard(props) {
   const {
@@ -62,7 +136,6 @@ export default function Whiteboard(props) {
     maxNumberOfAnnotations,
     notifyShapeNumberExceeded,
     darkTheme,
-    isPanning: shortcutPanning,
     setTldrawIsMounting,
     width,
     height,
@@ -76,21 +149,302 @@ export default function Whiteboard(props) {
     animations,
     isToolbarVisible,
     isModerator,
-    fullscreenRef,
-    fullscreenElementId,
-    layoutContextDispatch,
+    publishCursorUpdate,
+    otherCursors,
+    isShapeOwner,
   } = props;
-  const { pages, pageStates } = initDefaultPages(curPres?.pages.length || 1);
-  const rDocument = React.useRef({
-    name: 'test',
-    version: TldrawApp.version,
-    id: whiteboardId,
-    pages,
-    pageStates,
-    bindings: {},
-    assets: {},
-  });
-  const [history, setHistory] = React.useState(null);
+
+  if (curPageId === "0" || !curPageId) return null;
+
+  const [tlEditor, setTlEditor] = React.useState(null);
+  const [cursorX, setCursorX] = React.useState(0);
+  const [cursorY, setCursorY] = React.useState(0);
+  const [cursorTracking, setCursorTracking] = React.useState(false);
+
+  const zoomValueRef = React.useRef(zoomValue);
+  const prevShapesRef = React.useRef(shapes);
+
+  React.useEffect(() => {
+    zoomValueRef.current = zoomValue;
+  }, [zoomValue]);
+
+  React.useEffect(() => {
+    //TODO: figure out why shapes effect is happening without shape updates
+    if (isEqual(prevShapesRef.current, shapes)) {
+      return;
+    }
+
+    // Update the ref to store the current value of shapes
+    prevShapesRef.current = shapes;
+
+    const localShapes = tlEditor?.store?.allRecords();
+    const filteredShapes =
+      localShapes?.filter(
+        (item) => item.typeName === "shape" && item?.index !== "a0"
+      ) || [];
+    const localLookup = new Map(
+      filteredShapes.map((shape) => [shape.id, shape])
+    );
+    const remoteShapeIds = Object.keys(shapes);
+    const shapesToAdd = [];
+    const shapesToUpdate = [];
+    const shapesToRemove = [];
+
+    filteredShapes.forEach((localShape) => {
+      // If a local shape does not exist in the remote shapes, it should be removed
+      if (!remoteShapeIds.includes(localShape.id)) {
+        shapesToRemove.push(localShape);
+      }
+    });
+
+    Object.values(shapes).forEach((remoteShape) => {
+      const localShape = localLookup.get(remoteShape.id);
+
+      // Create a deep clone of remoteShape and remove the isModerator property
+      const comparisonRemoteShape = deepCloneUsingShallow(remoteShape);
+      delete comparisonRemoteShape.isModerator;
+      delete comparisonRemoteShape.owner;
+
+      if (!localShape) {
+        // If the shape does not exist in local, add it to shapesToAdd
+        shapesToAdd.push(remoteShape);
+      } else if (!isEqual(localShape, comparisonRemoteShape)) {
+        // Capture the differences
+        const diff = {
+          id: remoteShape.id,
+          type: remoteShape.type,
+          typeName: remoteShape.typeName,
+        };
+
+        // Compare each property
+        Object.keys(remoteShape).forEach((key) => {
+          if (
+            key !== "isModerator" &&
+            key !== "owner" &&
+            !isEqual(remoteShape[key], localShape[key])
+          ) {
+            diff[key] = remoteShape[key];
+          }
+        });
+
+        if (remoteShape.props) {
+          Object.keys(remoteShape.props).forEach((key) => {
+            if (!isEqual(remoteShape.props[key], localShape.props[key])) {
+              diff.props = diff.props || {};
+              diff.props[key] = remoteShape.props[key];
+            }
+          });
+        }
+
+        shapesToUpdate.push(diff);
+      }
+    });
+
+    tlEditor?.store?.mergeRemoteChanges(() => {
+      // Now, handle the shapesToRemove if needed
+      if (shapesToRemove.length > 0) {
+        tlEditor?.store?.remove(shapesToRemove.map((shape) => shape.id));
+      }
+      if (shapesToAdd && shapesToAdd.length) {
+        // Remove isModerator property from each shape in shapesToAdd
+        shapesToAdd.forEach((shape) => {
+          delete shape.isModerator;
+          delete shape.owner;
+        });
+        tlEditor?.store?.put(shapesToAdd);
+      }
+      if (shapesToUpdate && shapesToUpdate.length) {
+        tlEditor?.updateShapes(shapesToUpdate);
+      }
+    });
+  }, [shapes]);
+
+  // Updating presences in tldraw store based on changes in cursors
+  React.useEffect(() => {
+    if (tlEditor) {
+      const updatedPresences = otherCursors
+        .map(({ userId, userName, xPercent, yPercent, presenter }) => {
+          const id = InstancePresenceRecordType.createId(userId);
+          const currentPageId = tlEditor.currentPageId;
+          const cursor = {
+            x: xPercent,
+            y: yPercent,
+            type: "default",
+            rotation: 0,
+          };
+          const color = presenter ? "#FF0000" : "#70DB70";
+          const c = {
+            ...InstancePresenceRecordType.create({
+              id,
+              currentPageId,
+              userId,
+              userName,
+              cursor,
+              color,
+            }),
+            lastActivityTimestamp: Date.now(),
+          };
+          return c;
+        })
+        .filter((cursor) => cursor.userId !== currentUser?.userId);
+
+      // If there are any updated presences, put them all in the store
+      if (updatedPresences.length) {
+        setTimeout(() => {
+          tlEditor.store.put(updatedPresences);
+        }, 0);
+      }
+    }
+  }, [otherCursors]);
+
+  // propogate user tldraw cursor position
+  React.useEffect(() => {
+    publishCursorUpdate({
+      xPercent: cursorX,
+      yPercent: cursorY,
+      whiteboardId,
+    });
+  }, [cursorX, cursorY]);
+
+  // set current tldraw page when presentation id updates
+  React.useEffect(() => {
+    if (tlEditor && curPageId !== "0") {
+      tlEditor?.setCurrentPage(`page:${curPageId}`);
+    }
+  }, [curPageId]);
+
+  // need to update the slide position in tldraw (slidePosition)
+  React.useEffect(() => {
+    if (tlEditor && curPageId) {
+      tlEditor?.updateAssets([
+        {
+          id: `asset:${whiteboardId}`,
+          props: {
+            w: slidePosition?.width,
+            h: slidePosition?.height,
+            name: "bg",
+            isAnimated: false,
+            mimeType: null,
+            src: tlEditor.store?.get(`asset:${whiteboardId}`)?.props?.src,
+          },
+        },
+      ]);
+    }
+  }, [slidePosition?.width, slidePosition?.height]);
+
+  // when presentationSizes change, update tldraw camera
+  React.useEffect(() => {
+    if (
+      curPageId &&
+      slidePosition &&
+      tlEditor &&
+      presentationWidth > 0 &&
+      presentationHeight > 0
+    ) {
+      if (prevFitToWidth !== null && fitToWidth !== prevFitToWidth) {
+        const newZoom = calculateZoom(
+          slidePosition.width,
+          slidePosition.height
+        );
+        tlEditor?.setCamera({ x: 0, y: 0, z: newZoom });
+
+        const viewedRegionH = SlideCalcUtil.calcViewedRegionHeight(
+          tlEditor?.viewportPageBounds.height,
+          slidePosition.height
+        );
+        setZoom(HUNDRED_PERCENT);
+        zoomChanger(HUNDRED_PERCENT);
+        zoomSlide(
+          parseInt(curPageId, 10),
+          podId,
+          HUNDRED_PERCENT,
+          viewedRegionH,
+          0,
+          0
+        );
+      } else {
+        const currentAspectRatio =
+          Math.round((presentationWidth / presentationHeight) * 100) / 100;
+        const previousAspectRatio =
+          Math.round(
+            (slidePosition.viewBoxWidth / slidePosition.viewBoxHeight) * 100
+          ) / 100;
+        if (fitToWidth && currentAspectRatio !== previousAspectRatio) {
+          // we need this to ensure tldraw updates the viewport size after re-mounting
+          setTimeout(() => {
+            const newZoom = calculateZoom(
+              slidePosition.viewBoxWidth,
+              slidePosition.viewBoxHeight
+            );
+            tlEditor?.setCamera({
+              x: slidePosition?.x,
+              y: slidePosition?.y,
+              z: newZoom,
+            });
+          }, 50);
+        } else {
+          const newZoom = calculateZoom(
+            slidePosition.viewBoxWidth,
+            slidePosition.viewBoxHeight
+          );
+          tlEditor?.setCamera({
+            x: slidePosition?.x,
+            y: slidePosition?.y,
+            z: newZoom,
+          });
+        }
+      }
+    }
+  }, [
+    presentationWidth,
+    presentationHeight,
+    curPageId,
+    document?.documentElement?.dir,
+  ]);
+
+  React.useEffect(() => {
+    if (isPresenter && slidePosition) {
+      const currentZoom = calculateZoom(
+        slidePosition?.viewBoxWidth,
+        slidePosition?.viewBoxHeight
+      );
+
+      setTimeout(() => {
+        tlEditor?.setCamera({
+          x: slidePosition?.x,
+          y: slidePosition?.y,
+          z: currentZoom,
+        });
+      }, 50);
+    }
+  }, [slidePosition?.viewBoxWidth, slidePosition?.viewBoxHeight]);
+
+  // update zoom according to toolbar
+  React.useEffect(() => {
+    if (
+      tlEditor &&
+      isPresenter &&
+      curPageId &&
+      slidePosition
+      // (zoom !== zoomValueRef.current && zoom !== 100)
+    ) {
+      console.log("zoomValue update : ", zoomValueRef.current, zoom, tlEditor);
+      const zoomFitSlide = calculateZoom(
+        slidePosition.width,
+        slidePosition.height
+      );
+      const zoomCamera =
+        (zoomFitSlide * zoomValueRef.current) / HUNDRED_PERCENT;
+      setTimeout(() => {
+        tlEditor?.setCamera({
+          x: tlEditor?.camera.x,
+          y: tlEditor?.camera.x,
+          z: zoomCamera,
+        });
+      }, 0);
+    }
+  }, [zoomValueRef.current]);
+
   const [zoom, setZoom] = React.useState(HUNDRED_PERCENT);
   const [tldrawZoom, setTldrawZoom] = React.useState(1);
   const zoomValueRef = React.useRef(zoomValue);
@@ -98,17 +452,10 @@ export default function Whiteboard(props) {
   const prevShapes = usePrevious(shapes);
   const prevSlidePosition = usePrevious(slidePosition);
   const prevFitToWidth = usePrevious(fitToWidth);
-  const prevSvgUri = usePrevious(svgUri);
-  const prevPageId = usePrevious(curPageId);
-  const language = mapLanguage(Settings?.application?.locale?.toLowerCase() || 'en');
-  const [currentTool, setCurrentTool] = React.useState(null);
-  const [currentStyle, setCurrentStyle] = React.useState({});
-  const [isMoving, setIsMoving] = React.useState(false);
-  const [isPanning, setIsPanning] = React.useState(shortcutPanning);
-  const [panSelected, setPanSelected] = React.useState(isPanning);
-  const isMountedRef = React.useRef(true);
-  const [isToolLocked, setIsToolLocked] = React.useState(tldrawAPI?.appState?.isToolLocked);
-  const [bgShape, setBgShape] = React.useState(null);
+
+  const language = mapLanguage(
+    Settings?.application?.locale?.toLowerCase() || "en"
+  );
 
   // eslint-disable-next-line arrow-body-style
   React.useEffect(() => {
@@ -117,1003 +464,267 @@ export default function Whiteboard(props) {
     };
   }, []);
 
-  React.useEffect(() => {
-    zoomValueRef.current = zoomValue;
-  }, [zoomValue]);
-
-  const setSafeTLDrawAPI = (api) => {
-    if (isMountedRef.current) {
-      setTldrawAPI(api);
-    }
-  };
-
-  const toggleOffCheck = (evt) => {
-    const clickedElement = evt.target;
-    const panBtnClicked = clickedElement?.getAttribute('data-test') === 'panButton'
-      || clickedElement?.parentElement?.getAttribute('data-test') === 'panButton';
-
-    setIsToolLocked(false);
-
-    const panButton = document.querySelector('[data-test="panButton"]');
-    if (panBtnClicked) {
-      const dataZoom = panButton.getAttribute('data-zoom');
-      if ((dataZoom <= HUNDRED_PERCENT && !fitToWidth)) {
-        return;
-      }
-      panButton.classList.add('select');
-      panButton.classList.remove('selectOverride');
-    } else {
-      setIsPanning(false);
-      setPanSelected(false);
-      panButton.classList.add('selectOverride');
-      panButton.classList.remove('select');
-    }
-  };
-
-  const setDockPosition = (setSetting) => {
-    if (hasWBAccess || isPresenter) {
-      if (((height < SMALLEST_DOCK_HEIGHT) || (width < SMALLEST_DOCK_WIDTH))) {
-        setSetting('dockPosition', 'bottom');
-      } else {
-        setSetting('dockPosition', isRTL ? 'left' : 'right');
-      }
-    }
-  }
-
-  React.useEffect(() => {
-    const toolbar = document.getElementById('TD-PrimaryTools');
-    const handleClick = (evt) => {
-      toggleOffCheck(evt);
-    };
-    const handleDBClick = (evt) => {
-      evt.preventDefault();
-      evt.stopPropagation();
-      setIsToolLocked(true);
-      tldrawAPI?.patchState(
-        {
-          appState: {
-            isToolLocked: true,
-          },
-        },
-      );
-    };
-    toolbar?.addEventListener('click', handleClick);
-    toolbar?.addEventListener('dblclick', handleDBClick);
-
-    return () => {
-      toolbar?.removeEventListener('click', handleClick);
-      toolbar?.removeEventListener('dblclick', handleDBClick);
-    };
-  }, [tldrawAPI, isToolLocked]);
 
   React.useEffect(() => {
     if (whiteboardToolbarAutoHide) {
-      toggleToolsAnimations('fade-in', 'fade-out', animations ? '3s' : '0s');
+      toggleToolsAnimations("fade-in", "fade-out", animations ? "3s" : "0s");
     } else {
-      toggleToolsAnimations('fade-out', 'fade-in', animations ? '.3s' : '0s');
+      toggleToolsAnimations("fade-out", "fade-in", animations ? ".3s" : "0s");
     }
   }, [whiteboardToolbarAutoHide]);
-  
-  const calculateZoom = (localWidth, localHeight) => {
-    const calcedZoom = fitToWidth ? (presentationWidth / localWidth) : Math.min(
-      (presentationWidth) / localWidth,
-      (presentationHeight) / localHeight,
-    );
 
-    return (calcedZoom === 0 || calcedZoom === Infinity) ? HUNDRED_PERCENT : calcedZoom;
+  const calculateZoom = (localWidth, localHeight) => {
+    const calcedZoom = fitToWidth
+      ? presentationWidth / localWidth
+      : Math.min(
+          presentationWidth / localWidth,
+          presentationHeight / localHeight
+        );
+
+    return calcedZoom === 0 || calcedZoom === Infinity
+      ? HUNDRED_PERCENT
+      : calcedZoom;
   };
 
   React.useEffect(() => {
     setTldrawIsMounting(true);
   }, []);
 
-  const checkClientBounds = (e) => {
-    if (
-      e.clientX > document.documentElement.clientWidth
-      || e.clientX < 0
-      || e.clientY > document.documentElement.clientHeight
-      || e.clientY < 0
-    ) {
-      if (tldrawAPI?.session) {
-        tldrawAPI?.completeSession?.();
-      }
-    }
-  };
-
-  const checkVisibility = () => {
-    if (document.visibilityState === 'hidden' && tldrawAPI?.session) {
-      tldrawAPI?.completeSession?.();
-    }
-  };
-  const handleWheelEvent = (event) => {
-    if ((zoomValueRef.current >= MAX_PERCENT && event.deltaY < 0)
-      || (zoomValueRef.current <= HUNDRED_PERCENT && event.deltaY > 0))
-    {
-      event.stopPropagation();
-      event.preventDefault();
-      return window.dispatchEvent(new Event('resize'));
-    }
-
-    if (!event.ctrlKey) {
-      // Prevent the event from reaching the tldraw library
-      event.stopPropagation();
-      event.preventDefault();
-      const newEvent = new WheelEvent('wheel', {
-        deltaX: event.deltaX,
-        deltaY: event.deltaY,
-        deltaZ: event.deltaZ,
-        ctrlKey: true,
-        clientX: event.clientX,
-        clientY: event.clientY,
-      });
-      const canvas = document.getElementById('canvas');
-      if (canvas) {
-        canvas.dispatchEvent(newEvent);
-      }
-    }
-  }
-
-  React.useEffect(() => {
-    document.addEventListener('mouseup', checkClientBounds);
-    document.addEventListener('visibilitychange', checkVisibility);
-
-    return () => {
-      document.removeEventListener('mouseup', checkClientBounds);
-      document.removeEventListener('visibilitychange', checkVisibility);
-      const canvas = document.getElementById('canvas');
-      if (canvas) {
-        canvas.removeEventListener('wheel', handleWheelEvent);
-      }
-    };
-  }, [tldrawAPI]);
-
-  /* needed to prevent an issue with presentation images not loading correctly in Firefox
-  more info: https://github.com/bigbluebutton/bigbluebutton/issues/17969#issuecomment-1561758200 */
-  React.useEffect(() => {
-    if (bgShape && bgShape.parentElement && bgShape.parentElement.clientWidth > 0) {
-      bgShape.parentElement.style.width = `${bgShape.parentElement.clientWidth + .1}px`;
-    }
-  }, [bgShape]);
-
-  const doc = React.useMemo(() => {
-    const currentDoc = rDocument.current;
-
-    // update document if the number of pages has changed
-    if (currentDoc.id !== whiteboardId && currentDoc?.pages.length !== curPres?.pages.length) {
-      const currentPageShapes = currentDoc?.pages[curPageId]?.shapes;
-      currentDoc.id = whiteboardId;
-      currentDoc.pages = pages;
-      currentDoc.pages[curPageId].shapes = currentPageShapes;
-      currentDoc.pageStates = pageStates;
-    }
-
-    const next = { ...currentDoc };
-
-    let changed = false;
-
-    if (next.pageStates[curPageId] && !isEqual(prevShapes, shapes)) {
-      const editingShape = tldrawAPI?.getShape(tldrawAPI?.getPageState()?.editingId);
-
-      if (editingShape) {
-        shapes[editingShape?.id] = editingShape;
-      }
-
-      const removed = prevShapes && findRemoved(Object.keys(prevShapes), Object.keys((shapes)));
-      if (removed && removed.length > 0) {
-        const patchedShapes = Object.fromEntries(removed.map((id) => [id, undefined]));
-
-        try {
-          tldrawAPI?.patchState(
-            {
-              document: {
-                pageStates: {
-                  [curPageId]: {
-                    selectedIds:
-                      tldrawAPI?.selectedIds?.filter((id) => !removed.includes(id)) || [],
-                  },
-                },
-                pages: {
-                  [curPageId]: {
-                    shapes: patchedShapes,
-                  },
-                },
-              },
-            },
-          );
-        } catch (error) {
-          logger.error({
-            logCode: 'whiteboard_shapes_remove_error',
-            extraInfo: { error },
-          }, 'Whiteboard catch error on removing shapes');
-        }
-      }
-
-      next.pages[curPageId].shapes = filterInvalidShapes(shapes, curPageId, tldrawAPI);
-      changed = true;
-    }
-
-    if (curPageId && (!next.assets[`slide-background-asset-${curPageId}`] || (svgUri && !isEqual(prevSvgUri, svgUri)))) {
-      next.assets[`slide-background-asset-${curPageId}`] = assets[`slide-background-asset-${curPageId}`];
-      tldrawAPI?.patchState(
-        {
-          document: {
-            assets,
-          },
-        },
-      );
-      changed = true;
-    }
-
-    if (changed && tldrawAPI) {
-      // merge patch manually (this improves performance and reduce side effects on fast updates)
-      const patch = {
-        document: {
-          pages: {
-            [curPageId]: { shapes: filterInvalidShapes(shapes, curPageId, tldrawAPI) },
-          },
-        },
-      };
-      const prevState = tldrawAPI._state;
-      const nextState = Utils.deepMerge(tldrawAPI._state, patch);
-      if (nextState.document.pages[curPageId].shapes) {
-        filterInvalidShapes(nextState.document.pages[curPageId].shapes, curPageId, tldrawAPI);
-      }
-      const final = tldrawAPI.cleanup(nextState, prevState, patch, '');
-      tldrawAPI._state = final;
-
-      try {
-        tldrawAPI?.forceUpdate();
-      } catch (error) {
-        logger.error({
-          logCode: 'whiteboard_shapes_update_error',
-          extraInfo: { error },
-        }, 'Whiteboard catch error on updating shapes');
-      }
-    }
-
-    // move poll result text to bottom right
-    if (next.pages[curPageId] && slidePosition) {
-      const pollResults = Object.entries(next.pages[curPageId].shapes)
-        .filter(([, shape]) => shape.name?.includes('poll-result'));
-      pollResults.forEach(([id, shape]) => {
-        if (isEqual(shape.point, [0, 0])) {
-          try {
-            const shapeBounds = tldrawAPI?.getShapeBounds(id);
-            if (shapeBounds) {
-              const editedShape = shape;
-              editedShape.point = [
-                slidePosition.width - shapeBounds.width,
-                slidePosition.height - shapeBounds.height,
-              ];
-              editedShape.size = [shapeBounds.width, shapeBounds.height];
-              if (isPresenter) persistShape(editedShape, whiteboardId, isModerator);
-            }
-          } catch (error) {
-            logger.error({
-              logCode: 'whiteboard_poll_results_error',
-              extraInfo: { error },
-            }, 'Whiteboard catch error on moving unpublished poll results');
-          }
-        }
-      });
-    }
-
-    return currentDoc;
-  }, [shapes, tldrawAPI, curPageId, slidePosition]);
-
-  // when presentationSizes change, update tldraw camera
-  React.useEffect(() => {
-    if (curPageId && slidePosition && tldrawAPI
-      && presentationWidth > 0 && presentationHeight > 0
-    ) {
-      if (prevFitToWidth !== null && fitToWidth !== prevFitToWidth) {
-        const newZoom = calculateZoom(slidePosition.width, slidePosition.height);
-        tldrawAPI?.setCamera([0, 0], newZoom);
-        const viewedRegionH = SlideCalcUtil.calcViewedRegionHeight(
-          tldrawAPI?.viewport.height, slidePosition.height,
-        );
-        setZoom(HUNDRED_PERCENT);
-        zoomChanger(HUNDRED_PERCENT);
-        zoomSlide(parseInt(curPageId, 10), podId, HUNDRED_PERCENT, viewedRegionH, 0, 0);
-      } else {
-        const currentAspectRatio = Math.round((presentationWidth / presentationHeight) * 100) / 100;
-        const previousAspectRatio = Math.round(
-          (slidePosition.viewBoxWidth / slidePosition.viewBoxHeight) * 100,
-        ) / 100;
-        if (fitToWidth && currentAspectRatio !== previousAspectRatio) {
-          // we need this to ensure tldraw updates the viewport size after re-mounting
-          setTimeout(() => {
-            const newZoom = calculateZoom(slidePosition.viewBoxWidth, slidePosition.viewBoxHeight);
-            tldrawAPI.setCamera([slidePosition.x, slidePosition.y], newZoom, 'zoomed');
-          }, 50);
-        } else {
-          const newZoom = calculateZoom(slidePosition.viewBoxWidth, slidePosition.viewBoxHeight);
-          tldrawAPI?.setCamera([slidePosition.x, slidePosition.y], newZoom);
-        }
-      }
-    }
-  }, [presentationWidth, presentationHeight, curPageId, document?.documentElement?.dir]);
-
   React.useEffect(() => {
     if (presentationWidth > 0 && presentationHeight > 0 && slidePosition) {
       const cameraZoom = tldrawAPI?.getPageState()?.camera?.zoom;
-      const newzoom = calculateZoom(slidePosition.viewBoxWidth, slidePosition.viewBoxHeight);
+      const newzoom = calculateZoom(
+        slidePosition.viewBoxWidth,
+        slidePosition.viewBoxHeight
+      );
       if (cameraZoom && cameraZoom === 1) {
         tldrawAPI?.setCamera([slidePosition.x, slidePosition.y], newzoom);
       } else if (isMounting) {
         setIsMounting(false);
+
+        /// brings presentation toolbar back
         setTldrawIsMounting(false);
-        const currentAspectRatio = Math.round((presentationWidth / presentationHeight) * 100) / 100;
-        const previousAspectRatio = Math.round(
-          (slidePosition.viewBoxWidth / slidePosition.viewBoxHeight) * 100,
-        ) / 100;
+        const currentAspectRatio =
+          Math.round((presentationWidth / presentationHeight) * 100) / 100;
+        const previousAspectRatio =
+          Math.round(
+            (slidePosition.viewBoxWidth / slidePosition.viewBoxHeight) * 100
+          ) / 100;
         // case where the presenter had fit-to-width enabled and he reloads the page
         if (!fitToWidth && currentAspectRatio !== previousAspectRatio) {
           // wee need this to ensure tldraw updates the viewport size after re-mounting
           setTimeout(() => {
-            tldrawAPI?.setCamera([slidePosition.x, slidePosition.y], newzoom, 'zoomed');
+            tldrawAPI?.setCamera(
+              [slidePosition.x, slidePosition.y],
+              newzoom,
+              "zoomed"
+            );
           }, 50);
         } else {
           tldrawAPI?.setCamera([slidePosition.x, slidePosition.y], newzoom);
         }
       }
     }
-  }, [tldrawAPI?.getPageState()?.camera, presentationWidth, presentationHeight]);
-
-  React.useEffect(() => {
-    if (isPresenter && slidePosition && tldrawAPI) {
-      const camera = tldrawAPI?.getPageState()?.camera;
-      const newZoom = calculateZoom(slidePosition?.viewBoxWidth, slidePosition?.viewBoxHeight);
-      tldrawAPI?.setCamera([camera?.point[0], camera?.point[1]], newZoom);
-    }
-  }, [slidePosition?.viewBoxWidth, slidePosition?.viewBoxHeight]);
-
-  // change tldraw camera when slidePosition changes
-  React.useEffect(() => {
-    if (tldrawAPI && !isPresenter && curPageId && slidePosition) {
-      const newZoom = calculateZoom(slidePosition.viewBoxWidth, slidePosition.viewBoxHeight);
-      tldrawAPI?.setCamera([slidePosition.x, slidePosition.y], newZoom, 'zoomed');
-    }
-
-    const camera = tldrawAPI?.getPageState()?.camera;
-    if (isPresenter && slidePosition && camera) {
-      const zoomFitSlide = calculateZoom(slidePosition.width, slidePosition.height);
-      const zoomCamera = (zoomFitSlide * zoomValue) / HUNDRED_PERCENT;
-      let zoomToolbar = Math.round(
-        ((HUNDRED_PERCENT * camera.zoom) / zoomFitSlide) * 100,
-      ) / 100;
-      if ((zoom !== zoomToolbar) && (curPageId && curPageId !== prevPageId)) {
-        setZoom(zoomToolbar);
-        zoomChanger(zoomToolbar);
-      }
-    }
-  }, [curPageId, slidePosition]);
-
-  // update zoom according to toolbar
-  React.useEffect(() => {
-    if (tldrawAPI && isPresenter && curPageId && slidePosition && zoom !== zoomValue) {
-      const zoomFitSlide = calculateZoom(slidePosition.width, slidePosition.height);
-      const zoomCamera = (zoomFitSlide * zoomValue) / HUNDRED_PERCENT;
-      setTimeout(() => {
-        tldrawAPI?.zoomTo(zoomCamera);
-      }, 50);
-    }
-  }, [zoomValue]);
-
-  // update zoom when presenter changes if the aspectRatio has changed
-  React.useEffect(() => {
-    if (tldrawAPI && isPresenter && curPageId && slidePosition && !isMounting) {
-      const currentAspectRatio = Math.round((presentationWidth / presentationHeight) * 100) / 100;
-      const previousAspectRatio = Math.round(
-        (slidePosition.viewBoxWidth / slidePosition.viewBoxHeight) * 100,
-      ) / 100;
-      if (previousAspectRatio !== currentAspectRatio) {
-        if (fitToWidth) {
-          const newZoom = calculateZoom(slidePosition.width, slidePosition.height);
-          tldrawAPI?.setCamera([0, 0], newZoom);
-          const viewedRegionH = SlideCalcUtil.calcViewedRegionHeight(
-            tldrawAPI?.viewport.height, slidePosition.height,
-          );
-          zoomSlide(parseInt(curPageId, 10), podId, HUNDRED_PERCENT, viewedRegionH, 0, 0);
-          setZoom(HUNDRED_PERCENT);
-          zoomChanger(HUNDRED_PERCENT);
-        } else if (!isMounting) {
-          let viewedRegionW = SlideCalcUtil.calcViewedRegionWidth(
-            tldrawAPI?.viewport.width, slidePosition.width,
-          );
-          let viewedRegionH = SlideCalcUtil.calcViewedRegionHeight(
-            tldrawAPI?.viewport.height, slidePosition.height,
-          );
-          const camera = tldrawAPI?.getPageState()?.camera;
-          const zoomFitSlide = calculateZoom(slidePosition.width, slidePosition.height);
-          if (!fitToWidth && camera.zoom === zoomFitSlide) {
-            viewedRegionW = HUNDRED_PERCENT;
-            viewedRegionH = HUNDRED_PERCENT;
-          }
-          zoomSlide(
-            parseInt(curPageId, 10),
-            podId,
-            viewedRegionW,
-            viewedRegionH,
-            camera.point[0],
-            camera.point[1],
-          );
-          const zoomToolbar = Math.round(
-            ((HUNDRED_PERCENT * camera.zoom) / zoomFitSlide) * 100,
-          ) / 100;
-          if (zoom !== zoomToolbar) {
-            setZoom(zoomToolbar);
-            zoomChanger(zoomToolbar);
-          }
-        }
-      }
-    }
-  }, [isPresenter]);
+  }, [
+    tldrawAPI?.getPageState()?.camera,
+    presentationWidth,
+    presentationHeight,
+  ]);
 
   const hasWBAccess = hasMultiUserAccess(whiteboardId, currentUser.userId);
 
-  React.useEffect(() => {
-    if (tldrawAPI) {
-      tldrawAPI.isForcePanning = isPanning;
-    }
-  }, [isPanning]);
+  const handleTldrawMount = (editor) => {
+    setTlEditor(editor);
 
-  React.useEffect(() => {
-    tldrawAPI && setDockPosition(tldrawAPI?.setSetting);
-  }, [height, width]);
-
-  React.useEffect(() => {
-    tldrawAPI?.setSetting('language', language);
-  }, [language]);
-
-  // Reset zoom to default when current presentation changes.
-  React.useEffect(() => {
-    if (isPresenter && slidePosition && tldrawAPI) {
-      tldrawAPI?.zoomTo(0);
-      setHistory(null);
-      tldrawAPI?.resetHistory();
-    }
-  }, [curPres?.id]);
-
-  React.useEffect(() => {
-    const currentZoom = tldrawAPI?.getPageState()?.camera?.zoom;
-    if (currentZoom !== tldrawZoom) {
-      setTldrawZoom(currentZoom);
-    }
-    setBgShape(null);
-  }, [presentationAreaHeight, presentationAreaWidth]);
-
-  const fullscreenToggleHandler = () => {
-    const {
-      isFullscreen,
-      fullscreenAction,
-      handleToggleFullScreen,
-    } = props;
-
-    handleToggleFullScreen(fullscreenRef);
-    const newElement = isFullscreen ? '' : fullscreenElementId;
-
-    layoutContextDispatch({
-      type: fullscreenAction,
-      value: {
-        element: newElement,
-        group: '',
-      },
-    });
-  };
-
-  const nextSlideHandler = (event) => {
-    const { nextSlide, numberOfSlides } = props;
-
-    if (event) event.currentTarget.blur();
-    nextSlide(+curPageId, numberOfSlides, podId);
-  };
-
-  const previousSlideHandler = (event) => {
-    const { previousSlide } = props;
-
-    if (event) event.currentTarget.blur();
-    previousSlide(+curPageId, podId);
-  };
-
-  const handleOnKeyDown = (event) => {
-    const { which, ctrlKey } = event;
-
-    switch (which) {
-      case KEY_CODES.ARROW_LEFT:
-      case KEY_CODES.PAGE_UP:
-        previousSlideHandler();
-        break;
-      case KEY_CODES.ARROW_RIGHT:
-      case KEY_CODES.PAGE_DOWN:
-        nextSlideHandler();
-        break;
-      case KEY_CODES.ENTER:
-        fullscreenToggleHandler();
-        break;
-      case KEY_CODES.A:
-        if (ctrlKey) {
-          event.preventDefault();
-          event.stopPropagation();
-          tldrawAPI?.selectAll();
-        }
-        break;
-      case KEY_CODES.ARROW_DOWN:
-      case KEY_CODES.ARROW_UP:
-        event.preventDefault();
-        event.stopPropagation();
-        break;
-      default:
-    }
-  };
-
-  const onMount = (app) => {
-    setDockPosition(app?.setSetting);
-    const menu = document.getElementById('TD-Styles')?.parentElement;
-    const canvas = document.getElementById('canvas');
-    if (canvas) {
-      canvas.addEventListener('wheel', handleWheelEvent, { capture: true });
-    }
-
-    if (menu) {
-      menu.style.position = 'relative';
-      menu.style.height = presentationMenuHeight;
-      menu.setAttribute('id', 'TD-Styles-Parent');
-
-      [...menu.children]
-        .sort((a, b) => (a?.id > b?.id ? -1 : 1))
-        .forEach((n) => menu.appendChild(n));
-    }
-
-    app.setSetting('language', language);
-    app?.setSetting('isDarkMode', false);
-
-    const textAlign = isRTL ? 'end' : 'start';
-
-    app?.patchState(
-      {
-        appState: {
-          currentStyle: {
-            textAlign: currentStyle?.textAlign || textAlign,
-            font: currentStyle?.font || fontFamily,
-          },
-        },
-      },
+    // console.log('EDITOR : ', editor, editor.pointerDown)
+    const debouncePersistShape = debounce({ delay: 50 }, persistShape);
+    const { bgAssets, bgShapes } = getBackgroundShapesAndAssets(
+      curPres,
+      slidePosition
     );
 
-    setSafeTLDrawAPI(app);
-    // disable for non presenter that doesn't have multi user access
-    if (!hasWBAccess && !isPresenter) {
-      const newApp = app;
-      newApp.onPan = () => { };
-      newApp.setSelectedIds = () => { };
-      newApp.setHoveredId = () => { };
-    }
+    if (editor && curPres) {
+      const pages = curPres.pages
+        .map((entry) => ({
+          meta: {},
+          id: `page:${entry?.num}`,
+          name: `Slide ${entry.num}`,
+          index: `a1`,
+          typeName: "page",
+        }))
+        .reverse();
 
-    if (history) {
-      app.replaceHistory(history);
-    }
+      editor.store.mergeRemoteChanges(() => {
+        editor.batch(() => {
+          editor.store.put(pages);
+          editor.deletePage(editor.currentPageId);
+          editor.setCurrentPage(`page:${curPageId}`);
+          editor.store.put(bgAssets);
+          editor.createShapes(bgShapes);
+          editor.history.clear();
+        });
+      });
 
-    if (curPageId) {
-      app.patchState(
-        {
-         appState: {
-            currentPageId: curPageId,
-          },
-        },
+      const remoteShapes = props.getShapes(
+        whiteboardId,
+        curPageId,
+        intl,
+        false
       );
-      setIsMounting(true);
+      const localShapes = editor.store.allRecords();
+      const filteredShapes =
+        localShapes.filter((item) => item.typeName === "shape") || [];
+
+      const localShapesObj = {};
+      filteredShapes.forEach((shape) => {
+        localShapesObj[shape.id] = shape;
+      });
+
+      const shapesToAdd = [];
+      for (let id in remoteShapes) {
+        if (
+          !localShapesObj[id] ||
+          JSON.stringify(remoteShapes[id]) !==
+            JSON.stringify(localShapesObj[id])
+        ) {
+          shapesToAdd.push(remoteShapes[id]);
+        }
+      }
+
+      editor.store.mergeRemoteChanges(() => {
+        if (shapesToAdd && shapesToAdd.length) {
+          shapesToAdd.forEach((shape) => {
+            delete shape.isModerator;
+            delete shape.owner;
+          });
+          editor.store.put(shapesToAdd);
+        }
+      });
+
+      editor.store.onBeforeChange = (prev, next, source) => {
+        const camera = editor?.camera;
+        const panned =
+          next?.id?.includes("camera") &&
+          (prev.x !== next.x || prev.y !== next.y);
+        const zoomed = next?.id?.includes("camera") && prev.z !== next.z;
+        if (panned) {
+          console.log(zoomValue, zoom, zoomValueRef.current);
+          if (zoomValueRef.current <= HUNDRED_PERCENT) return prev;
+          // // limit bounds
+          if (editor?.viewportPageBounds?.maxX > slidePosition?.width) {
+            next.x += editor.viewportPageBounds.maxX - slidePosition.width;
+          }
+          if (editor?.viewportPageBounds?.maxY > slidePosition?.height) {
+            next.y += editor.viewportPageBounds.maxY - slidePosition.height;
+          }
+          if (next.x > 0 || editor.viewportPageBounds.minX < 0) {
+            next.x = 0;
+          }
+          if (next.y > 0 || editor.viewportPageBounds.minY < 0) {
+            next.y = 0;
+          }
+        }
+
+        return next;
+      };
+
+      editor.store.onAfterChange = (prev, next, source) => {
+        if (next?.id?.includes("pointer")) {
+          if (next?.x !== cursorX) {
+            setCursorX(next?.x);
+          }
+          if (next?.y !== cursorY) {
+            setCursorY(next?.y);
+          }
+        }
+
+        if (next?.id?.includes("shape") && whiteboardId && source !== 'remote') {
+          debouncePersistShape(next, whiteboardId, isModerator);
+        }
+      };
+
+      editor.store.onAfterDelete = (record, source) => {
+        removeShapes([record.id], whiteboardId);
+      };
     }
 
-    // needed to ensure the correct calculations for cursors on mount.
-    setTimeout(() => {
-      window.dispatchEvent(new Event('resize'));
-    }, MOUNTED_RESIZE_DELAY);
-  };
+    if (prevFitToWidth !== null && fitToWidth !== prevFitToWidth) {
+      const newZoom = calculateZoom(slidePosition.width, slidePosition.height);
+      editor?.setCamera({ x: 0, y: 0, z: newZoom });
 
-  const onPatch = (e, t, reason) => {
-    if (!e?.pageState || !reason) return;
-
-    if (((isPanning || panSelected) && (reason === 'selected' || reason === 'set_hovered_id'))) {
-      e.patchState(
-        {
-          document: {
-            pageStates: {
-              [e.getPage()?.id]: {
-                selectedIds: [],
-                hoveredId: null,
-              },
-            },
-          },
-        },
-      );
-      return;
-    }
-
-    // don't allow select others shapes for editing if don't have permission
-    if (reason && reason.includes('set_editing_id')) {
-      if (!hasShapeAccess(e.pageState.editingId)) {
-        e.pageState.editingId = null;
-      }
-    }
-    // don't allow hover others shapes for editing if don't have permission
-    if (reason && reason.includes('set_hovered_id')) {
-      if (!hasShapeAccess(e.pageState.hoveredId)) {
-        e.pageState.hoveredId = null;
-      }
-    }
-    // don't allow select others shapes if don't have permission
-    if (reason && reason.includes('selected')) {
-      const validIds = [];
-      e.pageState.selectedIds.forEach((id) => hasShapeAccess(id) && validIds.push(id));
-      e.pageState.selectedIds = validIds;
-      e.patchState(
-        {
-          document: {
-            pageStates: {
-              [e.getPage()?.id]: {
-                selectedIds: validIds,
-              },
-            },
-          },
-        },
-      );
-    }
-    // don't allow selecting others shapes with ctrl (brush)
-    if (e?.session?.type === 'brush' && e?.session?.status === 'brushing') {
-      const validIds = [];
-      e.pageState.selectedIds.forEach((id) => hasShapeAccess(id) && validIds.push(id));
-      e.pageState.selectedIds = validIds;
-      if (!validIds.find((id) => id === e.pageState.hoveredId)) {
-        e.pageState.hoveredId = undefined;
-      }
-    }
-
-    // change cursor when moving shapes
-    if (e?.session?.type === 'translate' && e?.session?.status === 'translating') {
-      if (!isMoving) setIsMoving(true);
-      if (reason === 'set_status:idle') setIsMoving(false);
-    }
-
-    if (reason && isPresenter && slidePosition && (reason.includes('zoomed') || reason.includes('panned'))) {
-      const camera = tldrawAPI?.getPageState()?.camera;
-
-      // limit bounds
-      if (tldrawAPI?.viewport.maxX > slidePosition.width) {
-        camera.point[0] += (tldrawAPI?.viewport.maxX - slidePosition.width);
-      }
-      if (tldrawAPI?.viewport.maxY > slidePosition.height) {
-        camera.point[1] += (tldrawAPI?.viewport.maxY - slidePosition.height);
-      }
-      if (camera.point[0] > 0 || tldrawAPI?.viewport.minX < 0) {
-        camera.point[0] = 0;
-      }
-      if (camera.point[1] > 0 || tldrawAPI?.viewport.minY < 0) {
-        camera.point[1] = 0;
-      }
-
-      const zoomFitSlide = calculateZoom(slidePosition.width, slidePosition.height);
-      if (camera.zoom < zoomFitSlide) {
-        camera.zoom = zoomFitSlide;
-      }
-
-      const zoomToolbar = Math.round(((HUNDRED_PERCENT * camera.zoom) / zoomFitSlide) * 100) / 100;
-      if (zoom !== zoomToolbar) {
-        setZoom(zoomToolbar);
-        if (isPresenter) zoomChanger(zoomToolbar);
-      }
-
-      let viewedRegionW = SlideCalcUtil.calcViewedRegionWidth(
-        tldrawAPI?.viewport.width, slidePosition.width,
-      );
-      let viewedRegionH = SlideCalcUtil.calcViewedRegionHeight(
-        tldrawAPI?.viewport.height, slidePosition.height,
+      const viewedRegionH = SlideCalcUtil.calcViewedRegionHeight(
+        tlEditor?.viewportPageBounds.height,
+        slidePosition.height
       );
 
-      if (!fitToWidth && camera.zoom === zoomFitSlide) {
-        viewedRegionW = HUNDRED_PERCENT;
-        viewedRegionH = HUNDRED_PERCENT;
-        camera.point = [0,0];
-      }
-
+      setZoom(HUNDRED_PERCENT);
+      zoomChanger(HUNDRED_PERCENT);
       zoomSlide(
         parseInt(curPageId, 10),
         podId,
-        viewedRegionW,
+        HUNDRED_PERCENT,
         viewedRegionH,
-        camera.point[0],
-        camera.point[1],
+        0,
+        0
       );
-    }
-    // don't allow non-presenters to pan&zoom
-    if (slidePosition && reason && !isPresenter && (reason.includes('zoomed') || reason.includes('panned'))) {
-      const newZoom = calculateZoom(slidePosition.viewBoxWidth, slidePosition.viewBoxHeight);
-      tldrawAPI?.setCamera([slidePosition.x, slidePosition.y], newZoom);
-    }
-    // disable select for non presenter that doesn't have multi user access
-    if (!hasWBAccess && !isPresenter) {
-      if (e?.getPageState()?.brush || e?.selectedIds?.length !== 0) {
-        e.patchState(
-          {
-            document: {
-              pageStates: {
-                [e?.currentPageId]: {
-                  selectedIds: [],
-                  brush: null,
-                },
-              },
-            },
-          },
-        );
-      }
-    }
-
-    if (reason && reason === 'patched_shapes' && e?.session?.type === 'edit') {
-      const patchedShape = e?.getShape(e?.getPageState()?.editingId);
-
-      if (e?.session?.initialShape?.type === 'sticky' && patchedShape?.text?.length > maxStickyNoteLength) {
-        patchedShape.text = patchedShape.text.substring(0, maxStickyNoteLength);
-      }
-
-      if (e?.session?.initialShape?.type === 'text' && !shapes[patchedShape.id]) {
-        // check for maxShapes
-        const currentShapes = e?.document?.pages[e?.currentPageId]?.shapes;
-        const shapeNumberExceeded = Object.keys(currentShapes).length - 1 > maxNumberOfAnnotations;
-        if (shapeNumberExceeded) {
-          notifyShapeNumberExceeded(intl, maxNumberOfAnnotations);
-          e?.cancelSession?.();
-        } else {
-          patchedShape.userId = currentUser?.userId;
-          persistShape(patchedShape, whiteboardId, isModerator);
-        }
-      } else {
-        const diff = {
-          id: patchedShape.id,
-          point: patchedShape.point,
-          text: patchedShape.text,
-        };
-        persistShape(diff, whiteboardId, isModerator);
-      }
-    }
-
-    if (reason && reason.includes('selected_tool')) {
-      const tool = reason.split(':')[1];
-      setCurrentTool(tool);
-      setPanSelected(false);
-      setIsPanning(false);
-    }
-
-    if (reason && reason.includes('ui:toggled_is_loading')) {
-      e?.patchState(
-        {
-          appState: {
-            currentStyle,
-          },
-        },
-      );
-    }
-
-    e?.patchState(
-      {
-        appState: {
-          isToolLocked,
-        },
-      },
-    );
-
-    if ((panSelected || isPanning)) {
-      e.isForcePanning = isPanning;
-    }
-  };
-
-  const onUndo = (app) => {
-    if (app.currentPageId !== curPageId) {
-      if (isPresenter) {
-        // change slide for others
-        skipToSlide(Number.parseInt(app.currentPageId, 10), podId);
-      } else {
-        // ignore, stay on same page
-        app.changePage(curPageId);
-      }
-      return;
-    }
-    const lastCommand = app.stack[app.pointer + 1];
-    const changedShapes = lastCommand?.before?.document?.pages[app.currentPageId]?.shapes;
-    if (changedShapes) {
-      sendShapeChanges(
-        app, changedShapes, shapes, prevShapes, hasShapeAccess,
-        whiteboardId, currentUser, intl, true,
-      );
-    }
-  };
-
-  const onRedo = (app) => {
-    if (app.currentPageId !== curPageId) {
-      if (isPresenter) {
-        // change slide for others
-        skipToSlide(Number.parseInt(app.currentPageId, 10), podId);
-      } else {
-        // ignore, stay on same page
-        app.changePage(curPageId);
-      }
-      return;
-    }
-    const lastCommand = app.stack[app.pointer];
-    const changedShapes = lastCommand?.after?.document?.pages[app.currentPageId]?.shapes;
-    if (changedShapes) {
-      sendShapeChanges(
-        app, changedShapes, shapes, prevShapes, hasShapeAccess, whiteboardId, currentUser, intl,
-      );
-    }
-  };
-
-  const onCommand = (app, command) => {
-    const isFirstCommand = command.id === "change_page" && command.before?.appState.currentPageId === "0";
-    if (!isFirstCommand){
-      setHistory(app.history);
-    }
-
-    if (whiteboardToolbarAutoHide && command && command.id === "change_page") {
-      toggleToolsAnimations('fade-in', 'fade-out', '0s');
-    }
-
-    if (command?.id?.includes('style')) {
-      setCurrentStyle({ ...currentStyle, ...command?.after?.appState?.currentStyle });
-    }
-
-    const changedShapes = command.after?.document?.pages[app.currentPageId]?.shapes;
-    if (!isMounting && app.currentPageId !== curPageId) {
-      // can happen then the "move to page action" is called, or using undo after changing a page
-      const currentPage = curPres.pages.find(
-        (page) => page.num === Number.parseInt(app.currentPageId, 10),
-      );
-      if (!currentPage) return;
-      const newWhiteboardId = currentPage.id;
-      // remove from previous page and persist on new
-      if (changedShapes) {
-        removeShapes(Object.keys(changedShapes), whiteboardId);
-        Object.entries(changedShapes)
-          .forEach(([id, shape]) => {
-            const shapeBounds = app.getShapeBounds(id);
-            const editedShape = shape;
-            editedShape.size = [shapeBounds.width, shapeBounds.height];
-            persistShape(editedShape, newWhiteboardId, isModerator);
+    } else {
+      const currentAspectRatio =
+        Math.round((presentationWidth / presentationHeight) * 100) / 100;
+      const previousAspectRatio =
+        Math.round(
+          (slidePosition.viewBoxWidth / slidePosition.viewBoxHeight) * 100
+        ) / 100;
+      if (fitToWidth && currentAspectRatio !== previousAspectRatio) {
+        // we need this to ensure tldraw updates the viewport size after re-mounting
+        setTimeout(() => {
+          const newZoom = calculateZoom(
+            slidePosition.viewBoxWidth,
+            slidePosition.viewBoxHeight
+          );
+          editor?.setCamera({
+            x: slidePosition?.x,
+            y: slidePosition?.y,
+            z: newZoom,
           });
-      }
-      if (isPresenter) {
-        // change slide for others
-        skipToSlide(Number.parseInt(app.currentPageId, 10), podId);
+        }, 50);
       } else {
-        // ignore, stay on same page
-        app.changePage(curPageId);
+        const newZoom = calculateZoom(
+          slidePosition.viewBoxWidth,
+          slidePosition.viewBoxHeight
+        );
+        editor?.setCamera({
+          x: slidePosition?.x,
+          y: slidePosition?.y,
+          z: newZoom,
+        });
       }
-    } else if (changedShapes) {
-      sendShapeChanges(
-        app, changedShapes, shapes, prevShapes, hasShapeAccess, whiteboardId, currentUser, intl,
-      );
     }
   };
 
-  const webcams = document.getElementById('cameraDock');
-  const dockPos = webcams?.getAttribute('data-position');
-  const backgroundShape = document.getElementById('slide-background-shape_image');
-
-  if (currentTool && !isPanning && !tldrawAPI?.isForcePanning) tldrawAPI?.selectTool(currentTool);
-
-  if (backgroundShape && backgroundShape.src // if there is a background image
-    && backgroundShape.complete // and it's fully downloaded
-    && backgroundShape.src !== bgShape?.src // and if it's a different image
-    && backgroundShape.parentElement?.clientWidth > 0 // and if the whiteboard area is visible
-  ) {
-    setBgShape(backgroundShape);
-  }
   const editableWB = (
-    <Styled.EditableWBWrapper onKeyDown={handleOnKeyDown}>
-      <Tldraw
-        key={`wb-${isRTL}-${dockPos}-${presentationAreaHeight}-${presentationAreaWidth}-${sidebarNavigationWidth}`}
-        document={doc}
-        // disable the ability to drag and drop files onto the whiteboard
-        // until we handle saving of assets in akka.
-        disableAssets
-        // Disable automatic focus. Users were losing focus on shared notes
-        // and chat on presentation mount.
-        autofocus={false}
-        onMount={onMount}
-        showPages={false}
-        showZoom={false}
-        showUI={curPres ? (isPresenter || hasWBAccess) : true}
-        showMenu={!curPres}
-        showMultiplayerMenu={false}
-        readOnly={false}
-        onPatch={onPatch}
-        onUndo={onUndo}
-        onRedo={onRedo}
-        onCommand={onCommand}
-      />
-    </Styled.EditableWBWrapper>
+    <Tldraw
+      key={`editableWB-${hasWBAccess}`}
+      forceMobileModeLayout
+      onMount={handleTldrawMount}
+    />
   );
 
   const readOnlyWB = (
     <Tldraw
-      key="wb-readOnly"
-      document={doc}
-      onMount={onMount}
-      // disable the ability to drag and drop files onto the whiteboard
-      // until we handle saving of assets in akka.
-      disableAssets
-      // Disable automatic focus. Users were losing focus on shared notes
-      // and chat on presentation mount.
-      autofocus={false}
-      showPages={false}
-      showZoom={false}
-      showUI={false}
-      showMenu={false}
-      showMultiplayerMenu={false}
-      readOnly
-      onPatch={onPatch}
+      key={`readOnlyWB-${hasWBAccess}`}
+      forceMobileModeLayout
+      hideUi
+      onMount={handleTldrawMount}
     />
   );
 
-  const size = ((height < SMALL_HEIGHT) || (width < SMALL_WIDTH))
-    ? TOOLBAR_SMALL : TOOLBAR_LARGE;
-
-  const menuOffsetValues = {
-    true: {
-      true: `${styleMenuOffsetSmall}`,
-      false: `${styleMenuOffset}`,
-    },
-    false: {
-      true: `-${styleMenuOffsetSmall}`,
-      false: `-${styleMenuOffset}`,
-    },
-  };
-
-  const menuOffset = menuOffsetValues[isRTL][isIphone];
-
   return (
-    <div key={`animations=-${animations}`}>
-      <Cursors
-        tldrawAPI={tldrawAPI}
-        currentUser={currentUser}
-        hasMultiUserAccess={hasMultiUserAccess}
-        whiteboardId={whiteboardId}
-        isViewersCursorLocked={isViewersCursorLocked}
-        isMultiUserActive={isMultiUserActive}
-        isPanning={isPanning || panSelected}
-        isMoving={isMoving}
-        currentTool={currentTool}
-        whiteboardToolbarAutoHide={whiteboardToolbarAutoHide}
-        toggleToolsAnimations={toggleToolsAnimations}
-      >
-        {(hasWBAccess || isPresenter) ? editableWB : readOnlyWB}
-        <Styled.TldrawGlobalStyle
-          hideContextMenu={!hasWBAccess && !isPresenter}
-          {...{
-            hasWBAccess,
-            isPresenter,
-            size,
-            darkTheme,
-            menuOffset,
-            panSelected,
-            isToolbarVisible,
-          }}
-        />
-      </Cursors>
-      {isPresenter && (
-        <PanToolInjector
-          {...{
-            tldrawAPI,
-            fitToWidth,
-            isPanning,
-            setIsPanning,
-            zoomValue,
-            panSelected,
-            setPanSelected,
-            currentTool,
-          }}
-          formatMessage={intl?.formatMessage}
-        />
-      )}
+    <div
+      id={"whiteboard-element"}
+      key={`animations=-${animations}-${hasWBAccess}`}
+    >
+      {hasWBAccess || isPresenter ? editableWB : readOnlyWB}
+      <Styled.TldrawV2GlobalStyle {...{ hasWBAccess, isPresenter }} />
     </div>
   );
 }
@@ -1167,7 +778,6 @@ Whiteboard.propTypes = {
   maxNumberOfAnnotations: PropTypes.number.isRequired,
   notifyShapeNumberExceeded: PropTypes.func.isRequired,
   darkTheme: PropTypes.bool.isRequired,
-  isPanning: PropTypes.bool.isRequired,
   setTldrawIsMounting: PropTypes.func.isRequired,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
