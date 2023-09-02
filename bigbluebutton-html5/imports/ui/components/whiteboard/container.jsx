@@ -54,31 +54,26 @@ const WhiteboardContainer = (props) => {
 
   const { whiteboardId,  curPageId, intl, isViewersAnnotationsLocked, shapes } = props;
   
+  // const hasShapeAccess = (id) => {
+  //   // const owner = shapes[id]?.userId;
+  //   // const isBackgroundShape = id?.includes('slide-background');
+  //   // const isPollsResult = shapes[id]?.name?.includes('poll-result');
+  //   // const hasAccess = !isBackgroundShape && !isPollsResult || isPresenter
+  //   //   && ((owner && owner === currentUser?.userId) || !owner || isPresenter || isModerator);
+  //   // return hasAccess;
+  //   return true;
+  // };
+
   const hasShapeAccess = (id) => {
-    // const owner = shapes[id]?.userId;
-    // const isBackgroundShape = id?.includes('slide-background');
-    // const isPollsResult = shapes[id]?.name?.includes('poll-result');
-    // const hasAccess = !isBackgroundShape && !isPollsResult || isPresenter
-    //   && ((owner && owner === currentUser?.userId) || !owner || isPresenter || isModerator);
-    // return hasAccess;
-    return true;
-  };
-
-  const isShapeOwner = (id) => {
-    const owner = shapes[id]?.id;
-
-    console.log('IS SHAPE OWNER CALL ', shapes, id)
-    // const isBackgroundShape = id?.includes('slide-background');
-    // const isPollsResult = shapes[id]?.name?.includes('poll-result');
-    // const hasAccess = !isBackgroundShape && !isPollsResult || isPresenter
-    //   && ((owner && owner === currentUser?.userId) || !owner || isPresenter || isModerator);
-    // return hasAccess;
-    return (owner && owner === currentUser?.userId);
+    const s = getShapes(whiteboardId, curPageId, intl, isViewersAnnotationsLocked);
+    const owner = s[id]?.meta?.uid;
+    const hasAccess = (owner && owner === currentUser?.userId) || !owner || isPresenter || isModerator;
+    return hasAccess;
   };
 
   // set shapes as locked for those who aren't allowed to edit it
   // Object.entries(shapes).forEach(([shapeId, shape]) => {
-  //   if (!shape.isLocked && !hasShapeAccess(shapeId) && !shape.name?.includes('poll-result')) {
+  //   if (!shape.isLocked && !hasShapeAccess(shapeId)) {
   //     const modShape = shape;
   //     modShape.isLocked = true;
   //   }
@@ -97,7 +92,6 @@ const WhiteboardContainer = (props) => {
         maxNumberOfAnnotations,
         fontFamily,
         hasShapeAccess,
-        isShapeOwner,
         handleToggleFullScreen,
         sidebarNavigationWidth,
         layoutContextDispatch,
@@ -127,6 +121,7 @@ export default withTracker(({
   const assets = {};
 
   return {
+    whiteboardId, curPageId, intl, isViewersAnnotationsLocked,
     initDefaultPages,
     persistShape,
     isMultiUserActive,

@@ -163,6 +163,11 @@ export default function Whiteboard(props) {
 
   const zoomValueRef = React.useRef(zoomValue);
   const prevShapesRef = React.useRef(shapes);
+  const tlEditorRef = React.useRef(tlEditor);
+
+  React.useEffect(() => {
+    tlEditorRef.current = tlEditor;
+  }, [tlEditor]);
 
   React.useEffect(() => {
     zoomValueRef.current = zoomValue;
@@ -203,7 +208,6 @@ export default function Whiteboard(props) {
       // Create a deep clone of remoteShape and remove the isModerator property
       const comparisonRemoteShape = deepCloneUsingShallow(remoteShape);
       delete comparisonRemoteShape.isModerator;
-      delete comparisonRemoteShape.owner;
 
       if (!localShape) {
         // If the shape does not exist in local, add it to shapesToAdd
@@ -249,7 +253,6 @@ export default function Whiteboard(props) {
         // Remove isModerator property from each shape in shapesToAdd
         shapesToAdd.forEach((shape) => {
           delete shape.isModerator;
-          delete shape.owner;
         });
         tlEditor?.store?.put(shapesToAdd);
       }
@@ -456,6 +459,7 @@ export default function Whiteboard(props) {
   const language = mapLanguage(
     Settings?.application?.locale?.toLowerCase() || "en"
   );
+  const whiteboardRef = React.useRef(null);
 
   // eslint-disable-next-line arrow-body-style
   React.useEffect(() => {
@@ -536,7 +540,7 @@ export default function Whiteboard(props) {
   const handleTldrawMount = (editor) => {
     setTlEditor(editor);
 
-    // console.log('EDITOR : ', editor, editor.pointerDown)
+    console.log('EDITOR : ', editor, editor.pointerDown)
     const debouncePersistShape = debounce({ delay: 50 }, persistShape);
     const { bgAssets, bgShapes } = getBackgroundShapesAndAssets(
       curPres,
@@ -595,13 +599,33 @@ export default function Whiteboard(props) {
         if (shapesToAdd && shapesToAdd.length) {
           shapesToAdd.forEach((shape) => {
             delete shape.isModerator;
-            delete shape.owner;
           });
           editor.store.put(shapesToAdd);
         }
       });
 
+      editor.store.onBeforeCreate = (record, source) => {
+        if (source === 'user') {
+          record.meta.uid = `${currentUser.userId}`;
+        }
+        return record;
+      }
+
       editor.store.onBeforeChange = (prev, next, source) => {
+        if (next?.typeName === "instance_page_state") {
+          // Filter the selectedShapeIds to keep only those for which hasShapeAccess
+          next.selectedShapeIds = next.selectedShapeIds.filter(id => hasShapeAccess(id));
+          // Check hoveredShapeId
+          if (next.hoveredShapeId !== null && !hasShapeAccess(next.hoveredShapeId)) {
+              next.hoveredShapeId = null;
+          }
+          // Check editingShapeId
+          if (next.editingShapeId !== null && !hasShapeAccess(next.editingShapeId)) {
+              next.editingShapeId = null;
+          }
+          return next;
+        }
+
         const camera = editor?.camera;
         const panned =
           next?.id?.includes("camera") &&
@@ -638,7 +662,7 @@ export default function Whiteboard(props) {
           }
         }
 
-        if (next?.id?.includes("shape") && whiteboardId && source !== 'remote') {
+        if (next?.id?.includes("shape") && whiteboardId && source === 'user') {
           debouncePersistShape(next, whiteboardId, isModerator);
         }
       };
@@ -720,6 +744,7 @@ export default function Whiteboard(props) {
 
   return (
     <div
+    ref={whiteboardRef}
       id={"whiteboard-element"}
       key={`animations=-${animations}-${hasWBAccess}`}
     >
