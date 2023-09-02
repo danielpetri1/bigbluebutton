@@ -537,6 +537,20 @@ export default function Whiteboard(props) {
 
   const hasWBAccess = hasMultiUserAccess(whiteboardId, currentUser.userId);
 
+  const shouldKeepShape = (id) => {
+    if (isPresenter || (isModerator && hasWBAccess) || (hasWBAccess && hasShapeAccess(id))) {
+        return true;
+    }
+    return false;
+  }
+
+  const shouldResetShape = (shapeId) => {
+    if (isPresenter || (isModerator && hasWBAccess) || (hasWBAccess && hasShapeAccess(shapeId))) {
+      return false;
+    }
+    return true;
+  }
+
   const handleTldrawMount = (editor) => {
     setTlEditor(editor);
 
@@ -613,15 +627,15 @@ export default function Whiteboard(props) {
 
       editor.store.onBeforeChange = (prev, next, source) => {
         if (next?.typeName === "instance_page_state") {
-          // Filter the selectedShapeIds to keep only those for which hasShapeAccess
-          next.selectedShapeIds = next.selectedShapeIds.filter(id => hasShapeAccess(id));
-          // Check hoveredShapeId
-          if (next.hoveredShapeId !== null && !hasShapeAccess(next.hoveredShapeId)) {
-              next.hoveredShapeId = null;
+          if (!isEqual(prev.selectedShapeIds, next.selectedShapeIds)) {
+            // Filter the selectedShapeIds
+            next.selectedShapeIds = next.selectedShapeIds.filter(shouldKeepShape); 
           }
-          // Check editingShapeId
-          if (next.editingShapeId !== null && !hasShapeAccess(next.editingShapeId)) {
-              next.editingShapeId = null;
+          if (!isEqual(prev.hoveredShapeId, next.hoveredShapeId)) {
+            // Check hoveredShapeId
+            if (shouldResetShape(next.hoveredShapeId)) {
+              next.hoveredShapeId = null;
+            }
           }
           return next;
         }
@@ -744,9 +758,9 @@ export default function Whiteboard(props) {
 
   return (
     <div
-    ref={whiteboardRef}
+      ref={whiteboardRef}
       id={"whiteboard-element"}
-      key={`animations=-${animations}-${hasWBAccess}`}
+      key={`animations=-${animations}-${hasWBAccess}-${isPresenter}-${isModerator}`}
     >
       {hasWBAccess || isPresenter ? editableWB : readOnlyWB}
       <Styled.TldrawV2GlobalStyle {...{ hasWBAccess, isPresenter }} />
