@@ -161,9 +161,22 @@ export default function Whiteboard(props) {
   const [cursorY, setCursorY] = React.useState(0);
   const [cursorTracking, setCursorTracking] = React.useState(false);
 
+  const [zoom, setZoom] = React.useState(HUNDRED_PERCENT);
+  const [tldrawZoom, setTldrawZoom] = React.useState(1);
+  const [isMounting, setIsMounting] = React.useState(true);
+
+  const prevShapes = usePrevious(shapes);
+  const prevSlidePosition = usePrevious(slidePosition);
+  const prevFitToWidth = usePrevious(fitToWidth);
+
+  const whiteboardRef = React.useRef(null);
   const zoomValueRef = React.useRef(zoomValue);
   const prevShapesRef = React.useRef(shapes);
   const tlEditorRef = React.useRef(tlEditor);
+
+  const language = React.useMemo(() => {
+    return mapLanguage(Settings?.application?.locale?.toLowerCase() || "en");
+  }, [Settings?.application?.locale]);
 
   React.useEffect(() => {
     tlEditorRef.current = tlEditor;
@@ -224,7 +237,6 @@ export default function Whiteboard(props) {
         Object.keys(remoteShape).forEach((key) => {
           if (
             key !== "isModerator" &&
-            key !== "owner" &&
             !isEqual(remoteShape[key], localShape[key])
           ) {
             diff[key] = remoteShape[key];
@@ -309,10 +321,13 @@ export default function Whiteboard(props) {
     });
   }, [cursorX, cursorY]);
 
+  const hasWBAccess = hasMultiUserAccess(whiteboardId, currentUser.userId);
+
   // set current tldraw page when presentation id updates
   React.useEffect(() => {
     if (tlEditor && curPageId !== "0") {
       tlEditor?.setCurrentPage(`page:${curPageId}`);
+      whiteboardToolbarAutoHide && toggleToolsAnimations('fade-in', 'fade-out', '0s', hasWBAccess || isPresenter);
     }
   }, [curPageId]);
 
@@ -374,17 +389,15 @@ export default function Whiteboard(props) {
           ) / 100;
         if (fitToWidth && currentAspectRatio !== previousAspectRatio) {
           // we need this to ensure tldraw updates the viewport size after re-mounting
-          setTimeout(() => {
-            const newZoom = calculateZoom(
-              slidePosition.viewBoxWidth,
-              slidePosition.viewBoxHeight
-            );
-            tlEditor?.setCamera({
-              x: slidePosition?.x,
-              y: slidePosition?.y,
-              z: newZoom,
-            });
-          }, 50);
+          const newZoom = calculateZoom(
+            slidePosition.viewBoxWidth,
+            slidePosition.viewBoxHeight
+          );
+          tlEditor?.setCamera({
+            x: slidePosition?.x,
+            y: slidePosition?.y,
+            z: newZoom,
+          });
         } else {
           const newZoom = calculateZoom(
             slidePosition.viewBoxWidth,
@@ -424,6 +437,9 @@ export default function Whiteboard(props) {
 
   // update zoom according to toolbar
   React.useEffect(() => {
+
+    const zoomValueInt = parseInt(zoomValueRef.current, 10);
+
     if (
       tlEditor &&
       isPresenter &&
@@ -432,34 +448,26 @@ export default function Whiteboard(props) {
       // (zoom !== zoomValueRef.current && zoom !== 100)
     ) {
       console.log("zoomValue update : ", zoomValueRef.current, zoom, tlEditor);
+      
       const zoomFitSlide = calculateZoom(
         slidePosition.width,
         slidePosition.height
       );
       const zoomCamera =
-        (zoomFitSlide * zoomValueRef.current) / HUNDRED_PERCENT;
+        (zoomFitSlide * zoomValueInt) / HUNDRED_PERCENT;
       setTimeout(() => {
         tlEditor?.setCamera({
           x: tlEditor?.camera.x,
           y: tlEditor?.camera.x,
           z: zoomCamera,
         });
+
+        setTimeout(() => {
+          window.dispatchEvent(new Event('resize'));
+        })
       }, 0);
     }
-  }, [zoomValueRef.current]);
-
-  const [zoom, setZoom] = React.useState(HUNDRED_PERCENT);
-  const [tldrawZoom, setTldrawZoom] = React.useState(1);
-  const zoomValueRef = React.useRef(zoomValue);
-  const [isMounting, setIsMounting] = React.useState(true);
-  const prevShapes = usePrevious(shapes);
-  const prevSlidePosition = usePrevious(slidePosition);
-  const prevFitToWidth = usePrevious(fitToWidth);
-
-  const language = mapLanguage(
-    Settings?.application?.locale?.toLowerCase() || "en"
-  );
-  const whiteboardRef = React.useRef(null);
+  }, [zoomValueRef.current, zoomValue]);
 
   // eslint-disable-next-line arrow-body-style
   React.useEffect(() => {
@@ -471,9 +479,9 @@ export default function Whiteboard(props) {
 
   React.useEffect(() => {
     if (whiteboardToolbarAutoHide) {
-      toggleToolsAnimations("fade-in", "fade-out", animations ? "3s" : "0s");
+      toggleToolsAnimations("fade-in", "fade-out", animations ? "3s" : "0s", hasWBAccess || isPresenter);
     } else {
-      toggleToolsAnimations("fade-out", "fade-in", animations ? ".3s" : "0s");
+      toggleToolsAnimations("fade-out", "fade-in", animations ? ".3s" : "0s", hasWBAccess || isPresenter);
     }
   }, [whiteboardToolbarAutoHide]);
 
@@ -535,8 +543,6 @@ export default function Whiteboard(props) {
     presentationHeight,
   ]);
 
-  const hasWBAccess = hasMultiUserAccess(whiteboardId, currentUser.userId);
-
   const shouldKeepShape = (id) => {
     if (isPresenter || (isModerator && hasWBAccess) || (hasWBAccess && hasShapeAccess(id))) {
         return true;
@@ -553,6 +559,8 @@ export default function Whiteboard(props) {
 
   const handleTldrawMount = (editor) => {
     setTlEditor(editor);
+
+    editor?.user?.updateUserPreferences({ locale: language })
 
     console.log('EDITOR : ', editor, editor.pointerDown)
     const debouncePersistShape = debounce({ delay: 50 }, persistShape);
@@ -663,6 +671,44 @@ export default function Whiteboard(props) {
           }
         }
 
+        
+      const zoomFitSlide = calculateZoom(slidePosition.width, slidePosition.height);
+      if (camera.z < zoomFitSlide) {
+        camera.z = zoomFitSlide;
+      }
+
+      const zoomToolbar = Math.round(((HUNDRED_PERCENT * camera.z) / zoomFitSlide) * 100) / 100;
+      // if (zoom !== zoomToolbar) {
+      //   setZoom(zoomToolbar);
+      //   if (isPresenter) zoomChanger(zoomToolbar);
+      // }
+
+      let viewedRegionW = SlideCalcUtil.calcViewedRegionWidth(
+        editor?.viewportPageBounds.width, slidePosition.width,
+      );
+      let viewedRegionH = SlideCalcUtil.calcViewedRegionHeight(
+        editor?.viewportPageBounds.height, slidePosition.height,
+      );
+
+      if (!fitToWidth && camera.z === zoomFitSlide) {
+        viewedRegionW = HUNDRED_PERCENT;
+        viewedRegionH = HUNDRED_PERCENT;
+      }
+
+      console.log('################################')
+      console.log('curPageId', curPageId)
+      console.log('parseInt(curPageId, 10)', parseInt(curPageId, 10))
+      console.log('################################')
+
+      // zoomSlide(
+      //   parseInt(curPageId, 10),
+      //   podId,
+      //   viewedRegionW,
+      //   viewedRegionH,
+      //   next.x,
+      //   next.y,
+      // );
+
         return next;
       };
 
@@ -739,9 +785,17 @@ export default function Whiteboard(props) {
     }
   };
 
+  const handleMouseEnter = () => {
+    whiteboardToolbarAutoHide && toggleToolsAnimations('fade-out', 'fade-in', animations ? '.3s' : '0s', hasWBAccess || isPresenter)
+  };
+  
+  const handleMouseLeave = () => {
+    whiteboardToolbarAutoHide && toggleToolsAnimations('fade-in', 'fade-out', animations ? '3s' : '0s', hasWBAccess || isPresenter);
+  };
+
   const editableWB = (
     <Tldraw
-      key={`editableWB-${hasWBAccess}`}
+      key={`editableWB-${hasWBAccess}-${isPresenter}-${isModerator}-${whiteboardToolbarAutoHide}`}
       forceMobileModeLayout
       onMount={handleTldrawMount}
     />
@@ -749,7 +803,7 @@ export default function Whiteboard(props) {
 
   const readOnlyWB = (
     <Tldraw
-      key={`readOnlyWB-${hasWBAccess}`}
+      key={`readOnlyWB-${hasWBAccess}-${isPresenter}-${isModerator}-${whiteboardToolbarAutoHide}`}
       forceMobileModeLayout
       hideUi
       onMount={handleTldrawMount}
@@ -760,7 +814,9 @@ export default function Whiteboard(props) {
     <div
       ref={whiteboardRef}
       id={"whiteboard-element"}
-      key={`animations=-${animations}-${hasWBAccess}-${isPresenter}-${isModerator}`}
+      key={`animations=-${animations}-${hasWBAccess}-${isPresenter}-${isModerator}-${whiteboardToolbarAutoHide}-${language}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {hasWBAccess || isPresenter ? editableWB : readOnlyWB}
       <Styled.TldrawV2GlobalStyle {...{ hasWBAccess, isPresenter }} />
