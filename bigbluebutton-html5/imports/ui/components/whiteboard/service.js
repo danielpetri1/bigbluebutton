@@ -330,7 +330,7 @@ const getShapes = (whiteboardId, curPageId, intl, isLocked) => {
 
       modAnnotation.annotationInfo = {
         id: `shape:poll-result-${annotation.annotationInfo.id}`,
-        index: "z9",
+        index: "a8",
         isLocked: false,
         rotation: 0,
         opacity: 1,

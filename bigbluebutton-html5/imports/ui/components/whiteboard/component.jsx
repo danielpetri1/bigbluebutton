@@ -447,8 +447,6 @@ export default function Whiteboard(props) {
       slidePosition
       // (zoom !== zoomValueRef.current && zoom !== 100)
     ) {
-      console.log("zoomValue update : ", zoomValueRef.current, zoom, tlEditor);
-      
       const zoomFitSlide = calculateZoom(
         slidePosition.width,
         slidePosition.height
@@ -654,7 +652,6 @@ export default function Whiteboard(props) {
           (prev.x !== next.x || prev.y !== next.y);
         const zoomed = next?.id?.includes("camera") && prev.z !== next.z;
         if (panned) {
-          console.log(zoomValue, zoom, zoomValueRef.current);
           if (zoomValueRef.current <= HUNDRED_PERCENT) return prev;
           // // limit bounds
           if (editor?.viewportPageBounds?.maxX > slidePosition?.width) {
@@ -695,10 +692,6 @@ export default function Whiteboard(props) {
         viewedRegionH = HUNDRED_PERCENT;
       }
 
-      console.log('################################')
-      console.log('curPageId', curPageId)
-      console.log('parseInt(curPageId, 10)', parseInt(curPageId, 10))
-      console.log('################################')
 
       // zoomSlide(
       //   parseInt(curPageId, 10),
@@ -819,7 +812,7 @@ export default function Whiteboard(props) {
       onMouseLeave={handleMouseLeave}
     >
       {hasWBAccess || isPresenter ? editableWB : readOnlyWB}
-      <Styled.TldrawV2GlobalStyle {...{ hasWBAccess, isPresenter }} />
+      <Styled.TldrawV2GlobalStyle {...{ hasWBAccess, isPresenter, isRTL }} />
     </div>
   );
 }

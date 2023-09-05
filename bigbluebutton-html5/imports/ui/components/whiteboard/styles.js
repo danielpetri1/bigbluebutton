@@ -12,6 +12,21 @@ const TldrawV2GlobalStyle = createGlobalStyle`
       display: none;
     }
   `}
+
+  ${({ isRTL }) => (!isRTL) && `
+    .tlui-menu-zone {
+      right: auto;
+      left: 3.5rem;
+    }
+  `}
+
+  ${({ isRTL }) => (isRTL) && `
+    .tlui-menu-zone {
+      right: 3.5rem;
+      left: auto;
+    }
+  `}
+
   #presentationInnerWrapper > div:last-child {
     position: relative;
     height: 100%;
@@ -33,12 +48,9 @@ const TldrawV2GlobalStyle = createGlobalStyle`
     display: none;
   }
 
-  .tlui-menu-zone {
-    left: 3.5rem;
-  }
-
   .tlui-style-panel__wrapper {
-    right: 4rem;
+    right: 0px;
+    top: -0.35rem;
     position: relative;
   }
 
