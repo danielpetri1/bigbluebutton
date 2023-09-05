@@ -329,18 +329,37 @@ const getShapes = (whiteboardId, curPageId, intl, isLocked) => {
       const textSize = getTextSize(pollResult, style, padding = 20);
 
       modAnnotation.annotationInfo = {
-        childIndex: 0,
-        id: annotation.annotationInfo.id,
-        name: `poll-result-${annotation.annotationInfo.id}`,
-        type: 'rectangle',
-        label: pollResult,
-        labelPoint: [0.5, 0.5],
-        parentId: `${curPageId}`,
-        point: [0, 0],
-        size: textSize,
-        style,
+        id: `shape:poll-result-${annotation.annotationInfo.id}`,
+        index: "z9",
+        isLocked: false,
+        rotation: 0,
+        opacity: 1,
+        type: 'geo',
+        typeName: 'shape',
+        parentId: `page:${curPageId}`,
+        x: 0,
+        y: 0,
+        meta: {
+          questionType: false,
+          isModerator: true,
+        },
+        props: {
+          align: "middle",
+          color: "black",
+          dash: "draw",
+          fill: "semi",
+          font: "draw",
+          geo: "rectangle",
+          growY: 0,
+          h: textSize[1] + 35,
+          labelColor: "black",
+          size: "m",
+          text: pollResult,
+          url: "",
+          verticalAlign: "middle",
+          w: textSize[0] + 50,
+        }
       };
-      modAnnotation.annotationInfo.questionType = false;
     }
     result[annotation.annotationInfo.id] = annotation.annotationInfo;
   });

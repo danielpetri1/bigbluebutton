@@ -32,7 +32,6 @@ const ROLE_MODERATOR = Meteor.settings.public.user.role_moderator;
 const WHITEBOARD_CONFIG = Meteor.settings.public.whiteboard;
 
 const WhiteboardContainer = (props) => {
-  // console.log("WhiteboardContainer rendered")
   const [localShapes, setLocalShapes] = useState(null);
 
   const usingUsersContext = useContext(UsersContext);
