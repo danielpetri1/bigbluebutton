@@ -1,5 +1,6 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
+import {ShapeStylesProvider} from '/imports/ui/components/whiteboard/style-provider/component';
 import WhiteboardContainer from '/imports/ui/components/whiteboard/container';
 import { HUNDRED_PERCENT, MAX_PERCENT } from '/imports/utils/slideCalcUtils';
 import { SPACE } from '/imports/utils/keyCodes';
@@ -853,37 +854,39 @@ class Presentation extends PureComponent {
                 {!tldrawIsMounting &&
                   currentSlide &&
                   this.renderPresentationMenu()}
-                <WhiteboardContainer
-                  whiteboardId={currentSlide?.id}
-                  podId={podId}
-                  slidePosition={slidePosition}
-                  getSvgRef={this.getSvgRef}
-                  tldrawAPI={tldrawAPI}
-                  setTldrawAPI={this.setTldrawAPI}
-                  curPageId={currentSlide?.num.toString() || '0'}
-                  svgUri={currentSlide?.svgUri}
-                  intl={intl}
-                  presentationWidth={svgWidth}
-                  presentationHeight={svgHeight}
-                  presentationAreaHeight={presentationBounds?.height}
-                  presentationAreaWidth={presentationBounds?.width}
-                  isViewersCursorLocked={isViewersCursorLocked}
-                  isPanning={isPanning}
-                  zoomChanger={this.zoomChanger}
-                  fitToWidth={fitToWidth}
-                  zoomValue={zoom}
-                  setTldrawIsMounting={this.setTldrawIsMounting}
-                  setIsToolbarVisible={this.setIsToolbarVisible}
-                  isFullscreen={isFullscreen}
-                  fullscreenAction={ACTIONS.SET_FULLSCREEN_ELEMENT}
-                  fullscreenElementId={fullscreenElementId}
-                  layoutContextDispatch={layoutContextDispatch}
-                  fullscreenRef={this.refPresentationContainer}
-                  presentationId={currentPresentation?.id}
-                  darkTheme={darkTheme}
-                  isToolbarVisible={isToolbarVisible}
-                  isViewersAnnotationsLocked={isViewersAnnotationsLocked}
-                />
+                <ShapeStylesProvider>
+                  <WhiteboardContainer
+                    whiteboardId={currentSlide?.id}
+                    podId={podId}
+                    slidePosition={slidePosition}
+                    getSvgRef={this.getSvgRef}
+                    tldrawAPI={tldrawAPI}
+                    setTldrawAPI={this.setTldrawAPI}
+                    curPageId={currentSlide?.num.toString() || '0'}
+                    svgUri={currentSlide?.svgUri}
+                    intl={intl}
+                    presentationWidth={svgWidth}
+                    presentationHeight={svgHeight}
+                    presentationAreaHeight={presentationBounds?.height}
+                    presentationAreaWidth={presentationBounds?.width}
+                    isViewersCursorLocked={isViewersCursorLocked}
+                    isPanning={isPanning}
+                    zoomChanger={this.zoomChanger}
+                    fitToWidth={fitToWidth}
+                    zoomValue={zoom}
+                    setTldrawIsMounting={this.setTldrawIsMounting}
+                    setIsToolbarVisible={this.setIsToolbarVisible}
+                    isFullscreen={isFullscreen}
+                    fullscreenAction={ACTIONS.SET_FULLSCREEN_ELEMENT}
+                    fullscreenElementId={fullscreenElementId}
+                    layoutContextDispatch={layoutContextDispatch}
+                    fullscreenRef={this.refPresentationContainer}
+                    presentationId={currentPresentation?.id}
+                    darkTheme={darkTheme}
+                    isToolbarVisible={isToolbarVisible}
+                    isViewersAnnotationsLocked={isViewersAnnotationsLocked}
+                  />
+                </ShapeStylesProvider>
                 {isFullscreen && <PollingContainer />}
               </div>
               {!tldrawIsMounting && (

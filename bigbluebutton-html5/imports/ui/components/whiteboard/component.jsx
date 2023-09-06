@@ -29,6 +29,7 @@ import {
   TLAsset,
   TLExternalAssetContent,
   getHashForString,
+  DefaultColorStyle,
 } from "@tldraw/tldraw";
 import { PageRecordType } from "@tldraw/editor";
 import { useRef } from "react";
@@ -55,6 +56,24 @@ const deepCloneUsingShallow = (obj) => {
 };
 
 // Helper functions
+const deleteProps = (obj, props) => {
+  props.forEach(prop => delete obj[prop]);
+}
+
+const calculateDifferences = (prevStyles, nextStyles) => {
+  const differences = {};
+  for (let key in nextStyles) {
+      if (nextStyles.hasOwnProperty(key) && prevStyles.hasOwnProperty(key) && key !== 'h' && key !== 'w') {
+          if (nextStyles[key] !== prevStyles[key]) {
+              differences[key] = nextStyles[key];
+          }
+      } else if (!prevStyles.hasOwnProperty(key)) {
+          differences[key] = nextStyles[key];
+      }
+  }
+  return differences;
+}
+
 const getBackgroundShapesAndAssets = (curPres, slidePosition) => {
   const bgAssets = [];
   const bgShapes = [];
@@ -152,6 +171,7 @@ export default function Whiteboard(props) {
     publishCursorUpdate,
     otherCursors,
     isShapeOwner,
+    ShapeStylesContext,
   } = props;
 
   if (curPageId === "0" || !curPageId) return null;
@@ -159,7 +179,7 @@ export default function Whiteboard(props) {
   const [tlEditor, setTlEditor] = React.useState(null);
   const [cursorX, setCursorX] = React.useState(0);
   const [cursorY, setCursorY] = React.useState(0);
-  const [cursorTracking, setCursorTracking] = React.useState(false);
+  const { currentShapeStyles, setCurrentShapeStyles } = React.useContext(ShapeStylesContext);
 
   const [zoom, setZoom] = React.useState(HUNDRED_PERCENT);
   const [tldrawZoom, setTldrawZoom] = React.useState(1);
@@ -173,6 +193,11 @@ export default function Whiteboard(props) {
   const zoomValueRef = React.useRef(zoomValue);
   const prevShapesRef = React.useRef(shapes);
   const tlEditorRef = React.useRef(tlEditor);
+  const currentShapeStylesRef = React.useRef(currentShapeStyles);
+
+  React.useEffect(() => {
+    currentShapeStylesRef.current = currentShapeStyles;
+  }, [currentShapeStyles]);
 
   const language = React.useMemo(() => {
     return mapLanguage(Settings?.application?.locale?.toLowerCase() || "en");
@@ -627,11 +652,54 @@ export default function Whiteboard(props) {
       editor.store.onBeforeCreate = (record, source) => {
         if (source === 'user') {
           record.meta.uid = `${currentUser.userId}`;
+          record.props = { ...record.props, ...currentShapeStylesRef.current };
+
+          const commonPropsToDelete = ['dash', 'fill', 'labelColor', 'geo', 'text'];
+          switch (record.type) {
+            case 'note':
+              deleteProps(record.props, [...commonPropsToDelete]);
+              record.props.text = "";
+              break;
+            case 'text':
+              deleteProps(record.props, ['verticalAlign', ...commonPropsToDelete]);
+              record.props.text = "";
+              break;
+            case 'geo':
+              record.props.text = "";
+              break;
+            default:
+              delete record.props.align;
+          }
         }
         return record;
       }
 
       editor.store.onBeforeChange = (prev, next, source) => {
+        let differences = {};
+        if (next.id === 'instance:instance') {
+          const cleanedNextStyles = Object.fromEntries(
+            Object.entries(next.stylesForNextShape).map(
+              ([key, value]) => [key.replace('tldraw:', ''), value]
+            )
+          );
+          const cleanedPrevStyles = Object.fromEntries(
+            Object.entries(prev.stylesForNextShape).map(
+              ([key, value]) => [key.replace('tldraw:', ''), value]
+            )
+          );
+          differences = calculateDifferences(cleanedPrevStyles, cleanedNextStyles);
+        } else if (prev.id.includes('shape:') && next.id.includes('shape:')) {
+          differences = calculateDifferences(prev.props, next.props);
+        }
+
+        Object.keys(differences).length > 0 && setCurrentShapeStyles(prevStyles => {
+          const updatedStyles = {
+            ...prevStyles,
+            ...differences,
+          };
+          return updatedStyles;
+        });
+
         if (next?.typeName === "instance_page_state") {
           if (!isEqual(prev.selectedShapeIds, next.selectedShapeIds)) {
             // Filter the selectedShapeIds
@@ -668,39 +736,37 @@ export default function Whiteboard(props) {
           }
         }
 
-        
-      const zoomFitSlide = calculateZoom(slidePosition.width, slidePosition.height);
-      if (camera.z < zoomFitSlide) {
-        camera.z = zoomFitSlide;
-      }
+        const zoomFitSlide = calculateZoom(slidePosition.width, slidePosition.height);
+        if (camera.z < zoomFitSlide) {
+          camera.z = zoomFitSlide;
+        }
 
-      const zoomToolbar = Math.round(((HUNDRED_PERCENT * camera.z) / zoomFitSlide) * 100) / 100;
-      // if (zoom !== zoomToolbar) {
-      //   setZoom(zoomToolbar);
-      //   if (isPresenter) zoomChanger(zoomToolbar);
-      // }
+        const zoomToolbar = Math.round(((HUNDRED_PERCENT * camera.z) / zoomFitSlide) * 100) / 100;
+        // if (zoom !== zoomToolbar) {
+        //   setZoom(zoomToolbar);
+        //   if (isPresenter) zoomChanger(zoomToolbar);
+        // }
 
-      let viewedRegionW = SlideCalcUtil.calcViewedRegionWidth(
-        editor?.viewportPageBounds.width, slidePosition.width,
-      );
-      let viewedRegionH = SlideCalcUtil.calcViewedRegionHeight(
-        editor?.viewportPageBounds.height, slidePosition.height,
-      );
+        let viewedRegionW = SlideCalcUtil.calcViewedRegionWidth(
+          editor?.viewportPageBounds.width, slidePosition.width,
+        );
+        let viewedRegionH = SlideCalcUtil.calcViewedRegionHeight(
+          editor?.viewportPageBounds.height, slidePosition.height,
+        );
 
-      if (!fitToWidth && camera.z === zoomFitSlide) {
-        viewedRegionW = HUNDRED_PERCENT;
-        viewedRegionH = HUNDRED_PERCENT;
-      }
+        if (!fitToWidth && camera.z === zoomFitSlide) {
+          viewedRegionW = HUNDRED_PERCENT;
+          viewedRegionH = HUNDRED_PERCENT;
+        }
 
-
-      // zoomSlide(
-      //   parseInt(curPageId, 10),
-      //   podId,
-      //   viewedRegionW,
-      //   viewedRegionH,
-      //   next.x,
-      //   next.y,
-      // );
+        // zoomSlide(
+        //   parseInt(curPageId, 10),
+        //   podId,
+        //   viewedRegionW,
+        //   viewedRegionH,
+        //   next.x,
+        //   next.y,
+        // );
 
         return next;
       };

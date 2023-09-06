@@ -27,6 +27,7 @@ import {
 import FullscreenService from '/imports/ui/components/common/fullscreen-button/service';
 import deviceInfo from '/imports/utils/deviceInfo';
 import Service from './cursors/service';
+import { ShapeStylesContext } from './style-provider/component';
 
 const ROLE_MODERATOR = Meteor.settings.public.user.role_moderator;
 const WHITEBOARD_CONFIG = Meteor.settings.public.whiteboard;
@@ -95,6 +96,7 @@ const WhiteboardContainer = (props) => {
         sidebarNavigationWidth,
         layoutContextDispatch,
         getShapes,
+        ShapeStylesContext,
       }}
       {...props}
       meetingId={Auth.meetingID}
