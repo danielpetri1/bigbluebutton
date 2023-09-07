@@ -651,6 +651,8 @@ export default function Whiteboard(props) {
 
       editor.store.onBeforeCreate = (record, source) => {
         if (source === 'user') {
+          if (record?.id?.includes('instance_presence')) return record;
+
           record.meta.uid = `${currentUser.userId}`;
           record.props = { ...record.props, ...currentShapeStylesRef.current };
 
