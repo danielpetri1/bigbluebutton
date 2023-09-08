@@ -196,6 +196,30 @@ export default function Whiteboard(props) {
   const currentShapeStylesRef = React.useRef(currentShapeStyles);
 
   React.useEffect(() => {
+    const handleMouseLeave = () => {
+        setTimeout(() => {
+          publishCursorUpdate({
+            xPercent: -1,
+            yPercent: -1,
+            whiteboardId,
+          });
+        }, 150);
+    };
+
+    const whiteboardElement = whiteboardRef.current;
+    if (whiteboardElement) {
+        whiteboardElement.addEventListener("mouseleave", handleMouseLeave);
+    }
+
+    return () => {
+        if (whiteboardElement) {
+            whiteboardElement.removeEventListener("mouseleave", handleMouseLeave);
+        }
+    };
+  }, [whiteboardRef.current]);
+
+
+  React.useEffect(() => {
     currentShapeStylesRef.current = currentShapeStyles;
   }, [currentShapeStyles]);
 
@@ -305,6 +329,12 @@ export default function Whiteboard(props) {
       const updatedPresences = otherCursors
         .map(({ userId, userName, xPercent, yPercent, presenter }) => {
           const id = InstancePresenceRecordType.createId(userId);
+          const active = yPercent !== -1 && yPercent !== -1;
+          // if cursor is not active remove it from tldraw store
+          if (!active) {
+            tlEditor.store.remove([id]);
+            return null;
+          }
           const currentPageId = tlEditor.currentPageId;
           const cursor = {
             x: xPercent,
@@ -326,7 +356,7 @@ export default function Whiteboard(props) {
           };
           return c;
         })
-        .filter((cursor) => cursor.userId !== currentUser?.userId);
+        .filter((cursor) => cursor && cursor.userId !== currentUser?.userId);
 
       // If there are any updated presences, put them all in the store
       if (updatedPresences.length) {
@@ -775,10 +805,10 @@ export default function Whiteboard(props) {
 
       editor.store.onAfterChange = (prev, next, source) => {
         if (next?.id?.includes("pointer")) {
-          if (next?.x !== cursorX) {
+          if (next?.x !== cursorX && (next?.x !== -1 &&  next?.y !== -1)) {
             setCursorX(next?.x);
           }
-          if (next?.y !== cursorY) {
+          if (next?.y !== cursorY && (next?.x !== -1  && next?.y !== -1)) {
             setCursorY(next?.y);
           }
         }
