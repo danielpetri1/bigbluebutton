@@ -197,27 +197,26 @@ export default function Whiteboard(props) {
 
   React.useEffect(() => {
     const handleMouseLeave = () => {
-        setTimeout(() => {
-          publishCursorUpdate({
-            xPercent: -1,
-            yPercent: -1,
-            whiteboardId,
-          });
-        }, 150);
+      setTimeout(() => {
+        publishCursorUpdate({
+          xPercent: -1,
+          yPercent: -1,
+          whiteboardId,
+        });
+      }, 150);
     };
 
     const whiteboardElement = whiteboardRef.current;
     if (whiteboardElement) {
-        whiteboardElement.addEventListener("mouseleave", handleMouseLeave);
+      whiteboardElement.addEventListener("mouseleave", handleMouseLeave);
     }
 
     return () => {
-        if (whiteboardElement) {
-            whiteboardElement.removeEventListener("mouseleave", handleMouseLeave);
-        }
+      if (whiteboardElement) {
+        whiteboardElement.removeEventListener("mouseleave", handleMouseLeave);
+      }
     };
-  }, [whiteboardRef.current]);
-
+  }, [whiteboardRef.current, curPageId]);
 
   React.useEffect(() => {
     currentShapeStylesRef.current = currentShapeStyles;
@@ -321,7 +320,7 @@ export default function Whiteboard(props) {
         tlEditor?.updateShapes(shapesToUpdate);
       }
     });
-  }, [shapes]);
+  }, [shapes, curPageId]);
 
   // Updating presences in tldraw store based on changes in cursors
   React.useEffect(() => {
@@ -686,23 +685,38 @@ export default function Whiteboard(props) {
           record.meta.uid = `${currentUser.userId}`;
           record.props = { ...record.props, ...currentShapeStylesRef.current };
 
-          const commonPropsToDelete = ['dash', 'fill', 'labelColor', 'geo', 'text'];
+          const commonPropsToDelete = ['dash', 'fill', 'labelColor', 'geo', 'text', 'isClosed'];
           switch (record.type) {
             case 'note':
-              deleteProps(record.props, [...commonPropsToDelete]);
+              deleteProps(record.props, [...commonPropsToDelete, 'segments', 'isComplete']);
               record.props.text = "";
               break;
             case 'text':
-              deleteProps(record.props, ['verticalAlign', ...commonPropsToDelete]);
+              deleteProps(record.props, ['verticalAlign', 'segments', 'isComplete', ...commonPropsToDelete]);
               record.props.text = "";
               break;
             case 'geo':
+              deleteProps(record.props, ['segments', 'isComplete', 'isClosed']);
               record.props.text = "";
+              break;
+            case 'draw':
+              deleteProps(record.props, ['font', 'align', 'labelColor', 'verticalAlign', 'geo', 'text']);
+              record.props.segments = [{
+                "type": "free",
+                "points": [
+                    {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0.5
+                    }
+                ]
+              }];
               break;
             default:
               delete record.props.align;
           }
         }
+
         return record;
       }
 
@@ -819,7 +833,9 @@ export default function Whiteboard(props) {
       };
 
       editor.store.onAfterDelete = (record, source) => {
-        removeShapes([record.id], whiteboardId);
+        if (source === 'user') {
+          removeShapes([record.id], whiteboardId);
+        }
       };
     }
 
@@ -886,7 +902,7 @@ export default function Whiteboard(props) {
 
   const editableWB = (
     <Tldraw
-      key={`editableWB-${hasWBAccess}-${isPresenter}-${isModerator}-${whiteboardToolbarAutoHide}`}
+      key={`editableWB-${hasWBAccess}-${isPresenter}-${isModerator}-${whiteboardToolbarAutoHide}-${curPageId}`}
       forceMobileModeLayout
       onMount={handleTldrawMount}
     />
@@ -894,7 +910,7 @@ export default function Whiteboard(props) {
 
   const readOnlyWB = (
     <Tldraw
-      key={`readOnlyWB-${hasWBAccess}-${isPresenter}-${isModerator}-${whiteboardToolbarAutoHide}`}
+      key={`readOnlyWB-${hasWBAccess}-${isPresenter}-${isModerator}-${whiteboardToolbarAutoHide}-${curPageId}`}
       forceMobileModeLayout
       hideUi
       onMount={handleTldrawMount}
