@@ -13,6 +13,18 @@ const TldrawV2GlobalStyle = createGlobalStyle`
     }
   `}
 
+  ${({ isMultiUser }) => !isMultiUser && `
+    .tl-cursor use {
+      href: "#newCursor";
+      transform: scale(0.5) translate(-228px, -77px);
+      transform-origin: center;
+    }
+
+    .tl-nametag {
+      display: none;
+    }
+  `}
+
   ${({ isRTL }) => (!isRTL) && `
     .tlui-menu-zone {
       right: auto;

@@ -56,6 +56,13 @@ const deepCloneUsingShallow = (obj) => {
 };
 
 // Helper functions
+const updateSvgCursor = () => {
+  const svgUseElement = document.querySelector('.tl-cursor use');
+  if (svgUseElement) {
+    svgUseElement.setAttribute('href', '#newCursor');
+  }
+};
+
 const deleteProps = (obj, props) => {
   props.forEach(prop => delete obj[prop]);
 }
@@ -173,6 +180,8 @@ export default function Whiteboard(props) {
     isShapeOwner,
     ShapeStylesContext,
   } = props;
+
+  const isMultiUser = isMultiUserActive(whiteboardId);
 
   if (curPageId === "0" || !curPageId) return null;
 
@@ -612,7 +621,9 @@ export default function Whiteboard(props) {
   const handleTldrawMount = (editor) => {
     setTlEditor(editor);
 
-    editor?.user?.updateUserPreferences({ locale: language })
+    editor?.user?.updateUserPreferences({ locale: language });
+
+    !isMultiUser && updateSvgCursor();
 
     console.log('EDITOR : ', editor, editor.pointerDown)
     const debouncePersistShape = debounce({ delay: 50 }, persistShape);
@@ -679,6 +690,7 @@ export default function Whiteboard(props) {
       });
 
       editor.store.onBeforeCreate = (record, source) => {
+        !isMultiUser && updateSvgCursor();
         if (source === 'user') {
           if (record?.id?.includes('instance_presence')) return record;
 
@@ -814,11 +826,13 @@ export default function Whiteboard(props) {
         //   next.y,
         // );
 
+        !isMultiUser && updateSvgCursor();
         return next;
       };
 
       editor.store.onAfterChange = (prev, next, source) => {
         if (next?.id?.includes("pointer")) {
+          !isMultiUser && updateSvgCursor();
           if (next?.x !== cursorX && (next?.x !== -1 &&  next?.y !== -1)) {
             setCursorX(next?.x);
           }
@@ -926,7 +940,7 @@ export default function Whiteboard(props) {
       onMouseLeave={handleMouseLeave}
     >
       {hasWBAccess || isPresenter ? editableWB : readOnlyWB}
-      <Styled.TldrawV2GlobalStyle {...{ hasWBAccess, isPresenter, isRTL }} />
+      <Styled.TldrawV2GlobalStyle {...{ hasWBAccess, isPresenter, isRTL, isMultiUser }} />
     </div>
   );
 }
