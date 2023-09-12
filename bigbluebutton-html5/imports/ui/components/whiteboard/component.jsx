@@ -186,8 +186,8 @@ export default function Whiteboard(props) {
   if (curPageId === "0" || !curPageId) return null;
 
   const [tlEditor, setTlEditor] = React.useState(null);
-  const [cursorX, setCursorX] = React.useState(0);
-  const [cursorY, setCursorY] = React.useState(0);
+  const [cursorX, setCursorX] = React.useState(-1);
+  const [cursorY, setCursorY] = React.useState(-1);
   const { currentShapeStyles, setCurrentShapeStyles } = React.useContext(ShapeStylesContext);
 
   const [zoom, setZoom] = React.useState(HUNDRED_PERCENT);
@@ -202,7 +202,9 @@ export default function Whiteboard(props) {
   const zoomValueRef = React.useRef(zoomValue);
   const prevShapesRef = React.useRef(shapes);
   const tlEditorRef = React.useRef(tlEditor);
+  const isCanvasPos = React.useRef(false);
   const currentShapeStylesRef = React.useRef(currentShapeStyles);
+
 
   React.useEffect(() => {
     const handleMouseLeave = () => {
@@ -215,14 +217,20 @@ export default function Whiteboard(props) {
       }, 150);
     };
 
+    const handleMouseDown = () => {
+      isCanvasPos.current = true;
+    };
+
     const whiteboardElement = whiteboardRef.current;
     if (whiteboardElement) {
       whiteboardElement.addEventListener("mouseleave", handleMouseLeave);
+      whiteboardElement.addEventListener("mousedown", handleMouseDown);
     }
 
     return () => {
       if (whiteboardElement) {
         whiteboardElement.removeEventListener("mouseleave", handleMouseLeave);
+        whiteboardElement.addEventListener("mousedown", handleMouseDown);
       }
     };
   }, [whiteboardRef.current, curPageId]);
@@ -238,6 +246,10 @@ export default function Whiteboard(props) {
   React.useEffect(() => {
     tlEditorRef.current = tlEditor;
   }, [tlEditor]);
+
+  React.useEffect(() => {
+    isCanvasPos.current = false;
+  }, [presentationHeight, presentationWidth, curPageId]);
 
   React.useEffect(() => {
     zoomValueRef.current = zoomValue;
@@ -833,10 +845,19 @@ export default function Whiteboard(props) {
       editor.store.onAfterChange = (prev, next, source) => {
         if (next?.id?.includes("pointer")) {
           !isMultiUser && updateSvgCursor();
-          if (next?.x !== cursorX && (next?.x !== -1 &&  next?.y !== -1)) {
+
+          if (!isCanvasPos.current) {
+            const container = document.querySelector('.tl-container');
+            if (container) {
+              container.focus();
+              container.click();
+            }
+          }
+
+          if (next?.x !== cursorX && (next?.x !== -1 && next?.y !== -1)) {
             setCursorX(next?.x);
           }
-          if (next?.y !== cursorY && (next?.x !== -1  && next?.y !== -1)) {
+          if (next?.y !== cursorY && (next?.x !== -1 && next?.y !== -1)) {
             setCursorY(next?.y);
           }
         }
@@ -844,7 +865,7 @@ export default function Whiteboard(props) {
         if (next?.id?.includes("shape") && whiteboardId && source === 'user') {
           debouncePersistShape(next, whiteboardId, isModerator);
         }
-      };
+    };
 
       editor.store.onAfterDelete = (record, source) => {
         if (source === 'user') {
