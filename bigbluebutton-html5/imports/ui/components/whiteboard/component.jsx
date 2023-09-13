@@ -849,8 +849,9 @@ export default function Whiteboard(props) {
           if (!isCanvasPos.current) {
             const container = document.querySelector('.tl-container');
             if (container) {
-              container.focus();
-              container.click();
+              const activeEl = document.activeElement;
+              container?.focus();
+              activeEl?.focus();
             }
           }
 
