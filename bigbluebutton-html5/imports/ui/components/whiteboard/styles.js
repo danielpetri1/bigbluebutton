@@ -74,6 +74,7 @@ const TldrawV2GlobalStyle = createGlobalStyle`
 
   [data-testid="tools.laser"],
   [data-testid="tools.asset"],
+  [data-testid="tools.frame"],
   .tlui-menu-zone__controls > :nth-child(1),
   .tlui-menu-zone__controls > :nth-child(2),
   .tlui-menu-zone__controls > :nth-child(3),
