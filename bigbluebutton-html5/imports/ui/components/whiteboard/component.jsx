@@ -713,7 +713,7 @@ export default function Whiteboard(props) {
           record.meta.uid = `${currentUser.userId}`;
           record.props = { ...record.props, ...currentShapeStylesRef.current };
 
-          const commonPropsToDelete = ['dash', 'fill', 'labelColor', 'geo', 'text', 'isClosed'];
+          const commonPropsToDelete = ['handles', 'dash', 'fill', 'labelColor', 'geo', 'text', 'isClosed'];
           switch (record.type) {
             case 'note':
               deleteProps(record.props, [...commonPropsToDelete, 'segments', 'isComplete']);
@@ -724,11 +724,32 @@ export default function Whiteboard(props) {
               record.props.text = "";
               break;
             case 'geo':
-              deleteProps(record.props, ['segments', 'isComplete', 'isClosed']);
+              deleteProps(record.props, ['handles', 'segments', 'isComplete', 'isClosed']);
               record.props.text = "";
               break;
+            case 'line':
+              deleteProps(record.props, ['text', 'geo', 'verticalAlign', 'labelColor', 'font', 'align', 'fill', 'isComplete', 'isClosed']);
+              record.props.handles = {
+                "start": {
+                    "id": "start",
+                    "type": "vertex",
+                    "canBind": false,
+                    "index": "a1",
+                    "x": 0,
+                    "y": 0
+                },
+                "end": {
+                    "id": "end",
+                    "type": "vertex",
+                    "canBind": false,
+                    "index": "a2",
+                    "x": 0,
+                    "y": 0
+                }
+              };
+              break;
             case 'draw':
-              deleteProps(record.props, ['font', 'align', 'labelColor', 'verticalAlign', 'geo', 'text']);
+              deleteProps(record.props, ['handles', 'font', 'align', 'labelColor', 'verticalAlign', 'geo', 'text']);
               record.props.segments = [{
                 "type": "free",
                 "points": [
