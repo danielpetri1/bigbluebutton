@@ -203,6 +203,8 @@ export default function Whiteboard(props) {
   const prevShapesRef = React.useRef(shapes);
   const tlEditorRef = React.useRef(tlEditor);
   const isCanvasPos = React.useRef(false);
+  const slideChanged = React.useRef(false);
+  const slideNext = React.useRef(null);
   const currentShapeStylesRef = React.useRef(currentShapeStyles);
 
 
@@ -403,6 +405,8 @@ export default function Whiteboard(props) {
     if (tlEditor && curPageId !== "0") {
       tlEditor?.setCurrentPage(`page:${curPageId}`);
       whiteboardToolbarAutoHide && toggleToolsAnimations('fade-in', 'fade-out', '0s', hasWBAccess || isPresenter);
+      slideChanged.current = false;
+      slideNext.current = null;
     }
   }, [curPageId]);
 
@@ -745,6 +749,17 @@ export default function Whiteboard(props) {
       }
 
       editor.store.onBeforeChange = (prev, next, source) => {
+        // Handles slide change initiated by tldraw move to page
+        if (!slideChanged.current && next.id.split(":")[2] !== curPageId && next?.id.includes("instance_page_state")) {
+          skipToSlide(parseInt(next.id.split(":")[2]), podId);
+          slideChanged.current = true;
+          slideNext.current = parseInt(next.id.split(":")[2]);
+        }
+        // Handle persisting new shape after slide change by tldraw move to page
+        if (next.id.includes('shape') && slideChanged.current) {
+          debouncePersistShape(next, `${whiteboardId.split('/')[0]}/${slideNext.current}`, podId);
+        }
+
         let differences = {};
         if (next.id === 'instance:instance') {
           const cleanedNextStyles = Object.fromEntries(
