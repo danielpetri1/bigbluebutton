@@ -56,6 +56,23 @@ const deepCloneUsingShallow = (obj) => {
 };
 
 // Helper functions
+const deleteLocalStorageItemsWithPrefix = (prefix) => {
+  const keysToRemove = Object.keys(localStorage).filter(key => key.startsWith(prefix));
+  keysToRemove.forEach(key => localStorage.removeItem(key));
+};
+
+// Example of typical LocalStorage entry tldraw creates:
+// `{ TLDRAW_USER_DATA_v3: '{"version":2,"user":{"id":"epDk1 ...`
+const clearTldrawCache = () => {
+  deleteLocalStorageItemsWithPrefix("TLDRAW");
+}
+
+const calculateEffectiveZoom = (initViewboxWidth, curViewboxWidth) => {
+  // Calculate the effective zoom level based on the change in viewBoxWidth
+  const effectiveZoomValue = (initViewboxWidth * 100) / curViewboxWidth;
+  return effectiveZoomValue;
+}
+
 const updateSvgCursor = () => {
   const svgUseElement = document.querySelector('.tl-cursor use');
   if (svgUseElement) {
@@ -181,6 +198,8 @@ export default function Whiteboard(props) {
     ShapeStylesContext,
   } = props;
 
+  clearTldrawCache();
+
   const isMultiUser = isMultiUserActive(whiteboardId);
 
   if (curPageId === "0" || !curPageId) return null;
@@ -193,6 +212,7 @@ export default function Whiteboard(props) {
   const [zoom, setZoom] = React.useState(HUNDRED_PERCENT);
   const [tldrawZoom, setTldrawZoom] = React.useState(1);
   const [isMounting, setIsMounting] = React.useState(true);
+  const [initialViewBoxWidth, setInitialViewBoxWidth] = React.useState(null);
 
   const prevShapes = usePrevious(shapes);
   const prevSlidePosition = usePrevious(slidePosition);
@@ -206,7 +226,6 @@ export default function Whiteboard(props) {
   const slideChanged = React.useRef(false);
   const slideNext = React.useRef(null);
   const currentShapeStylesRef = React.useRef(currentShapeStyles);
-
 
   React.useEffect(() => {
     const handleMouseLeave = () => {
@@ -255,7 +274,97 @@ export default function Whiteboard(props) {
 
   React.useEffect(() => {
     zoomValueRef.current = zoomValue;
-  }, [zoomValue]);
+    if (tlEditor && curPageId && slidePosition && isPresenter) {
+      const zoomFitSlide = calculateZoom(slidePosition.width, slidePosition.height);
+      const zoomCamera = (zoomFitSlide * zoomValue) / HUNDRED_PERCENT;
+      setTimeout(() => {
+        tlEditor?.setCamera(
+          {
+            z: zoomCamera,
+          },
+          false,
+        );
+
+        let viewedRegionW = SlideCalcUtil.calcViewedRegionWidth(
+          tlEditor?.viewportPageBounds.width, slidePosition.width,
+        );
+        let viewedRegionH = SlideCalcUtil.calcViewedRegionHeight(
+          tlEditor?.viewportPageBounds.height, slidePosition.height,
+        );
+
+        zoomSlide(
+          parseInt(curPageId, 10),
+          podId,
+          viewedRegionW,
+          viewedRegionH,
+          slidePosition.x,
+          slidePosition.y,
+        );
+      }, 50);
+    }
+  }, [zoomValue, tlEditor, curPageId, slidePosition]);
+
+
+  React.useEffect(() => {
+    if (presentationHeight > 0 && presentationWidth > 0 && tlEditor && slidePosition && slidePosition.width > 0 && slidePosition.height > 0) {
+      let adjustedZoom = HUNDRED_PERCENT;
+
+      if (isPresenter) {
+        // Presenter logic
+        const currentZoom = zoomValueRef.current || HUNDRED_PERCENT;
+        const baseZoom = calculateZoom(slidePosition.width, slidePosition.height);
+        console.log('Base Zoom:', baseZoom);
+
+        adjustedZoom = baseZoom * (currentZoom / HUNDRED_PERCENT);
+        console.log('Adjusted Zoom:', adjustedZoom);
+
+      } else {
+        // Viewer logic
+        const effectiveZoom = calculateEffectiveZoom(initialViewBoxWidth, slidePosition.viewBoxWidth);
+        console.log('Effective Zoom:', effectiveZoom);
+
+        const baseZoom = calculateZoom(slidePosition.width, slidePosition.height);
+        console.log('Base Zoom:', baseZoom);
+
+        adjustedZoom = baseZoom * (effectiveZoom / HUNDRED_PERCENT);
+        console.log('Adjusted Zoom:', adjustedZoom);
+
+      }
+
+      // Update the camera
+      tlEditor?.setCamera(
+        {
+          z: adjustedZoom,
+        },
+        false,
+      );
+    }
+
+  }, [presentationHeight, presentationWidth]);
+
+  React.useEffect(() => {
+    if (slidePosition.viewBoxWidth && !initialViewBoxWidth) {
+      setInitialViewBoxWidth(slidePosition.viewBoxWidth);
+    }
+
+    if (!isPresenter && tlEditor && initialViewBoxWidth) {
+      // Calculate the effective zoom based on the change in viewBoxWidth
+      const effectiveZoom = calculateEffectiveZoom(
+        initialViewBoxWidth, 
+        slidePosition.viewBoxWidth
+      );
+
+      const zoomFitSlide = calculateZoom(slidePosition.width, slidePosition.height);
+      const zoomCamera = (zoomFitSlide * effectiveZoom) / HUNDRED_PERCENT;
+
+      tlEditor?.setCamera(
+        {
+          z: zoomCamera,
+        },
+        false,
+      );
+    }
+  }, [slidePosition]);
 
   React.useEffect(() => {
     //TODO: figure out why shapes effect is happening without shape updates
@@ -429,123 +538,6 @@ export default function Whiteboard(props) {
     }
   }, [slidePosition?.width, slidePosition?.height]);
 
-  // when presentationSizes change, update tldraw camera
-  React.useEffect(() => {
-    if (
-      curPageId &&
-      slidePosition &&
-      tlEditor &&
-      presentationWidth > 0 &&
-      presentationHeight > 0
-    ) {
-      if (prevFitToWidth !== null && fitToWidth !== prevFitToWidth) {
-        const newZoom = calculateZoom(
-          slidePosition.width,
-          slidePosition.height
-        );
-        tlEditor?.setCamera({ x: 0, y: 0, z: newZoom });
-
-        const viewedRegionH = SlideCalcUtil.calcViewedRegionHeight(
-          tlEditor?.viewportPageBounds.height,
-          slidePosition.height
-        );
-        setZoom(HUNDRED_PERCENT);
-        zoomChanger(HUNDRED_PERCENT);
-        zoomSlide(
-          parseInt(curPageId, 10),
-          podId,
-          HUNDRED_PERCENT,
-          viewedRegionH,
-          0,
-          0
-        );
-      } else {
-        const currentAspectRatio =
-          Math.round((presentationWidth / presentationHeight) * 100) / 100;
-        const previousAspectRatio =
-          Math.round(
-            (slidePosition.viewBoxWidth / slidePosition.viewBoxHeight) * 100
-          ) / 100;
-        if (fitToWidth && currentAspectRatio !== previousAspectRatio) {
-          // we need this to ensure tldraw updates the viewport size after re-mounting
-          const newZoom = calculateZoom(
-            slidePosition.viewBoxWidth,
-            slidePosition.viewBoxHeight
-          );
-          tlEditor?.setCamera({
-            x: slidePosition?.x,
-            y: slidePosition?.y,
-            z: newZoom,
-          });
-        } else {
-          const newZoom = calculateZoom(
-            slidePosition.viewBoxWidth,
-            slidePosition.viewBoxHeight
-          );
-          tlEditor?.setCamera({
-            x: slidePosition?.x,
-            y: slidePosition?.y,
-            z: newZoom,
-          });
-        }
-      }
-    }
-  }, [
-    presentationWidth,
-    presentationHeight,
-    curPageId,
-    document?.documentElement?.dir,
-  ]);
-
-  React.useEffect(() => {
-    if (isPresenter && slidePosition) {
-      const currentZoom = calculateZoom(
-        slidePosition?.viewBoxWidth,
-        slidePosition?.viewBoxHeight
-      );
-
-      setTimeout(() => {
-        tlEditor?.setCamera({
-          x: slidePosition?.x,
-          y: slidePosition?.y,
-          z: currentZoom,
-        });
-      }, 50);
-    }
-  }, [slidePosition?.viewBoxWidth, slidePosition?.viewBoxHeight]);
-
-  // update zoom according to toolbar
-  React.useEffect(() => {
-
-    const zoomValueInt = parseInt(zoomValueRef.current, 10);
-
-    if (
-      tlEditor &&
-      isPresenter &&
-      curPageId &&
-      slidePosition
-      // (zoom !== zoomValueRef.current && zoom !== 100)
-    ) {
-      const zoomFitSlide = calculateZoom(
-        slidePosition.width,
-        slidePosition.height
-      );
-      const zoomCamera =
-        (zoomFitSlide * zoomValueInt) / HUNDRED_PERCENT;
-      setTimeout(() => {
-        tlEditor?.setCamera({
-          x: tlEditor?.camera.x,
-          y: tlEditor?.camera.x,
-          z: zoomCamera,
-        });
-
-        setTimeout(() => {
-          window.dispatchEvent(new Event('resize'));
-        })
-      }, 0);
-    }
-  }, [zoomValueRef.current, zoomValue]);
-
   // eslint-disable-next-line arrow-body-style
   React.useEffect(() => {
     return () => {
@@ -580,42 +572,13 @@ export default function Whiteboard(props) {
   }, []);
 
   React.useEffect(() => {
-    if (presentationWidth > 0 && presentationHeight > 0 && slidePosition) {
-      const cameraZoom = tldrawAPI?.getPageState()?.camera?.zoom;
-      const newzoom = calculateZoom(
-        slidePosition.viewBoxWidth,
-        slidePosition.viewBoxHeight
-      );
-      if (cameraZoom && cameraZoom === 1) {
-        tldrawAPI?.setCamera([slidePosition.x, slidePosition.y], newzoom);
-      } else if (isMounting) {
+      if (isMounting) {
         setIsMounting(false);
-
         /// brings presentation toolbar back
         setTldrawIsMounting(false);
-        const currentAspectRatio =
-          Math.round((presentationWidth / presentationHeight) * 100) / 100;
-        const previousAspectRatio =
-          Math.round(
-            (slidePosition.viewBoxWidth / slidePosition.viewBoxHeight) * 100
-          ) / 100;
-        // case where the presenter had fit-to-width enabled and he reloads the page
-        if (!fitToWidth && currentAspectRatio !== previousAspectRatio) {
-          // wee need this to ensure tldraw updates the viewport size after re-mounting
-          setTimeout(() => {
-            tldrawAPI?.setCamera(
-              [slidePosition.x, slidePosition.y],
-              newzoom,
-              "zoomed"
-            );
-          }, 50);
-        } else {
-          tldrawAPI?.setCamera([slidePosition.x, slidePosition.y], newzoom);
-        }
       }
-    }
   }, [
-    tldrawAPI?.getPageState()?.camera,
+    tlEditor?.camera,
     presentationWidth,
     presentationHeight,
   ]);
@@ -770,6 +733,7 @@ export default function Whiteboard(props) {
       }
 
       editor.store.onBeforeChange = (prev, next, source) => {
+        // console.log('Before Change - Prev:', prev, 'Next:', next)
         // Handles slide change initiated by tldraw move to page
         if (!slideChanged.current && next.id.split(":")[2] !== curPageId && next?.id.includes("instance_page_state")) {
           skipToSlide(parseInt(next.id.split(":")[2]), podId);
@@ -842,43 +806,13 @@ export default function Whiteboard(props) {
           }
         }
 
-        const zoomFitSlide = calculateZoom(slidePosition.width, slidePosition.height);
-        if (camera.z < zoomFitSlide) {
-          camera.z = zoomFitSlide;
-        }
-
-        const zoomToolbar = Math.round(((HUNDRED_PERCENT * camera.z) / zoomFitSlide) * 100) / 100;
-        // if (zoom !== zoomToolbar) {
-        //   setZoom(zoomToolbar);
-        //   if (isPresenter) zoomChanger(zoomToolbar);
-        // }
-
-        let viewedRegionW = SlideCalcUtil.calcViewedRegionWidth(
-          editor?.viewportPageBounds.width, slidePosition.width,
-        );
-        let viewedRegionH = SlideCalcUtil.calcViewedRegionHeight(
-          editor?.viewportPageBounds.height, slidePosition.height,
-        );
-
-        if (!fitToWidth && camera.z === zoomFitSlide) {
-          viewedRegionW = HUNDRED_PERCENT;
-          viewedRegionH = HUNDRED_PERCENT;
-        }
-
-        // zoomSlide(
-        //   parseInt(curPageId, 10),
-        //   podId,
-        //   viewedRegionW,
-        //   viewedRegionH,
-        //   next.x,
-        //   next.y,
-        // );
 
         !isMultiUser && updateSvgCursor();
         return next;
       };
 
       editor.store.onAfterChange = (prev, next, source) => {
+        // console.log('After Change - Prev:', prev, 'Next:', next);
         if (next?.id?.includes("pointer")) {
           !isMultiUser && updateSvgCursor();
 
@@ -909,58 +843,6 @@ export default function Whiteboard(props) {
           removeShapes([record.id], whiteboardId);
         }
       };
-    }
-
-    if (prevFitToWidth !== null && fitToWidth !== prevFitToWidth) {
-      const newZoom = calculateZoom(slidePosition.width, slidePosition.height);
-      editor?.setCamera({ x: 0, y: 0, z: newZoom });
-
-      const viewedRegionH = SlideCalcUtil.calcViewedRegionHeight(
-        tlEditor?.viewportPageBounds.height,
-        slidePosition.height
-      );
-
-      setZoom(HUNDRED_PERCENT);
-      zoomChanger(HUNDRED_PERCENT);
-      zoomSlide(
-        parseInt(curPageId, 10),
-        podId,
-        HUNDRED_PERCENT,
-        viewedRegionH,
-        0,
-        0
-      );
-    } else {
-      const currentAspectRatio =
-        Math.round((presentationWidth / presentationHeight) * 100) / 100;
-      const previousAspectRatio =
-        Math.round(
-          (slidePosition.viewBoxWidth / slidePosition.viewBoxHeight) * 100
-        ) / 100;
-      if (fitToWidth && currentAspectRatio !== previousAspectRatio) {
-        // we need this to ensure tldraw updates the viewport size after re-mounting
-        setTimeout(() => {
-          const newZoom = calculateZoom(
-            slidePosition.viewBoxWidth,
-            slidePosition.viewBoxHeight
-          );
-          editor?.setCamera({
-            x: slidePosition?.x,
-            y: slidePosition?.y,
-            z: newZoom,
-          });
-        }, 50);
-      } else {
-        const newZoom = calculateZoom(
-          slidePosition.viewBoxWidth,
-          slidePosition.viewBoxHeight
-        );
-        editor?.setCamera({
-          x: slidePosition?.x,
-          y: slidePosition?.y,
-          z: newZoom,
-        });
-      }
     }
   };
 
