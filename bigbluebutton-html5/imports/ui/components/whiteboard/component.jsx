@@ -824,6 +824,31 @@ export default Whiteboard = React.memo(function Whiteboard(props) {
                 },
               ];
               break;
+            case "highlight":
+              deleteProps(record.props, [
+                "handles",
+                "font",
+                "align",
+                "labelColor",
+                "verticalAlign",
+                "geo",
+                "text",
+                "dash",
+                "fill"
+              ]);
+              record.props.segments = [
+                {
+                  type: "free",
+                  points: [
+                    {
+                      x: 0,
+                      y: 0,
+                      z: 0.5,
+                    },
+                  ],
+                },
+              ];
+              break;
             default:
               delete record.props.align;
           }
