@@ -147,6 +147,7 @@ export default withTracker(({
     publishCursorUpdate: Service.publishCursorUpdate,
     otherCursors: Service.getCurrentCursors(whiteboardId),
     getShapes,
+    slidePosition,
   };
 })(WhiteboardContainer);
 

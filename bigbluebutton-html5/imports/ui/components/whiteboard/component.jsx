@@ -235,6 +235,8 @@ export default Whiteboard = React.memo(function Whiteboard(props) {
   const currentShapeStylesRef = React.useRef(currentShapeStyles);
   const prevZoomValueRef = React.useRef(zoomValue);
 
+
+  // handles mouse events
   React.useEffect(() => {
     const handleMouseLeave = () => {
       setTimeout(() => {
@@ -246,6 +248,27 @@ export default Whiteboard = React.memo(function Whiteboard(props) {
       }, 150);
     };
 
+    const handleWheelEvent = (event) => {
+      const canvas = whiteboardRef.current;
+      if (!canvas || !tlEditorRef.current) return;
+      
+      let newZoomValue = zoomValueRef.current;
+      
+      if(event.deltaY < 0 && newZoomValue < MAX_PERCENT) {
+        newZoomValue += 15; // Zooming in
+      } else if(event.deltaY > 0 && newZoomValue > HUNDRED_PERCENT) {
+        newZoomValue -= 15; // Zooming out
+      }
+
+      if (newZoomValue > MAX_PERCENT) newZoomValue = MAX_PERCENT
+      if (newZoomValue < HUNDRED_PERCENT) newZoomValue = HUNDRED_PERCENT
+    
+      zoomChanger(newZoomValue);
+    
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
     const handleMouseDown = () => {
       isCanvasPos.current = true;
     };
@@ -254,16 +277,19 @@ export default Whiteboard = React.memo(function Whiteboard(props) {
     if (whiteboardElement) {
       whiteboardElement.addEventListener("mouseleave", handleMouseLeave);
       whiteboardElement.addEventListener("mousedown", handleMouseDown);
+      whiteboardElement.addEventListener('wheel', handleWheelEvent, { capture: true });
     }
 
     return () => {
       if (whiteboardElement) {
         whiteboardElement.removeEventListener("mouseleave", handleMouseLeave);
-        whiteboardElement.addEventListener("mousedown", handleMouseDown);
+        whiteboardElement.removeEventListener("mousedown", handleMouseDown);
+        whiteboardElement.removeEventListener("wheel", handleWheelEvent);
       }
     };
   }, [whiteboardRef.current, curPageId]);
 
+  // update current shape styles ref
   React.useEffect(() => {
     currentShapeStylesRef.current = currentShapeStyles;
   }, [currentShapeStyles]);
@@ -272,14 +298,17 @@ export default Whiteboard = React.memo(function Whiteboard(props) {
     return mapLanguage(Settings?.application?.locale?.toLowerCase() || "en");
   }, [Settings?.application?.locale]);
 
+  // update tlEditor ref
   React.useEffect(() => {
     tlEditorRef.current = tlEditor;
   }, [tlEditor]);
 
+  // reset isCanvasPos when presentation area size changes to keep cursor position
   React.useEffect(() => {
     isCanvasPos.current = false;
   }, [presentationHeight, presentationWidth, curPageId]);
 
+  // presenter effect to handle zoomSlide 
   React.useEffect(() => {
     zoomValueRef.current = zoomValue;
 
@@ -404,6 +433,7 @@ export default Whiteboard = React.memo(function Whiteboard(props) {
     slidePosition.viewBoxHeight,
   ]);
 
+  // handles adding shapes to tldraw using it's api's
   React.useEffect(() => {
     //TODO: figure out why shapes effect is happening without shape updates
     if (isEqual(prevShapesRef.current, shapes)) {
