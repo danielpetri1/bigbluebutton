@@ -43,6 +43,49 @@ const TOOLBAR_SMALL = 28;
 const TOOLBAR_LARGE = 32;
 const MOUNTED_RESIZE_DELAY = 1500;
 
+// Define properties to delete for each record type
+const PROPERTIES_TO_DELETE = {
+  arrow: ['align', 'geo', 'handles', 'isClosed', 'isComplete', 'segments', 'verticalAlign'],
+  default: ['align'],
+  draw: ['align', 'end', 'font', 'geo', 'handles', 'labelColor', 'start', 'text', 'verticalAlign', 'bend'],
+  geo: ['end', 'handles', 'isClosed', 'isComplete', 'segments', 'start', 'bend'],
+  highlight: ['align', 'dash', 'end', 'fill', 'font', 'geo', 'handles', 'labelColor', 'start', 'text', 'verticalAlign', 'bend'],
+  line: ['align', 'end', 'fill', 'font', 'geo', 'isClosed', 'isComplete', 'labelColor', 'segments', 'start', 'text', 'verticalAlign', 'bend'],
+  note: ['dash', 'end', 'fill', 'geo', 'handles', 'isComplete', 'labelColor', 'segments', 'start', 'bend'],
+  text: ['dash', 'end', 'fill', 'geo', 'handles', 'isComplete', 'labelColor', 'segments', 'start', 'verticalAlign', 'bend']
+};
+
+// Additional properties and values to set for each record type
+const ADDITIONAL_PROPERTIES = {
+  arrow: {
+    start: { type: "point", x: 0, y: 0 },
+    end: { type: "point", x: 0, y: 0 },
+    bend: 0,
+    text: ""
+  },
+  text: {
+    text: "",
+  },
+  note: {
+    text: "",
+  },
+  geo: {
+    text: "",
+  },
+  line: {
+    handles: {
+      start: { id: "start", type: "vertex", canBind: false, index: "a1", x: 0, y: 0 },
+      end: { id: "end", type: "vertex", canBind: false, index: "a2", x: 0, y: 0 }
+    }
+  },
+  draw: {
+    segments: [{ type: "free", points: [{ x: 0, y: 0, z: 0.5 }] }]
+  },
+  highlight: {
+    segments: [{ type: "free", points: [{ x: 0, y: 0, z: 0.5 }] }]
+  }
+};
+
 // Shallow cloning with nested structures
 const deepCloneUsingShallow = (obj) => {
   const clonedObj = clone(obj);
@@ -61,6 +104,16 @@ const deleteLocalStorageItemsWithPrefix = (prefix) => {
     key.startsWith(prefix)
   );
   keysToRemove.forEach((key) => localStorage.removeItem(key));
+};
+
+
+// Function to create a new record with updated meta and props
+const createRecordWithMetaAndProps = (record, userId, shapeStyles, isModerator) => {
+  const newRecord = { ...record };
+  newRecord.meta = { ...newRecord.meta, uid: `${userId}`, isModerator: isModerator };
+  newRecord.props = { ...newRecord.props, ...shapeStyles };
+
+  return newRecord;
 };
 
 // Example of typical LocalStorage entry tldraw creates:
@@ -757,131 +810,19 @@ export default Whiteboard = React.memo(function Whiteboard(props) {
       });
 
       editor.store.onBeforeCreate = (record, source) => {
-        !isMultiUser && updateSvgCursor();
+        if (!isMultiUser) updateSvgCursor();
+
         if (source === "user") {
           if (record?.id?.includes("instance_presence")) return record;
 
-          record.meta.uid = `${currentUser.userId}`;
-          record.props = { ...record.props, ...currentShapeStylesRef.current };
+          let newRecord = createRecordWithMetaAndProps(record, currentUser.userId, currentShapeStylesRef.current, isModerator);
+          
+          const propsToDelete = PROPERTIES_TO_DELETE[newRecord.type] || PROPERTIES_TO_DELETE.default;
+          deleteProps(newRecord.props, [ ...propsToDelete]);
 
-          const commonPropsToDelete = [
-            "handles",
-            "dash",
-            "fill",
-            "labelColor",
-            "geo",
-            "text",
-            "isClosed",
-          ];
-          switch (record.type) {
-            case "note":
-              deleteProps(record.props, [
-                ...commonPropsToDelete,
-                "segments",
-                "isComplete",
-              ]);
-              record.props.text = "";
-              break;
-            case "text":
-              deleteProps(record.props, [
-                "verticalAlign",
-                "segments",
-                "isComplete",
-                ...commonPropsToDelete,
-              ]);
-              record.props.text = "";
-              break;
-            case "geo":
-              deleteProps(record.props, [
-                "handles",
-                "segments",
-                "isComplete",
-                "isClosed",
-              ]);
-              record.props.text = "";
-              break;
-            case "line":
-              deleteProps(record.props, [
-                "text",
-                "geo",
-                "verticalAlign",
-                "labelColor",
-                "font",
-                "align",
-                "fill",
-                "isComplete",
-                "isClosed",
-              ]);
-              record.props.handles = {
-                start: {
-                  id: "start",
-                  type: "vertex",
-                  canBind: false,
-                  index: "a1",
-                  x: 0,
-                  y: 0,
-                },
-                end: {
-                  id: "end",
-                  type: "vertex",
-                  canBind: false,
-                  index: "a2",
-                  x: 0,
-                  y: 0,
-                },
-              };
-              break;
-            case "draw":
-              deleteProps(record.props, [
-                "handles",
-                "font",
-                "align",
-                "labelColor",
-                "verticalAlign",
-                "geo",
-                "text",
-              ]);
-              record.props.segments = [
-                {
-                  type: "free",
-                  points: [
-                    {
-                      x: 0,
-                      y: 0,
-                      z: 0.5,
-                    },
-                  ],
-                },
-              ];
-              break;
-            case "highlight":
-              deleteProps(record.props, [
-                "handles",
-                "font",
-                "align",
-                "labelColor",
-                "verticalAlign",
-                "geo",
-                "text",
-                "dash",
-                "fill"
-              ]);
-              record.props.segments = [
-                {
-                  type: "free",
-                  points: [
-                    {
-                      x: 0,
-                      y: 0,
-                      z: 0.5,
-                    },
-                  ],
-                },
-              ];
-              break;
-            default:
-              delete record.props.align;
-          }
+          newRecord.props = { ...newRecord.props, ...ADDITIONAL_PROPERTIES[newRecord.type] };
+
+          return newRecord;
         }
 
         return record;
