@@ -329,18 +329,37 @@ const getShapes = (whiteboardId, curPageId, intl, isLocked) => {
       const textSize = getTextSize(pollResult, style, padding = 20);
 
       modAnnotation.annotationInfo = {
-        childIndex: 0,
-        id: annotation.annotationInfo.id,
-        name: `poll-result-${annotation.annotationInfo.id}`,
-        type: 'rectangle',
-        label: pollResult,
-        labelPoint: [0.5, 0.5],
-        parentId: `${curPageId}`,
-        point: [0, 0],
-        size: textSize,
-        style,
+        id: `shape:poll-result-${annotation.annotationInfo.id}`,
+        index: "a8",
+        isLocked: false,
+        rotation: 0,
+        opacity: 1,
+        type: 'geo',
+        typeName: 'shape',
+        parentId: `page:${curPageId}`,
+        x: 0,
+        y: 0,
+        meta: {
+          questionType: false,
+          isModerator: true,
+        },
+        props: {
+          align: "middle",
+          color: "black",
+          dash: "draw",
+          fill: "semi",
+          font: "draw",
+          geo: "rectangle",
+          growY: 0,
+          h: textSize[1] + 35,
+          labelColor: "black",
+          size: "m",
+          text: pollResult,
+          url: "",
+          verticalAlign: "middle",
+          w: textSize[0] + 50,
+        }
       };
-      modAnnotation.annotationInfo.questionType = false;
     }
     result[annotation.annotationInfo.id] = annotation.annotationInfo;
   });
@@ -384,24 +403,38 @@ const notifyShapeNumberExceeded = (intl, limit) => {
   if (intl) notify(intl.formatMessage(intlMessages.shapeNumberExceeded, { 0: limit }), 'warning', 'whiteboard');
 };
 
-const toggleToolsAnimations = (activeAnim, anim, time) => {
-  const tdTools = document.querySelector('#TD-Tools');
-  const topToolbar = document.getElementById('TD-Styles')?.parentElement;
-  const optionsDropdown = document.getElementById('WhiteboardOptionButton');
-  if (tdTools && topToolbar) {
-    tdTools.classList.remove(activeAnim);
-    topToolbar.classList.remove(activeAnim);
-    topToolbar.style.transition = `opacity ${time} ease-in-out`;
-    tdTools.style.transition = `opacity ${time} ease-in-out`;
-    tdTools?.classList?.add(anim);
-    topToolbar?.classList?.add(anim);
+const toggleToolsAnimations = (activeAnim, anim, time, hasWBAccess = false) => {
+  const handleOptionsDropdown = () => {
+    const optionsDropdown = document.getElementById('WhiteboardOptionButton');
+    if (optionsDropdown) {
+      optionsDropdown.classList.remove(activeAnim);
+      optionsDropdown.style.transition = `opacity ${time} ease-in-out`;
+      optionsDropdown.classList.add(anim);
+    }
   }
-  if (optionsDropdown) {
-    optionsDropdown.classList.remove(activeAnim);
-    optionsDropdown.style.transition = `opacity ${time} ease-in-out`;
-    optionsDropdown?.classList?.add(anim);
+
+  if (hasWBAccess === false) {
+    return handleOptionsDropdown();
   }
-}
+
+  const checkElementsAndRun = () => {
+    const tlEls = document.querySelectorAll('.tlui-menu-zone, .tlui-toolbar__tools, .tlui-toolbar__extras, .tlui-style-panel__wrapper');
+    if (tlEls.length) {
+      tlEls?.forEach(el => {
+        el.classList.remove(activeAnim);
+        el.style.transition = `opacity ${time} ease-in-out`;
+        el.classList.add(anim);
+      });
+      handleOptionsDropdown();
+    } else {
+      // If the elements are not yet in the DOM, wait for 50ms and try again
+      setTimeout(checkElementsAndRun, 300);
+    }
+  };
+
+  checkElementsAndRun();
+};
+
 
 export {
   initDefaultPages,
