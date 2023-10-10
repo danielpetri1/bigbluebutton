@@ -1,4 +1,4 @@
-const settings = require('./settings');
+import settings from './settings.json' assert { type: 'json' };
 const config = settings;
 
-module.exports = config;
+export default config;

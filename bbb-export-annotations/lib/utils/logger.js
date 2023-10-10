@@ -1,4 +1,4 @@
-const config = require('../../config');
+import config from '../../config/index.js';
 
 const {level} = config.log;
 const trace = level.toLowerCase() === 'trace';
@@ -14,7 +14,7 @@ const parse = (messages) => {
   });
 };
 
-module.exports = class Logger {
+export default class Logger {
   constructor(context) {
     this.context = context;
   }

@@ -1,4 +1,4 @@
-const config = require('../../config');
+import config from '../../config/index.js';
 
 const EXPORT_STATUSES = Object.freeze({
   COLLECTING: 'COLLECTING',
@@ -85,7 +85,4 @@ class NewPresFileAvailableMsg {
   };
 };
 
-module.exports = {
-  PresAnnStatusMsg,
-  NewPresFileAvailableMsg,
-};
+export { PresAnnStatusMsg, NewPresFileAvailableMsg };

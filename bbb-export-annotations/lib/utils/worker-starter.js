@@ -1,5 +1,6 @@
-const {Worker} = require('worker_threads');
-const path = require('path');
+import { Worker } from 'worker_threads';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
 const WorkerTypes = Object.freeze({
   Collector: 'collector',
@@ -9,8 +10,11 @@ const WorkerTypes = Object.freeze({
 
 const kickOffWorker = (workerType, workerData) => {
   return new Promise((resolve, reject) => {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
     const workerPath = path.join(__dirname, '..', '..', 'workers', `${workerType}.js`);
     const worker = new Worker(workerPath, {workerData});
+    
     worker.on('message', resolve);
     worker.on('error', reject);
     worker.on('exit', (code) => {
@@ -21,7 +25,7 @@ const kickOffWorker = (workerType, workerData) => {
   });
 };
 
-module.exports = class WorkerStarter {
+export default class WorkerStarter {
   constructor(workerData) {
     this.workerData = workerData;
   }

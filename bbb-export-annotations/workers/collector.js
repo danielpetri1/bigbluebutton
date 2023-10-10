@@ -1,16 +1,16 @@
-const Logger = require('../lib/utils/logger');
-const axios = require('axios').default;
-const config = require('../config');
-const cp = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const redis = require('redis');
-const sanitize = require('sanitize-filename');
-const stream = require('stream');
-const WorkerStarter = require('../lib/utils/worker-starter');
-const {PresAnnStatusMsg} = require('../lib/utils/message-builder');
-const {workerData} = require('worker_threads');
-const {promisify} = require('util');
+import Logger from '../lib/utils/logger.js';
+import axios from 'axios';
+import config from '../config/index.js';
+import cp from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import redis from 'redis';
+import sanitize from 'sanitize-filename';
+import stream from 'stream';
+import WorkerStarter from '../lib/utils/worker-starter.js';
+import { PresAnnStatusMsg } from '../lib/utils/message-builder.js';
+import { workerData } from 'worker_threads';
+import { promisify } from 'util';
 
 const jobId = workerData.jobId;
 const logger = new Logger('presAnn Collector');
@@ -162,8 +162,8 @@ async function collectSharedNotes(retries = 3) {
 }
 
 switch (jobType) {
-  case 'PresentationWithAnnotationExportJob': return collectAnnotationsFromRedis();
-  case 'PresentationWithAnnotationDownloadJob': return collectAnnotationsFromRedis();
-  case 'PadCaptureJob': return collectSharedNotes();
-  default: return logger.error(`Unknown job type ${jobType}`);
+  case 'PresentationWithAnnotationExportJob': collectAnnotationsFromRedis();
+  case 'PresentationWithAnnotationDownloadJob': collectAnnotationsFromRedis();
+  case 'PadCaptureJob': collectSharedNotes();
+  default: logger.error(`Unknown job type ${jobType}`);
 }

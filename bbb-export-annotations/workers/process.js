@@ -1,16 +1,18 @@
-const Logger = require('../lib/utils/logger');
-const config = require('../config');
-const fs = require('fs');
-const {create} = require('xmlbuilder2', {encoding: 'utf-8'});
-const cp = require('child_process');
-const WorkerStarter = require('../lib/utils/worker-starter');
-const {workerData} = require('worker_threads');
-const path = require('path');
-const sanitize = require('sanitize-filename');
-const {getStrokePoints, getStrokeOutlinePoints} = require('perfect-freehand');
-const probe = require('probe-image-size');
-const redis = require('redis');
-const {PresAnnStatusMsg} = require('../lib/utils/message-builder');
+import Logger from '../lib/utils/logger.js';
+import config from '../config/index.js';
+import fs from 'fs';
+import { createSVGWindow } from 'svgdom';
+import { SVG, registerWindow } from '@svgdotjs/svg.js';
+import cp from 'child_process';
+import WorkerStarter from '../lib/utils/worker-starter.js';
+import { workerData } from 'worker_threads';
+import path from 'path';
+import sanitize from 'sanitize-filename';
+import pkg from 'perfect-freehand';
+const { getStrokePoints, getStrokeOutlinePoints } = pkg;
+import probe from 'probe-image-size';
+import redis from 'redis';
+import { PresAnnStatusMsg } from '../lib/utils/message-builder.js';
 
 const jobId = workerData.jobId;
 const logger = new Logger('presAnn Process Worker');
@@ -823,32 +825,33 @@ async function process_presentation_annotations() {
     const scaledWidth = slideWidth * ratio;
     const scaledHeight = slideHeight * ratio;
 
-    // Create the SVG slide with the background image
-    let svg = create({version: '1.0', encoding: 'UTF-8'})
-        .ele('svg', {
-          'xmlns': 'http://www.w3.org/2000/svg',
-          'xmlns:xlink': 'http://www.w3.org/1999/xlink',
-          'width': `${scaledWidth}px`,
-          'height': `${scaledHeight}px`,
-        })
-        .dtd({
-          pubID: '-//W3C//DTD SVG 1.1//EN',
-          sysID: 'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd',
-        })
-        .ele('image', {
-          'xlink:href': `file://${dropbox}/slide${currentSlide.page}.${backgroundFormat}`,
-          'width': `${scaledWidth}px`,
-          'height': `${scaledHeight}px`,
-        })
-        .up()
-        .ele('g', {
-          class: 'canvas',
-        });
-
+    // Create a window with a document and an SVG root node
+    const window = createSVGWindow()
+    const document = window.document
+    
+    // Register window and document
+    registerWindow(window, document)
+    
+    // Create the canvas (root SVG element)
+    const canvas = SVG(document.documentElement)
+      .attr({
+        xmlns: 'http://www.w3.org/2000/svg',
+        'xmlns:xlink': 'http://www.w3.org/1999/xlink',
+        'xmlns:svgjs': ''
+      });
+        
+    // Add the image element
+    canvas
+      .image(`file://${dropbox}/slide${currentSlide.page}.${backgroundFormat}`)
+      .size(scaledWidth, scaledHeight);
+    
+    // Add a group element with class 'whiteboard'
+    const whiteboard = canvas.group().attr({ class: 'wb' });
+    
     // 4. Overlay annotations onto slides
-    overlay_annotations(svg, currentSlide.annotations);
+    overlay_annotations(whiteboard, currentSlide.annotations);
 
-    svg = svg.end({prettyPrint: true});
+    const svg = canvas.svg();
 
     // Write annotated SVG file
     const SVGfile = path.join(dropbox, `annotated-slide${currentSlide.page}.svg`);
@@ -880,7 +883,8 @@ async function process_presentation_annotations() {
   }
 
   // Create PDF output directory if it doesn't exist
-  const outputDir = path.join(exportJob.presLocation, 'pdfs', jobId);
+  // const outputDir = path.join(exportJob.presLocation, 'pdfs', jobId);
+  const outputDir = path.join(config.shared.presAnnDropboxDir)
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, {recursive: true});

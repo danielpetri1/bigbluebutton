@@ -1,13 +1,12 @@
-const Logger = require('../lib/utils/logger');
-const config = require('../config');
-const fs = require('fs');
-const FormData = require('form-data');
-const redis = require('redis');
-const axios = require('axios').default;
-const path = require('path');
-const {NewPresFileAvailableMsg} = require('../lib/utils/message-builder');
-
-const {workerData} = require('worker_threads');
+import Logger from '../lib/utils/logger.js';
+import config from '../config/index.js';
+import fs from 'fs';
+import FormData from 'form-data';
+import redis from 'redis';
+import axios from 'axios';
+import path from 'path';
+import { NewPresFileAvailableMsg } from '../lib/utils/message-builder.js';
+import { workerData } from 'worker_threads';
 const [jobType, jobId, filename] = [workerData.jobType, workerData.jobId, workerData.filename];
 
 const logger = new Logger('presAnn Notifier Worker');

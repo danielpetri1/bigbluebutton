@@ -1,10 +1,9 @@
-const Logger = require('./lib/utils/logger');
-const WorkerStarter = require('./lib/utils/worker-starter');
-const config = require('./config');
-const fs = require('fs');
-const redis = require('redis');
-const {commandOptions} = require('redis');
-const path = require('path');
+import Logger from './lib/utils/logger.js';
+import WorkerStarter from './lib/utils/worker-starter.js';
+import config from './config/index.js';
+import fs from 'fs';
+import redis, { commandOptions } from 'redis';
+import path from 'path';
 
 const logger = new Logger('presAnn Master');
 logger.info('Running bbb-export-annotations');
