@@ -1,5 +1,4 @@
 import Logger from '../lib/utils/logger.js';
-import config from '../config/index.js';
 import fs from 'fs';
 import FormData from 'form-data';
 import redis from 'redis';
@@ -10,6 +9,7 @@ import { workerData } from 'worker_threads';
 const [jobType, jobId, filename] = [workerData.jobType, workerData.jobId, workerData.filename];
 
 const logger = new Logger('presAnn Notifier Worker');
+const config = JSON.parse(fs.readFileSync('./config/settings.json', 'utf8'));
 
 const dropbox = `${config.shared.presAnnDropboxDir}/${jobId}`;
 const job = fs.readFileSync(path.join(dropbox, 'job'));

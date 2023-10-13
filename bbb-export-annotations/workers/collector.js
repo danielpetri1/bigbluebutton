@@ -1,6 +1,5 @@
 import Logger from '../lib/utils/logger.js';
 import axios from 'axios';
-import config from '../config/index.js';
 import cp from 'child_process';
 import fs from 'fs';
 import path from 'path';
@@ -16,6 +15,7 @@ const jobId = workerData.jobId;
 const logger = new Logger('presAnn Collector');
 logger.info(`Collecting job ${jobId}`);
 
+const config = JSON.parse(fs.readFileSync('./config/settings.json', 'utf8'));
 const dropbox = path.join(config.shared.presAnnDropboxDir, jobId);
 
 // Takes the Job from the dropbox
@@ -162,8 +162,15 @@ async function collectSharedNotes(retries = 3) {
 }
 
 switch (jobType) {
-  case 'PresentationWithAnnotationExportJob': collectAnnotationsFromRedis();
-  case 'PresentationWithAnnotationDownloadJob': collectAnnotationsFromRedis();
-  case 'PadCaptureJob': collectSharedNotes();
-  default: logger.error(`Unknown job type ${jobType}`);
+  case 'PresentationWithAnnotationExportJob': 
+    collectAnnotationsFromRedis();
+    break;
+  case 'PresentationWithAnnotationDownloadJob': 
+    collectAnnotationsFromRedis();
+    break;
+  case 'PadCaptureJob': 
+    collectSharedNotes();
+    break;
+  default: 
+    logger.error(`Unknown job type ${jobType}`);
 }

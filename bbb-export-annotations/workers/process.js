@@ -1,5 +1,4 @@
 import Logger from '../lib/utils/logger.js';
-import config from '../config/index.js';
 import fs from 'fs';
 import { createSVGWindow } from 'svgdom';
 import { SVG, registerWindow } from '@svgdotjs/svg.js';
@@ -16,6 +15,8 @@ import { PresAnnStatusMsg } from '../lib/utils/message-builder.js';
 
 const jobId = workerData.jobId;
 const logger = new Logger('presAnn Process Worker');
+const config = JSON.parse(fs.readFileSync('./config/settings.json', 'utf8'));
+
 logger.info('Processing PDF for job ' + jobId);
 
 const dropbox = path.join(config.shared.presAnnDropboxDir, jobId);
@@ -733,6 +734,9 @@ function overlay_text(svg, annotation) {
 }
 
 function overlay_annotation(svg, currentAnnotation) {
+  logger.info("=======================")
+  logger.info(currentAnnotation)
+  logger.info("=======================")
   switch (currentAnnotation.type) {
     case 'arrow':
       overlay_arrow(svg, currentAnnotation);
@@ -834,10 +838,10 @@ async function process_presentation_annotations() {
     
     // Create the canvas (root SVG element)
     const canvas = SVG(document.documentElement)
+      .size(scaledWidth, scaledHeight)
       .attr({
         xmlns: 'http://www.w3.org/2000/svg',
-        'xmlns:xlink': 'http://www.w3.org/1999/xlink',
-        'xmlns:svgjs': ''
+        'xmlns:xlink': 'http://www.w3.org/1999/xlink'
       });
         
     // Add the image element
@@ -847,8 +851,9 @@ async function process_presentation_annotations() {
     
     // Add a group element with class 'whiteboard'
     const whiteboard = canvas.group().attr({ class: 'wb' });
-    
+      
     // 4. Overlay annotations onto slides
+    logger.info("hi there!")
     overlay_annotations(whiteboard, currentSlide.annotations);
 
     const svg = canvas.svg();

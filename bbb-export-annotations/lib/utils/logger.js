@@ -1,6 +1,7 @@
-import config from '../../config/index.js';
+import fs from 'fs';
+const config = JSON.parse(fs.readFileSync('./config/settings.json', 'utf8'));
 
-const {level} = config.log;
+const { level } = config.log;
 const trace = level.toLowerCase() === 'trace';
 const debug = trace || level.toLowerCase() === 'debug';
 
