@@ -7,9 +7,9 @@ import redis from 'redis';
 import sanitize from 'sanitize-filename';
 import stream from 'stream';
 import WorkerStarter from '../lib/utils/worker-starter.js';
-import { PresAnnStatusMsg } from '../lib/utils/message-builder.js';
-import { workerData } from 'worker_threads';
-import { promisify } from 'util';
+import {PresAnnStatusMsg} from '../lib/utils/message-builder.js';
+import {workerData} from 'worker_threads';
+import {promisify} from 'util';
 
 const jobId = workerData.jobId;
 const logger = new Logger('presAnn Collector');
@@ -162,15 +162,15 @@ async function collectSharedNotes(retries = 3) {
 }
 
 switch (jobType) {
-  case 'PresentationWithAnnotationExportJob': 
+  case 'PresentationWithAnnotationExportJob':
     collectAnnotationsFromRedis();
     break;
-  case 'PresentationWithAnnotationDownloadJob': 
+  case 'PresentationWithAnnotationDownloadJob':
     collectAnnotationsFromRedis();
     break;
-  case 'PadCaptureJob': 
+  case 'PadCaptureJob':
     collectSharedNotes();
     break;
-  default: 
+  default:
     logger.error(`Unknown job type ${jobType}`);
 }

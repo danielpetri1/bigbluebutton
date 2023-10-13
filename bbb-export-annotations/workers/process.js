@@ -1,17 +1,17 @@
 import Logger from '../lib/utils/logger.js';
 import fs from 'fs';
-import { createSVGWindow } from 'svgdom';
-import { SVG, registerWindow } from '@svgdotjs/svg.js';
+import {createSVGWindow} from 'svgdom';
+import {SVG, registerWindow} from '@svgdotjs/svg.js';
 import cp from 'child_process';
 import WorkerStarter from '../lib/utils/worker-starter.js';
-import { workerData } from 'worker_threads';
+import {workerData} from 'worker_threads';
 import path from 'path';
 import sanitize from 'sanitize-filename';
-import pkg from 'perfect-freehand';
-const { getStrokePoints, getStrokeOutlinePoints } = pkg;
 import probe from 'probe-image-size';
 import redis from 'redis';
-import { PresAnnStatusMsg } from '../lib/utils/message-builder.js';
+import {PresAnnStatusMsg} from '../lib/utils/message-builder.js';
+import {sortByKey, getStrokeWidth} from '../shapes/helpers.js';
+import {Draw} from '../shapes/Draw.js';
 
 const jobId = workerData.jobId;
 const logger = new Logger('presAnn Process Worker');
@@ -24,7 +24,6 @@ const job = fs.readFileSync(path.join(dropbox, 'job'));
 const exportJob = JSON.parse(job);
 const statusUpdate = new PresAnnStatusMsg(exportJob, PresAnnStatusMsg.EXPORT_STATUSES.PROCESSING);
 
-// General utilities for rendering SVGs resembling Tldraw as much as possible
 function align_to_pango(alignment) {
   switch (alignment) {
     case 'start': return 'left';
@@ -32,65 +31,6 @@ function align_to_pango(alignment) {
     case 'end': return 'right';
     case 'justify': return 'justify';
     default: return 'left';
-  }
-}
-
-function color_to_hex(color, isStickyNote = false, isFilled = false) {
-  if (isStickyNote) {
-    color = `sticky-${color}`;
-  }
-  if (isFilled) {
-    color = `fill-${color}`;
-  }
-
-  switch (color) {
-    case 'white': return '#1d1d1d';
-    case 'fill-white': return '#fefefe';
-    case 'sticky-white': return '#fddf8e';
-    case 'lightGray': return '#c6cbd1';
-    case 'fill-lightGray': return '#f1f2f3';
-    case 'sticky-lightGray': return '#dde0e3';
-    case 'gray': return '#788492';
-    case 'fill-gray': return '#e3e5e7';
-    case 'sticky-gray': return '#b3b9c1';
-    case 'black': return '#1d1d1d';
-    case 'fill-black': return '#d2d2d2';
-    case 'sticky-black': return '#fddf8e';
-    case 'green': return '#36b24d';
-    case 'fill-green': return '#d7eddb';
-    case 'sticky-green': return '#8ed29b';
-    case 'cyan': return '#0e98ad';
-    case 'fill-cyan': return '#d0e8ec';
-    case 'sticky-cyan': return '#78c4d0';
-    case 'blue': return '#1c7ed6';
-    case 'fill-blue': return '#d2e4f4';
-    case 'sticky-blue': return '#80b6e6';
-    case 'indigo': return '#4263eb';
-    case 'fill-indigo': return '#d9dff7';
-    case 'sticky-indigo': return '#95a7f2';
-    case 'violet': return '#7746f1';
-    case 'fill-violet': return '#e2daf8';
-    case 'sticky-violet': return '#b297f5';
-    case 'red': return '#ff2133';
-    case 'fill-red': return '#fbd3d6';
-    case 'sticky-red': return '#fd838d';
-    case 'orange': return '#ff9433';
-    case 'fill-orange': return '#fbe8d6';
-    case 'sticky-orange': return '#fdc28d';
-    case 'yellow': return '#ffc936';
-    case 'fill-yellow': return '#fbf1d7';
-    case 'sticky-yellow': return '#fddf8e';
-
-    default: return '#0d0d0d';
-  }
-}
-
-function determine_dasharray(dash, gap = 0) {
-  switch (dash) {
-    case 'dashed': return `stroke-linecap:butt;stroke-dasharray:${gap};`;
-    case 'dotted': return `stroke-linecap:round;stroke-dasharray:${gap};`;
-
-    default: return 'stroke-linejoin:round;stroke-linecap:round;';
   }
 }
 
@@ -105,10 +45,6 @@ function determine_font_from_family(family) {
 
     default: return 'Caveat Brush';
   }
-}
-
-function rad_to_degree(angle) {
-  return angle * (180 / Math.PI) || 0;
 }
 
 // Convert pixels to points
@@ -166,58 +102,6 @@ function render_textbox(textColor, font, fontSize, textAlign, text, id, textBoxW
   }
 }
 
-function get_gap(dash, size) {
-  switch (dash) {
-    case 'dashed':
-      if (size == 'small') {
-        return '8 8';
-      } else if (size == 'medium') {
-        return '14 14';
-      } else {
-        return '20 20';
-      }
-    case 'dotted':
-      if (size == 'small') {
-        return '0.1 8';
-      } else if (size == 'medium') {
-        return '0.1 14';
-      } else {
-        return '0.1 20';
-      }
-
-    default: return '0';
-  }
-}
-
-function get_stroke_width(dash, size) {
-  switch (size) {
-    case 'small': if (dash === 'draw') {
-      return 2;
-    } else {
-      return 4;
-    }
-    case 'medium': if (dash === 'draw') {
-      return 3.5;
-    } else {
-      return 6.25;
-    }
-    case 'large': if (dash === 'draw') {
-      return 5;
-    } else {
-      return 8.5;
-    }
-
-    default: return 1;
-  }
-}
-
-function sortByKey(array, key, value) {
-  return array.sort(function(a, b) {
-    const [x, y] = [a[key][value], b[key][value]];
-    return x - y;
-  });
-}
-
 function text_size_to_px(size, scale = 1, isStickyNote = false) {
   if (isStickyNote) {
     size = `sticky-${size}`;
@@ -233,28 +117,6 @@ function text_size_to_px(size, scale = 1, isStickyNote = false) {
 
     default: return 28 * scale;
   }
-}
-
-/**
- * Turns an array of points into a path of quadradic curves.
- * @param {Array} annotationPoints
- * @param {Boolean} closed - whether the path end and start should be connected (default)
- * @return {Array} - an SVG quadratic curve path
- */
-function getSvgPath(annotationPoints, closed = true) {
-  const svgPath = annotationPoints.reduce(
-      (acc, [x0, y0], i, arr) => {
-        if (!arr[i + 1]) return acc;
-        const [x1, y1] = arr[i + 1];
-        acc.push(x0.toFixed(2), y0.toFixed(2), ((x0 + x1) / 2).toFixed(2), ((y0 + y1) / 2).toFixed(2));
-        return acc;
-      },
-
-      ['M', ...annotationPoints[0], 'Q'],
-  );
-
-  if (closed) svgPath.push('Z');
-  return svgPath;
 }
 
 function circleFromThreePoints(A, B, C) {
@@ -379,9 +241,9 @@ function overlay_arrow(svg, annotation) {
   dash = (dash == 'draw') ? 'solid' : dash; // Use 'solid' thickness
 
   const shapeColor = color_to_hex(annotation.style.color);
-  const sw = get_stroke_width(dash, annotation.style.size);
-  const gap = get_gap(dash, annotation.style.size);
-  const stroke_dasharray = determine_dasharray(dash, gap);
+  const sw = getStrokeWidth(annotation.style.size);
+  const gap = getGap(dash, annotation.style.size);
+  const stroke_dasharray = determineDasharray(dash, gap);
 
   const [start_x, start_y] = annotation.handles.start.point;
   const [end_x, end_y] = annotation.handles.end.point;
@@ -434,95 +296,14 @@ function overlay_arrow(svg, annotation) {
       }).up();
 }
 
-function overlay_draw(svg, annotation) {
-  const shapePoints = annotation.points;
-  const shapePointsLength = shapePoints.length;
-
-  if (shapePointsLength < 2) return;
-
-  const dash = annotation.style.dash;
-  const isDashDraw = (dash == 'draw');
-
-  const thickness = get_stroke_width(dash, annotation.style.size);
-  const gap = get_gap(dash, annotation.style.size);
-  const stroke_dasharray = determine_dasharray(dash, gap);
-
-  const shapeColor = color_to_hex(annotation.style.color);
-  const shapeFillColor = color_to_hex(`fill-${annotation.style.color}`);
-  const fill = isDashDraw ? shapeColor : 'none';
-
-  const rotation = rad_to_degree(annotation.rotation);
-  const [x, y] = annotation.point;
-  const [width, height] = annotation.size;
-  const shapeTransform = `translate(${x} ${y}), rotate(${rotation} ${width / 2} ${height / 2})`;
-
-  const simulatePressure = {
-    easing: (t) => Math.sin((t * Math.PI) / 2),
-    simulatePressure: true,
-  };
-
-  const realPressure = {
-    easing: (t) => t * t,
-    simulatePressure: false,
-  };
-
-  const options = {
-    size: 1 + thickness * 1.5,
-    thinning: 0.65,
-    streamline: 0.65,
-    smoothing: 0.65,
-    ...(shapePoints[1][2] === 0.5 ? simulatePressure : realPressure),
-    last: annotation.isComplete,
-  };
-
-  const strokePoints = getStrokePoints(shapePoints, options);
-
-  // Fill when path start- and end points overlap
-  const isShapeFilled =
-        annotation.style.isFilled &&
-        shapePointsLength > 3 &&
-        Math.round(distance(
-            shapePoints[0][0],
-            shapePoints[0][1],
-            shapePoints[shapePointsLength - 1][0],
-            shapePoints[shapePointsLength - 1][1],
-        )) <= 2 * thickness;
-
-  if (isShapeFilled) {
-    const shapeArea = strokePoints.map((strokePoint) => strokePoint.point);
-    svg.ele('path', {
-      style: `fill:${shapeFillColor};`,
-      d: getSvgPath(shapeArea),
-      transform: shapeTransform,
-    }).up();
-  }
-
-  if (isDashDraw) {
-    const strokeOutlinePoints = getStrokeOutlinePoints(strokePoints, options);
-    const svgPath = getSvgPath(strokeOutlinePoints);
-
-    svg.ele('path', {
-      style: `fill:${fill};${stroke_dasharray}`,
-      d: svgPath,
-      transform: shapeTransform,
-    });
-  } else {
-    const last = shapePoints[shapePointsLength - 1];
-
-    // Avoid single dots from not being drawn
-    if (strokePoints[0].point[0] == last[0] && strokePoints[0].point[1] == last[1]) {
-      strokePoints.push({point: last});
-    }
-
-    const solidPath = strokePoints.map((strokePoint) => strokePoint.point);
-    const svgPath = getSvgPath(solidPath, false);
-
-    svg.ele('path', {
-      style: `stroke:${shapeColor};stroke-width:${thickness};fill:${fill};${stroke_dasharray}`,
-      d: svgPath,
-      transform: shapeTransform,
-    });
-  }
+function overlayDraw(svg, annotation) {
+  logger.info(annotation.props?.fill)
+  
+  const drawing = new Draw(annotation);
+  const [drawPath, fillShape] = drawing.draw();
+  
+  svg.add(fillShape);
+  svg.add(drawPath);
 }
 
 function overlay_ellipse(svg, annotation) {
@@ -533,14 +314,14 @@ function overlay_ellipse(svg, annotation) {
   const [rx, ry] = annotation.radius;
   const isFilled = annotation.style.isFilled;
 
-  const shapeColor = color_to_hex(annotation.style.color);
+  const shapeColor = colorToHex(annotation.style.color);
   const fillColor = isFilled ? color_to_hex(annotation.style.color, false, isFilled) : 'none';
 
-  const rotation = rad_to_degree(annotation.rotation);
-  const sw = get_stroke_width(dash, annotation.style.size);
-  const gap = get_gap(dash, annotation.style.size);
+  const rotation = radToDegre(annotation.rotation);
+  const sw = getStrokeWidth(annotation.style.size);
+  const gap = getGap(dash, annotation.style.size);
 
-  const stroke_dasharray = determine_dasharray(dash, gap);
+  const stroke_dasharray = determineDasharray(dash, gap);
 
   svg.ele('g', {
     style: `stroke:${shapeColor};stroke-width:${sw};fill:${fillColor};${stroke_dasharray}`,
@@ -565,14 +346,14 @@ function overlay_rectangle(svg, annotation) {
   const [w, h] = annotation.size;
   const isFilled = annotation.style.isFilled;
 
-  const shapeColor = color_to_hex(annotation.style.color);
-  const fillColor = isFilled ? color_to_hex(annotation.style.color, false, isFilled) : 'none';
+  const shapeColor = colorToHex(annotation.style.color);
+  const fillColor = isFilled ? colorToHex(annotation.style.color, false, isFilled) : 'none';
 
-  const rotation = rad_to_degree(annotation.rotation);
-  const sw = get_stroke_width(rect_dash, annotation.style.size);
-  const gap = get_gap(dash, annotation.style.size);
+  const rotation = radToDegree(annotation.rotation);
+  const sw = getStrokeWidth(annotation.style.size);
+  const gap = getGap(dash, annotation.style.size);
 
-  const stroke_dasharray = determine_dasharray(dash, gap);
+  const stroke_dasharray = determineDasharray(dash, gap);
 
   const rx = (dash == 'draw') ? Math.min(w / 4, sw * 2) : 0;
   const ry = (dash == 'draw') ? Math.min(h / 4, sw * 2) : 0;
@@ -593,13 +374,13 @@ function overlay_rectangle(svg, annotation) {
 }
 
 function overlay_shape_label(svg, annotation) {
-  const fontColor = color_to_hex(annotation.style.color);
+  const fontColor = colorToHex(annotation.style.color);
   const font = determine_font_from_family(annotation.style.font);
   const fontSize = text_size_to_px(annotation.style.size, annotation.style.scale);
   const textAlign = 'center';
   const text = annotation.label;
   const id = sanitize(annotation.id);
-  const rotation = rad_to_degree(annotation.rotation);
+  const rotation = radToDegree(annotation.rotation);
 
   const [shape_width, shape_height] = annotation.size;
   const [shape_x, shape_y] = annotation.point;
@@ -617,7 +398,7 @@ function overlay_shape_label(svg, annotation) {
     // Poll results must fit inside shape, unlike other rectangle labels.
     // Linewrapping handled by client.
     const ref = `file://${dropbox}/text${id}.png`;
-    const transform = `rotate(${rotation} ${label_center_x} ${label_center_y})`
+    const transform = `rotate(${rotation} ${label_center_x} ${label_center_y})`;
     const fitLabelToShape = annotation?.name?.startsWith('poll-result');
 
     let labelWidth = shape_width;
@@ -627,7 +408,7 @@ function overlay_shape_label(svg, annotation) {
       const dimensions = probe.sync(fs.readFileSync(shape_label));
       labelWidth = dimensions.width / config.process.textScaleFactor;
       labelHeight = dimensions.height / config.process.textScaleFactor;
-    }    
+    }
     svg.ele('g', {
       transform: transform,
     }).ele('image', {
@@ -636,14 +417,14 @@ function overlay_shape_label(svg, annotation) {
       'width': labelWidth,
       'height': labelHeight,
       'xlink:href': ref,
-      }).up();
-    }
+    }).up();
+  }
 }
 
 function overlay_sticky(svg, annotation) {
-  const backgroundColor = color_to_hex(annotation.style.color, true);
+  const backgroundColor = colorToHex(annotation.style.color, true);
   const fontSize = text_size_to_px(annotation.style.size, annotation.style.scale, true);
-  const rotation = rad_to_degree(annotation.rotation);
+  const rotation = radToDegree(annotation.rotation);
   const font = determine_font_from_family(annotation.style.font);
   const textAlign = align_to_pango(annotation.style.textAlign);
 
@@ -683,14 +464,14 @@ function overlay_triangle(svg, annotation) {
   const [w, h] = annotation.size;
   const isFilled = annotation.style.isFilled;
 
-  const shapeColor = color_to_hex(annotation.style.color);
-  const fillColor = isFilled ? color_to_hex(annotation.style.color, false, isFilled) : 'none';
+  const shapeColor = colorToHex(annotation.style.color);
+  const fillColor = isFilled ? colorToHex(annotation.style.color, false, isFilled) : 'none';
 
-  const rotation = rad_to_degree(annotation.rotation);
-  const sw = get_stroke_width(dash, annotation.style.size);
-  const gap = get_gap(dash, annotation.style.size);
+  const rotation = radToDegree(annotation.rotation);
+  const sw = getStrokeWidth(annotation.style.size);
+  const gap = getGap(dash, annotation.style.size);
 
-  const stroke_dasharray = determine_dasharray(dash, gap);
+  const stroke_dasharray = determineDasharray(dash, gap);
   const points = `${w / 2} 0, ${w} ${h}, 0 ${h}, ${w / 2} 0`;
 
   svg.ele('g', {
@@ -707,14 +488,14 @@ function overlay_triangle(svg, annotation) {
 
 function overlay_text(svg, annotation) {
   const [textBoxWidth, textBoxHeight] = annotation.size;
-  const fontColor = color_to_hex(annotation.style.color);
+  const fontColor = colorToHex(annotation.style.color);
   const font = determine_font_from_family(annotation.style.font);
   const fontSize = text_size_to_px(annotation.style.size, annotation.style.scale);
   const textAlign = align_to_pango(annotation.style.textAlign);
   const text = annotation.text;
   const id = sanitize(annotation.id);
 
-  const rotation = rad_to_degree(annotation.rotation);
+  const rotation = radToDegree(annotation.rotation);
   const [textBox_x, textBox_y] = annotation.point;
 
   render_textbox(fontColor, font, fontSize, textAlign, text, id);
@@ -734,15 +515,12 @@ function overlay_text(svg, annotation) {
 }
 
 function overlay_annotation(svg, currentAnnotation) {
-  logger.info("=======================")
-  logger.info(currentAnnotation)
-  logger.info("=======================")
   switch (currentAnnotation.type) {
     case 'arrow':
       overlay_arrow(svg, currentAnnotation);
       break;
     case 'draw':
-      overlay_draw(svg, currentAnnotation);
+      overlayDraw(svg, currentAnnotation);
       break;
     case 'ellipse':
       overlay_ellipse(svg, currentAnnotation);
@@ -766,7 +544,7 @@ function overlay_annotation(svg, currentAnnotation) {
 
 function overlay_annotations(svg, currentSlideAnnotations) {
   // Sort annotations by lowest child index
-  currentSlideAnnotations = sortByKey(currentSlideAnnotations, 'annotationInfo', 'childIndex');
+  currentSlideAnnotations = sortByKey(currentSlideAnnotations, 'annotationInfo', 'index');
 
   for (const annotation of currentSlideAnnotations) {
     switch (annotation.annotationInfo.type) {
@@ -782,9 +560,7 @@ function overlay_annotations(svg, currentSlideAnnotations) {
 
       default:
         // Add individual annotations if they don't belong to a group
-        if (annotation.annotationInfo.parentId % 1 === 0) {
-          overlay_annotation(svg, annotation.annotationInfo);
-        }
+        overlay_annotation(svg, annotation.annotationInfo);
     }
   }
 }
@@ -824,36 +600,35 @@ async function process_presentation_annotations() {
 
     const maxImageWidth = config.process.maxImageWidth;
     const maxImageHeight = config.process.maxImageHeight;
-  
+
     const ratio = Math.min(maxImageWidth / slideWidth, maxImageHeight / slideHeight);
     const scaledWidth = slideWidth * ratio;
     const scaledHeight = slideHeight * ratio;
 
     // Create a window with a document and an SVG root node
-    const window = createSVGWindow()
-    const document = window.document
-    
+    const window = createSVGWindow();
+    const document = window.document;
+
     // Register window and document
-    registerWindow(window, document)
-    
+    registerWindow(window, document);
+
     // Create the canvas (root SVG element)
     const canvas = SVG(document.documentElement)
-      .size(scaledWidth, scaledHeight)
-      .attr({
-        xmlns: 'http://www.w3.org/2000/svg',
-        'xmlns:xlink': 'http://www.w3.org/1999/xlink'
-      });
-        
+        .size(scaledWidth, scaledHeight)
+        .attr({
+          'xmlns': 'http://www.w3.org/2000/svg',
+          'xmlns:xlink': 'http://www.w3.org/1999/xlink',
+        });
+
     // Add the image element
     canvas
-      .image(`file://${dropbox}/slide${currentSlide.page}.${backgroundFormat}`)
-      .size(scaledWidth, scaledHeight);
-    
+        .image(`file://${dropbox}/slide${currentSlide.page}.${backgroundFormat}`)
+        .size(scaledWidth, scaledHeight);
+
     // Add a group element with class 'whiteboard'
-    const whiteboard = canvas.group().attr({ class: 'wb' });
-      
+    const whiteboard = canvas.group().attr({class: 'wb'});
+
     // 4. Overlay annotations onto slides
-    logger.info("hi there!")
     overlay_annotations(whiteboard, currentSlide.annotations);
 
     const svg = canvas.svg();
@@ -889,7 +664,7 @@ async function process_presentation_annotations() {
 
   // Create PDF output directory if it doesn't exist
   // const outputDir = path.join(exportJob.presLocation, 'pdfs', jobId);
-  const outputDir = path.join(config.shared.presAnnDropboxDir)
+  const outputDir = path.join(config.shared.presAnnDropboxDir);
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, {recursive: true});
