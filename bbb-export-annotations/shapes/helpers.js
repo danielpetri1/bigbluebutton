@@ -5,8 +5,10 @@ export const TAU = Math.PI * 2;
  *
  * @param {Array} array - The array to be sorted.
  * @param {string} key - The key in each object to be used for sorting.
- * @param {string} value - The nested key within the 'key' object to be used for sorting.
- * @returns {Array} - Returns a new array sorted lexicographically by the specified nested key-value pair.
+ * @param {string} value - The nested key within the 'key' object to be used
+ *                         for sorting.
+ * @return {Array} - Returns a new array sorted lexicographically
+ *                    by the specified nested key-value pair.
  *
  * @example
  * const data = [
@@ -15,9 +17,10 @@ export const TAU = Math.PI * 2;
  *   {annotationInfo: {index: 'a1'}, type: 'draw'}
  * ];
  * const sortedData = sortByKey(data, 'annotationInfo', 'index');
- * // Output: [{ annotationInfo: { index: 'a1' }, type: 'draw' }, { annotationInfo: { index: 'a1V' }, type: 'shape' }, { annotationInfo: { index: 'a2' }, type: 'shape' }]
+ * // Output: [{ annotationInfo: { index: 'a1' }, type: 'draw' },
+ *             { annotationInfo: { index: 'a1V' }, type: 'shape' },
+ *             { annotationInfo: { index: 'a2' }, type: 'shape' }]
  */
-
 export function sortByKey(array, key, value) {
   return array.sort((a, b) => {
     const [x, y] = [a[key][value], b[key][value]];
@@ -48,7 +51,8 @@ export function getStrokeWidth(size) {
  * @param {string} dash - The type of dash ('dashed', 'dotted').
  * @param {string} size - The size ('s', 'm', 'l', 'xl').
  *
- * @return {string} A string representing the gap setting for the given dash and size.
+ * @return {string} A string representing the gap setting for
+ *                  the given dash and size.
  */
 export function getGap(dash, size) {
   const gapSettings = {
@@ -72,12 +76,13 @@ export function getGap(dash, size) {
 }
 
 /**
- * Determines the `stroke-dasharray` and other related SVG attributes based on the dash type.
+ * Determines SVG style attributes based on the dash type.
  *
  * @param {string} dash - The type of dash ('dashed', 'dotted').
  * @param {number} [gap=0] - The length of the gap between dashes.
  *
- * @return {string} A string representing the SVG attributes for the given dash and gap.
+ * @return {string} A string representing the SVG attributes
+ *                  for the given dash and gap.
  */
 export function determineDasharray(dash, gap = 0) {
   const dashSettings = {
@@ -95,6 +100,17 @@ export const ColorTypes = Object.freeze({
   StickyColor: 'sticky',
 });
 
+/**
+ * Converts a tldraw color name to its corresponding HEX code.
+ *
+ * @param {string} color - The name of the color (e.g., 'blue', 'red').
+ * @param {string} colorType - Context to select the appropriate mapping.
+ *                             Valid values are 'shape', 'fill',
+ *                             'semi', and 'sticky'.
+ *
+ * @return {string} The HEX code for the given color and color type.
+ *                   Returns '#0d0d0d' if the color or color type is not found.
+ */
 export function colorToHex(color, colorType) {
   const colorMap = {
     'black': '#161616',
@@ -143,7 +159,7 @@ export function colorToHex(color, colorType) {
 
   const semiFillMap = {
     'semi': '#F5F9F7',
-  }
+  };
 
   const colors = {
     shape: colorMap,

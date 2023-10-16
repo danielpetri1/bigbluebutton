@@ -297,11 +297,10 @@ function overlay_arrow(svg, annotation) {
 }
 
 function overlayDraw(svg, annotation) {
-  logger.info(annotation.props?.fill)
-  
   const drawing = new Draw(annotation);
-  const [drawPath, fillShape] = drawing.draw();
-  
+  const [drawPath, fillShape, defs] = drawing.draw();
+
+  svg.add(defs);
   svg.add(fillShape);
   svg.add(drawPath);
 }
