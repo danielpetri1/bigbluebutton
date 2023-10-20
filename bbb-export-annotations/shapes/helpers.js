@@ -57,18 +57,19 @@ export function getStrokeWidth(size) {
 export function getGap(dash, size) {
   const gapSettings = {
     'dashed': {
-      's': '8 8',
-      'm': '14 14',
-      'l': '20 20',
-      'xl': '26 26',
+      's': '4.37 4.91',
+      'm': '8.16 10.21',
+      'l': '11.85 14.81',
+      'xl': '21.41 32.12',
       'default': '8 8',
     },
+
     'dotted': {
-      's': '0.1 8',
-      'm': '0.1 14',
-      'l': '0.1 20',
-      'xl': '0.1 26',
-      'default': '0.1 8',
+      's': '0.02 4.37',
+      'm': '0.03 8.26',
+      'l': '0.05 12.39',
+      'xl': '0.12 37.20',
+      'default': '0.03 8.26',
     },
   };
 

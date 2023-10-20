@@ -12,6 +12,7 @@ import redis from 'redis';
 import {PresAnnStatusMsg} from '../lib/utils/message-builder.js';
 import {sortByKey, getStrokeWidth} from '../shapes/helpers.js';
 import {Draw} from '../shapes/Draw.js';
+import {createGeoObject} from '../shapes/geoFactory.js';
 
 const jobId = workerData.jobId;
 const logger = new Logger('presAnn Process Worker');
@@ -298,11 +299,9 @@ function overlay_arrow(svg, annotation) {
 
 function overlayDraw(svg, annotation) {
   const drawing = new Draw(annotation);
-  const [drawPath, fillShape, defs] = drawing.draw();
+  const drawnDrawing = drawing.draw();
 
-  svg.add(defs);
-  svg.add(fillShape);
-  svg.add(drawPath);
+  svg.add(drawnDrawing);
 }
 
 function overlay_ellipse(svg, annotation) {
@@ -337,39 +336,10 @@ function overlay_ellipse(svg, annotation) {
   }
 }
 
-function overlay_rectangle(svg, annotation) {
-  const dash = annotation.style.dash;
-  const rect_dash = (dash == 'draw') ? 'solid' : dash; // Use 'solid' thickness for draw type
-
-  const [x, y] = annotation.point;
-  const [w, h] = annotation.size;
-  const isFilled = annotation.style.isFilled;
-
-  const shapeColor = colorToHex(annotation.style.color);
-  const fillColor = isFilled ? colorToHex(annotation.style.color, false, isFilled) : 'none';
-
-  const rotation = radToDegree(annotation.rotation);
-  const sw = getStrokeWidth(annotation.style.size);
-  const gap = getGap(dash, annotation.style.size);
-
-  const stroke_dasharray = determineDasharray(dash, gap);
-
-  const rx = (dash == 'draw') ? Math.min(w / 4, sw * 2) : 0;
-  const ry = (dash == 'draw') ? Math.min(h / 4, sw * 2) : 0;
-
-  svg.ele('g', {
-    style: `stroke:${shapeColor};stroke-width:${sw};fill:${fillColor};${stroke_dasharray}`,
-  }).ele('rect', {
-    'width': w,
-    'height': h,
-    'rx': rx,
-    'ry': ry,
-    'transform': `translate(${x} ${y}), rotate(${rotation} ${w / 2} ${h / 2})`,
-  }).up();
-
-  if (annotation.label) {
-    overlay_shape_label(svg, annotation);
-  }
+function overlayGeo(svg, annotation) {
+  const geo = createGeoObject(annotation);
+  const geoDrawn = geo.draw();
+  svg.add(geoDrawn);
 }
 
 function overlay_shape_label(svg, annotation) {
@@ -513,53 +483,42 @@ function overlay_text(svg, annotation) {
   }).up();
 }
 
-function overlay_annotation(svg, currentAnnotation) {
-  switch (currentAnnotation.type) {
-    case 'arrow':
-      overlay_arrow(svg, currentAnnotation);
-      break;
+function overlayAnnotation(svg, annotation) {
+  logger.info(annotation);
+  switch (annotation.type) {
     case 'draw':
-      overlayDraw(svg, currentAnnotation);
+      overlayDraw(svg, annotation);
       break;
-    case 'ellipse':
-      overlay_ellipse(svg, currentAnnotation);
+
+    case 'geo':
+      overlayGeo(svg, annotation);
       break;
-    case 'rectangle':
-      overlay_rectangle(svg, currentAnnotation);
-      break;
-    case 'sticky':
-      overlay_sticky(svg, currentAnnotation);
-      break;
-    case 'triangle':
-      overlay_triangle(svg, currentAnnotation);
-      break;
-    case 'text':
-      overlay_text(svg, currentAnnotation);
-      break;
+
     default:
-      logger.info(`Unknown annotation type ${currentAnnotation.type}.`);
+      logger.info(annotation);
+      logger.info(`Unknown annotation type ${annotation.type}.`);
   }
 }
 
-function overlay_annotations(svg, currentSlideAnnotations) {
+function overlayAnnotations(svg, slideAnnotations) {
   // Sort annotations by lowest child index
-  currentSlideAnnotations = sortByKey(currentSlideAnnotations, 'annotationInfo', 'index');
+  slideAnnotations = sortByKey(slideAnnotations, 'annotationInfo', 'index');
 
-  for (const annotation of currentSlideAnnotations) {
+  for (const annotation of slideAnnotations) {
     switch (annotation.annotationInfo.type) {
       case 'group':
         // Get annotations that have this group as parent
         for (const childId of annotation.annotationInfo.children) {
           const childAnnotation =
-            currentSlideAnnotations.find((ann) => ann.id == childId);
-          overlay_annotation(svg, childAnnotation.annotationInfo);
+          slideAnnotations.find((ann) => ann.id == childId);
+          overlayAnnotation(svg, childAnnotation.annotationInfo);
         }
 
         break;
 
       default:
         // Add individual annotations if they don't belong to a group
-        overlay_annotation(svg, annotation.annotationInfo);
+        overlayAnnotation(svg, annotation.annotationInfo);
     }
   }
 }
@@ -628,7 +587,7 @@ async function process_presentation_annotations() {
     const whiteboard = canvas.group().attr({class: 'wb'});
 
     // 4. Overlay annotations onto slides
-    overlay_annotations(whiteboard, currentSlide.annotations);
+    overlayAnnotations(whiteboard, currentSlide.annotations);
 
     const svg = canvas.svg();
 
