@@ -1,6 +1,16 @@
 import {Shape} from './Shape.js';
-
+/**
+ * Class representing geometric shapes.
+ *
+ * @class Geo
+ * @extends {Shape}
+ */
 export class Geo extends Shape {
+  /**
+   * Creates an instance of Geo.
+   *
+   * @param {Object} geo - JSON containing geometric shape properties.
+   */
   constructor(geo) {
     super(geo);
     this.color = this.props?.color;

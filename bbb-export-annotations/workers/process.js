@@ -23,7 +23,8 @@ logger.info('Processing PDF for job ' + jobId);
 const dropbox = path.join(config.shared.presAnnDropboxDir, jobId);
 const job = fs.readFileSync(path.join(dropbox, 'job'));
 const exportJob = JSON.parse(job);
-const statusUpdate = new PresAnnStatusMsg(exportJob, PresAnnStatusMsg.EXPORT_STATUSES.PROCESSING);
+const statusUpdate = new PresAnnStatusMsg(exportJob,
+    PresAnnStatusMsg.EXPORT_STATUSES.PROCESSING);
 
 function align_to_pango(alignment) {
   switch (alignment) {
@@ -304,38 +305,6 @@ function overlayDraw(svg, annotation) {
   svg.add(drawnDrawing);
 }
 
-function overlay_ellipse(svg, annotation) {
-  let dash = annotation.style.dash;
-  dash = (dash == 'draw') ? 'solid' : dash; // Use 'solid' thickness for draw type
-
-  const [x, y] = annotation.point; // Ellipse center coordinates
-  const [rx, ry] = annotation.radius;
-  const isFilled = annotation.style.isFilled;
-
-  const shapeColor = colorToHex(annotation.style.color);
-  const fillColor = isFilled ? color_to_hex(annotation.style.color, false, isFilled) : 'none';
-
-  const rotation = radToDegre(annotation.rotation);
-  const sw = getStrokeWidth(annotation.style.size);
-  const gap = getGap(dash, annotation.style.size);
-
-  const stroke_dasharray = determineDasharray(dash, gap);
-
-  svg.ele('g', {
-    style: `stroke:${shapeColor};stroke-width:${sw};fill:${fillColor};${stroke_dasharray}`,
-  }).ele('ellipse', {
-    'cx': x + rx,
-    'cy': y + ry,
-    'rx': rx,
-    'ry': ry,
-    'transform': `rotate(${rotation} ${x + rx} ${y + ry})`,
-  }).up();
-
-  if (annotation.label) {
-    overlay_shape_label(svg, annotation);
-  }
-}
-
 function overlayGeo(svg, annotation) {
   const geo = createGeoObject(annotation);
   const geoDrawn = geo.draw();
@@ -524,7 +493,7 @@ function overlayAnnotations(svg, slideAnnotations) {
 }
 
 // Process the presentation pages and annotations into a PDF file
-async function process_presentation_annotations() {
+async function processPresentationAnnotations() {
   const client = redis.createClient({
     host: config.redis.host,
     port: config.redis.port,
@@ -651,4 +620,4 @@ async function process_presentation_annotations() {
   await client.disconnect();
 }
 
-process_presentation_annotations();
+processPresentationAnnotations();

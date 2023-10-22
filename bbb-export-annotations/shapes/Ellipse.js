@@ -2,23 +2,20 @@ import {
   getStrokeWidth, getGap, determineDasharray,
   colorToHex, radToDegree, ColorTypes,
 } from '../shapes/helpers.js';
-import {Rect, G} from '@svgdotjs/svg.js';
+import {Ellipse as SVGEllipse, G} from '@svgdotjs/svg.js';
 import {Geo} from './Geo.js';
 
 /**
- * Creates an SVG rectangle shape from Tldraw v2 JSON data.
+ * Creates an SVG ellipse shape from Tldraw v2 JSON data.
  *
- * @class Rectangle
+ * @class Ellipse
  * @extends {Geo}
  */
-export class Rectangle extends Geo {
+export class Ellipse extends Geo {
   /**
-   * Draws a rectangle shape based on the instance properties.
-   *
-   * @method draw
-   * @return {G} An SVG group element containing the drawn rectangle shape.
-   *
- */
+   * Draws an ellipse shape on the SVG canvas.
+   * @return {G} Returns the SVG group element containing the ellipse.
+   */
   draw() {
     const dash = this.dash;
 
@@ -29,48 +26,47 @@ export class Rectangle extends Geo {
     const shapeColor = colorToHex(this.color, ColorTypes.ShapeColor);
     const rotation = radToDegree(this.rotation);
 
-    const translate = `translate(${this.x} ${this.y})`;
+    const x = this.x;
+    const y = this.y;
+    const rx = this.w / 2;
+    const ry = this.h / 2;
+
+    const translate = `translate(${x} ${y})`;
     const transformOrigin = 'transform-origin: center';
     const rotate = `transform: rotate(${rotation})`;
     const transform = `${translate}; ${transformOrigin}; ${rotate}`;
 
-    const rectGroup = new G({
+    const ellipseGroup = new G({
       transform: transform,
       opacity: this.opacity,
     });
 
-    const rectangle = new Rect({
-      'x': 0,
-      'y': 0,
-      'width': this.w,
-      'height': this.h,
+    const ellipse = new SVGEllipse({
+      'cx': rx,
+      'cy': ry,
+      'rx': rx,
+      'ry': ry,
       'stroke': shapeColor,
       'stroke-width': thickness,
       'style': dasharray,
     });
 
-    // Simulate perfect-freehand effect
-    if (this.dash === 'draw') {
-      rectangle.attr('rx', thickness);
-      rectangle.attr('ry', thickness);
-    }
-
     if (this.fill === 'solid') {
       const fillColor = colorToHex(this.color, ColorTypes.FillColor);
-      rectangle.attr('fill', fillColor);
+      ellipse.attr('fill', fillColor);
     } else if (this.fill === 'semi') {
       const semiFillColor = colorToHex(this.fill, ColorTypes.SemiFillColor);
-      rectangle.attr('fill', semiFillColor);
+      ellipse.attr('fill', semiFillColor);
     } else if (this.fill === 'pattern') {
       const pattern = this.getFillPattern(shapeColor);
-      rectGroup.add(pattern);
-      rectangle.attr('fill', `url(#hash_pattern-${this.id})`);
+      ellipseGroup.add(pattern);
+      ellipse.attr('fill', `url(#hash_pattern-${this.id})`);
     } else {
-      rectangle.attr('fill', 'none');
+      ellipse.attr('fill', 'none');
     }
 
-    rectGroup.add(rectangle);
+    ellipseGroup.add(ellipse);
 
-    return rectGroup;
+    return ellipseGroup;
   }
 }

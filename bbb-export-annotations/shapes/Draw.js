@@ -8,7 +8,16 @@ import {Shape} from './Shape.js';
 const {getStrokePoints, getStrokeOutlinePoints} = pkg;
 const svgNamespace = 'http://www.w3.org/2000/svg';
 
+/**
+ * Creates an SVG path from Tldraw v2 pencil data.
+ *
+ * @class Draw
+ * @extends {Shape}
+ */
 export class Draw extends Shape {
+  /**
+   * @param {Object} draw - The draw shape JSON.
+   */
   constructor(draw) {
     super(draw);
 
@@ -57,16 +66,9 @@ export class Draw extends Shape {
   }
 
   /**
-   * Draws an SVG shape based on the instance's properties and segments.
-   * Aims to resemble tldraw's draw function as much as possible with pure SVG.
+   * Renders the draw object as an SVG group element.
    *
-   * @return {Array} An array containing:
-   * - {SVGPathElement} drawPath: perfect-freehand's SVG shape outline path.
-   * - {SVGPathElement} fillShape: The path without the outline.
-   * - {Defs} defs: SVG definition for the fill pattern.
-   *
-   * @example
-   * const [drawPath, fillShape, defs] = myDrawInstance.draw();
+   * @return {G} - An SVG group element.
    */
   draw() {
     const shapePoints = this.segments[0]?.points;

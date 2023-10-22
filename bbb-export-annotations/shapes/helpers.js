@@ -179,5 +179,5 @@ export function colorToHex(color, colorType) {
  * @return {number} The angle in degrees.
  */
 export function radToDegree(angle) {
-  return angle * (360 / TAU) || 0;
+  return parseFloat(angle * (360 / TAU)).toFixed(2) || 0;
 }
