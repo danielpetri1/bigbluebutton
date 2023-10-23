@@ -1,6 +1,7 @@
 import {Geo} from './Geo.js';
 import {Rectangle} from './Rectangle.js';
 import {Ellipse} from './Ellipse.js';
+import {Diamond} from './Diamond.js';
 
 /**
  * Creates a geometric object instance based on the provided annotations.
@@ -17,6 +18,8 @@ export function createGeoObject(annotations) {
       return new Rectangle(annotations);
     case 'ellipse':
       return new Ellipse(annotations);
+    case 'diamond':
+      return new Diamond(annotations);
     default:
       return new Geo(annotations);
   }

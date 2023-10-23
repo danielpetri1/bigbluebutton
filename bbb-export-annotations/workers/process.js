@@ -589,10 +589,9 @@ async function processPresentationAnnotations() {
     ghostScriptInput.push(PDFfile);
   }
 
-  // Create PDF output directory if it doesn't exist
-  // const outputDir = path.join(exportJob.presLocation, 'pdfs', jobId);
-  const outputDir = path.join(config.shared.presAnnDropboxDir);
+  const outputDir = path.join(exportJob.presLocation, 'pdfs', jobId);
 
+  // Create PDF output directory if it doesn't exist
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, {recursive: true});
   }
