@@ -1,12 +1,10 @@
-import {createSVGWindow} from 'svgdom';
 import pkg from 'perfect-freehand';
 import {getStrokeWidth, getGap, determineDasharray,
-  colorToHex, radToDegree, TAU, ColorTypes} from '../shapes/helpers.js';
-import {G} from '@svgdotjs/svg.js';
+  colorToHex, TAU, ColorTypes} from '../shapes/helpers.js';
+import {Path} from '@svgdotjs/svg.js';
 import {Shape} from './Shape.js';
 
 const {getStrokePoints, getStrokeOutlinePoints} = pkg;
-const svgNamespace = 'http://www.w3.org/2000/svg';
 
 /**
  * Creates an SVG path from Tldraw v2 pencil data.
@@ -74,27 +72,13 @@ export class Draw extends Shape {
     const shapePoints = this.segments[0]?.points;
     const shapePointsLength = shapePoints?.length || 0;
 
-    const window = createSVGWindow();
-    const document = window.document;
-
     const dash = this.dash;
     const isDashDraw = (dash === 'draw');
-
     const thickness = getStrokeWidth(this.size);
     const gap = getGap(dash, this.size);
     const dasharray = determineDasharray(dash, gap);
-
     const shapeColor = colorToHex(this.color, ColorTypes.ShapeColor);
-
-    const rotation = radToDegree(this.rotation);
-    const translate = `translate(${this.x} ${this.y})`;
-    const transformOrigin = 'transform-origin: center';
-    const rotate = `transform: rotate(${rotation})`;
-    const transform = `${translate}; ${transformOrigin}; ${rotate}`;
-    const drawGroup = new G({
-      transform: transform,
-      opacity: this.opacity,
-    });
+    const drawGroup = this.shapeGroup;
 
     const options = {
       size: 1 + thickness * 1.5,
@@ -108,8 +92,8 @@ export class Draw extends Shape {
 
     const strokePoints = getStrokePoints(shapePoints, options);
 
-    const drawPath = document.createElementNS(svgNamespace, 'path');
-    const fillShape = document.createElementNS(svgNamespace, 'path');
+    const drawPath = new Path();
+    const fillShape = new Path();
 
     const last = shapePoints[shapePointsLength - 1];
 
@@ -122,35 +106,23 @@ export class Draw extends Shape {
     const solidPath = strokePoints.map((strokePoint) => strokePoint.point);
     const svgPath = this.getSvgPath(solidPath, this.isClosed);
 
-    fillShape.setAttribute('d', svgPath);
+    fillShape.attr('d', svgPath);
 
     // In case the background shape is the shape itself, add the stroke to it
     if (!isDashDraw) {
-      fillShape.setAttribute('stroke', shapeColor);
-      fillShape.setAttribute('stroke-width', thickness);
-      fillShape.setAttribute('style', dasharray);
+      fillShape.attr('stroke', shapeColor);
+      fillShape.attr('stroke-width', thickness);
+      fillShape.attr('style', dasharray);
     }
 
-    if (this.fill === 'solid') {
-      const solidFillColor = colorToHex(this.color, ColorTypes.FillColor);
-      fillShape.setAttribute('fill', solidFillColor);
-    } else if (this.fill === 'semi') {
-      const semiFillColor = colorToHex(this.fill, ColorTypes.SemiFillColor);
-      fillShape.setAttribute('fill', semiFillColor);
-    } else if (this.fill === 'pattern') {
-      const defs = this.getFillPattern(shapeColor);
-      drawGroup.add(defs);
-      fillShape.setAttribute('fill', `url(#hash_pattern-${this.id})`);
-    } else {
-      fillShape.setAttribute('fill', 'none');
-    }
+    this.applyFill(fillShape, drawGroup);
 
     if (isDashDraw) {
       const strokeOutlinePoints = getStrokeOutlinePoints(strokePoints, options);
       const svgPath = this.getSvgPath(strokeOutlinePoints);
 
-      drawPath.setAttribute('fill', shapeColor);
-      drawPath.setAttribute('d', svgPath);
+      drawPath.attr('fill', shapeColor);
+      drawPath.attr('d', svgPath);
     }
 
     drawGroup.add(fillShape);

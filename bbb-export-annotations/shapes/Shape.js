@@ -1,5 +1,5 @@
 import {Pattern, Line, Defs, Rect, G} from '@svgdotjs/svg.js';
-
+import {colorToHex, ColorTypes, radToDegree} from '../shapes/helpers.js';
 /**
  * Represents a basic Tldraw shape on the whiteboard.
  *
@@ -31,6 +31,10 @@ export class Shape {
     this.rotation = rotation;
     this.opacity = opacity;
     this.props = props;
+    this.shapeGroup = new G({
+      transform: this.applyTransform(),
+      opacity: this.opacity,
+    });
   }
 
   /**
@@ -59,6 +63,33 @@ export class Shape {
     return defs;
   }
 
+  applyFill(shape) {
+    if (this.fill === 'solid') {
+      const fillColor = colorToHex(this.color, ColorTypes.FillColor);
+      shape.attr('fill', fillColor);
+    } else if (this.fill === 'semi') {
+      const semiFillColor = colorToHex(this.fill, ColorTypes.SemiFillColor);
+      shape.attr('fill', semiFillColor);
+    } else if (this.fill === 'pattern') {
+      const shapeColor = colorToHex(this.color, ColorTypes.ShapeColor);
+      const pattern = this.getFillPattern(shapeColor);
+      this.shapeGroup.add(pattern);
+      shape.attr('fill', `url(#hash_pattern-${this.id})`);
+    } else {
+      shape.attr('fill', 'none');
+    }
+  }
+
+  applyTransform() {
+    const rotation = radToDegree(this.rotation);
+    const translate = `translate(${this.x} ${this.y})`;
+    const transformOrigin = 'transform-origin: center';
+    const rotate = `rotate(${rotation})`;
+    const transform = `${translate}; ${transformOrigin}; ${rotate}`;
+
+    return transform;
+  }
+
   /**
    * Placeholder method for drawing the shape.
    * Intended to be overridden by subclasses.
@@ -70,4 +101,3 @@ export class Shape {
     return new G();
   }
 }
-

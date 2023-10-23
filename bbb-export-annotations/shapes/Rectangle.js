@@ -1,8 +1,8 @@
 import {
   getStrokeWidth, getGap, determineDasharray,
-  colorToHex, radToDegree, ColorTypes,
+  colorToHex, ColorTypes,
 } from '../shapes/helpers.js';
-import {Rect, G} from '@svgdotjs/svg.js';
+import {Rect} from '@svgdotjs/svg.js';
 import {Geo} from './Geo.js';
 
 /**
@@ -27,17 +27,7 @@ export class Rectangle extends Geo {
 
     const dasharray = determineDasharray(dash, gap);
     const shapeColor = colorToHex(this.color, ColorTypes.ShapeColor);
-    const rotation = radToDegree(this.rotation);
-
-    const translate = `translate(${this.x} ${this.y})`;
-    const transformOrigin = 'transform-origin: center';
-    const rotate = `transform: rotate(${rotation})`;
-    const transform = `${translate}; ${transformOrigin}; ${rotate}`;
-
-    const rectGroup = new G({
-      transform: transform,
-      opacity: this.opacity,
-    });
+    const rectGroup = this.shapeGroup;
 
     const rectangle = new Rect({
       'x': 0,
@@ -55,20 +45,7 @@ export class Rectangle extends Geo {
       rectangle.attr('ry', thickness);
     }
 
-    if (this.fill === 'solid') {
-      const fillColor = colorToHex(this.color, ColorTypes.FillColor);
-      rectangle.attr('fill', fillColor);
-    } else if (this.fill === 'semi') {
-      const semiFillColor = colorToHex(this.fill, ColorTypes.SemiFillColor);
-      rectangle.attr('fill', semiFillColor);
-    } else if (this.fill === 'pattern') {
-      const pattern = this.getFillPattern(shapeColor);
-      rectGroup.add(pattern);
-      rectangle.attr('fill', `url(#hash_pattern-${this.id})`);
-    } else {
-      rectangle.attr('fill', 'none');
-    }
-
+    this.applyFill(rectangle, rectGroup);
     rectGroup.add(rectangle);
 
     return rectGroup;

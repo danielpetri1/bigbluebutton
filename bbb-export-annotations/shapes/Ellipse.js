@@ -51,20 +51,7 @@ export class Ellipse extends Geo {
       'style': dasharray,
     });
 
-    if (this.fill === 'solid') {
-      const fillColor = colorToHex(this.color, ColorTypes.FillColor);
-      ellipse.attr('fill', fillColor);
-    } else if (this.fill === 'semi') {
-      const semiFillColor = colorToHex(this.fill, ColorTypes.SemiFillColor);
-      ellipse.attr('fill', semiFillColor);
-    } else if (this.fill === 'pattern') {
-      const pattern = this.getFillPattern(shapeColor);
-      ellipseGroup.add(pattern);
-      ellipse.attr('fill', `url(#hash_pattern-${this.id})`);
-    } else {
-      ellipse.attr('fill', 'none');
-    }
-
+    this.applyFill(ellipse, ellipseGroup);
     ellipseGroup.add(ellipse);
 
     return ellipseGroup;
