@@ -394,36 +394,6 @@ function overlay_sticky(svg, annotation) {
       }).up();
 }
 
-function overlay_triangle(svg, annotation) {
-  let dash = annotation.style.dash;
-  dash = (dash == 'draw') ? 'solid' : dash;
-
-  const [x, y] = annotation.point;
-  const [w, h] = annotation.size;
-  const isFilled = annotation.style.isFilled;
-
-  const shapeColor = colorToHex(annotation.style.color);
-  const fillColor = isFilled ? colorToHex(annotation.style.color, false, isFilled) : 'none';
-
-  const rotation = radToDegree(annotation.rotation);
-  const sw = getStrokeWidth(annotation.style.size);
-  const gap = getGap(dash, annotation.style.size);
-
-  const stroke_dasharray = determineDasharray(dash, gap);
-  const points = `${w / 2} 0, ${w} ${h}, 0 ${h}, ${w / 2} 0`;
-
-  svg.ele('g', {
-    style: `stroke:${shapeColor};stroke-width:${sw};fill:${fillColor};${stroke_dasharray}`,
-  }).ele('polygon', {
-    'points': points,
-    'transform': `translate(${x}, ${y}), rotate(${rotation} ${w / 2} ${h / 2})`,
-  }).up();
-
-  if (annotation.label) {
-    overlay_shape_label(svg, annotation);
-  }
-}
-
 function overlay_text(svg, annotation) {
   const [textBoxWidth, textBoxHeight] = annotation.size;
   const fontColor = colorToHex(annotation.style.color);

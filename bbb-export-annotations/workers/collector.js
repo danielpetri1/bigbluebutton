@@ -69,7 +69,7 @@ async function collectAnnotationsFromRedis() {
       // from the uploaded file, but later probe the dimensions from the SVG
       // so it matches what was shown in the browser.
 
-      const extract_png_from_pdf = [
+      const extractPNGfromPDF = [
         '-png',
         '-f', pageNumber,
         '-l', pageNumber,
@@ -80,28 +80,36 @@ async function collectAnnotationsFromRedis() {
       ];
 
       try {
-        cp.spawnSync(config.shared.pdftocairo, extract_png_from_pdf, {shell: false});
+        cp.spawnSync(config.shared.pdftocairo,
+            extractPNGfromPDF,
+            {shell: false});
       } catch (error) {
-        logger.error(`PDFtoCairo failed extracting slide ${pageNumber} in job ${jobId}: ${error.message}`);
+        logger.error('PDFtoCairo failed extracting slide ' + pageNumber +
+        ' in job ' + jobId + ': ' + error.message);
+
         statusUpdate.setError();
       }
 
-      await client.publish(config.redis.channels.publish, statusUpdate.build(pageNumber));
+      await client.publish(config.redis.channels.publish,
+          statusUpdate.build(pageNumber));
     }
   } else {
     const imageName = 'slide1';
 
     if (fs.existsSync(`${presFile}.png`)) {
-      fs.copyFileSync(`${presFile}.png`, path.join(dropbox, `${imageName}.png`));
+      fs.copyFileSync(`${presFile}.png`,
+          path.join(dropbox, `${imageName}.png`));
     } else if (fs.existsSync(`${presFile}.jpeg`)) {
-      fs.copyFileSync(`${presFile}.jpeg`, path.join(dropbox, `${imageName}.jpeg`));
+      fs.copyFileSync(`${presFile}.jpeg`,
+          path.join(dropbox, `${imageName}.jpeg`));
     } else if (fs.existsSync(`${presFile}.jpg`)) {
       // JPG file available: copy changing extension to JPEG
-      fs.copyFileSync(`${presFile}.jpg`, path.join(dropbox, `${imageName}.jpeg`));
+      fs.copyFileSync(`${presFile}.jpg`,
+          path.join(dropbox, `${imageName}.jpeg`));
     } else {
       await client.publish(config.redis.channels.publish, statusUpdate.build());
       client.disconnect();
-      return logger.error(`No PDF, PNG, JPG or JPEG file available for job ${jobId}`);
+      return logger.error(`PDF/PNG/JPG/JPEG file not found for job ${jobId}`);
     }
 
     await client.publish(config.redis.channels.publish, statusUpdate.build());
@@ -129,8 +137,9 @@ async function collectSharedNotes(retries = 3) {
   const padId = exportJob.presId;
   const notesFormat = 'pdf';
 
-  const filename = `${sanitize(exportJob.filename.replace(/\s/g, '_'))}.${notesFormat}`;
-  const notes_endpoint = `${config.bbbPadsAPI}/p/${padId}/export/${notesFormat}`;
+  const sanitizedFilename = sanitize(exportJob.filename.replace(/\s/g, '_'));
+  const filename = sanitizedFilename + '.' + notesFormat;
+  const notesEndpoint = `${config.bbbPadsAPI}/p/${padId}/export/${notesFormat}`;
   const filePath = path.join(dropbox, filename);
 
   const finishedDownload = promisify(stream.finished);
@@ -139,7 +148,7 @@ async function collectSharedNotes(retries = 3) {
   try {
     const response = await axios({
       method: 'GET',
-      url: notes_endpoint,
+      url: notesEndpoint,
       responseType: 'stream',
     });
     response.data.pipe(writer);

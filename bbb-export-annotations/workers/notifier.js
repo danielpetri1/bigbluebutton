@@ -4,9 +4,10 @@ import FormData from 'form-data';
 import redis from 'redis';
 import axios from 'axios';
 import path from 'path';
-import { NewPresFileAvailableMsg } from '../lib/utils/message-builder.js';
-import { workerData } from 'worker_threads';
-const [jobType, jobId, filename] = [workerData.jobType, workerData.jobId, workerData.filename];
+import {NewPresFileAvailableMsg} from '../lib/utils/message-builder.js';
+import {workerData} from 'worker_threads';
+const [jobType, jobId, filename] =
+        [workerData.jobType, workerData.jobId, workerData.filename];
 
 const logger = new Logger('presAnn Notifier Worker');
 const config = JSON.parse(fs.readFileSync('./config/settings.json', 'utf8'));
@@ -27,7 +28,8 @@ async function notifyMeetingActor() {
   await client.connect();
   client.on('error', (err) => logger.info('Redis Client Error', err));
 
-  const link = path.join('presentation',
+  const link = path.join(
+      'presentation',
       exportJob.parentMeetingId, exportJob.parentMeetingId,
       exportJob.presId, 'pdf', jobId, filename);
 
@@ -42,7 +44,11 @@ async function notifyMeetingActor() {
  * @param {String} filePath - Absolute path to the file, including the extension
 */
 async function upload(filePath) {
-  const callbackUrl = `${config.bbbWebAPI}/bigbluebutton/presentation/${exportJob.presentationUploadToken}/upload`;
+  const apiPath = '/bigbluebutton/presentation/';
+  const uploadToken = exportJob.presentationUploadToken;
+  const uploadAction = '/upload';
+  const callbackUrl = config.bbbWebAPI + apiPath + uploadToken + uploadAction;
+
   const formData = new FormData();
   formData.append('conference', exportJob.parentMeetingId);
   formData.append('pod_id', config.notifier.pod_id);

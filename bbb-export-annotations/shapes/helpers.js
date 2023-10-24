@@ -44,6 +44,7 @@ export function radToDegree(angle) {
  * @param {number} height The height of the bounding box for the polygon.
  * @param {number} sides The number of sides for the polygon.
  * @return {Array} An array of objects with x and y coordinates for each vertex.
+ * @see {@link https://github.com/tldraw/tldraw/blob/main/packages/editor/src/lib/primitives/utils.ts} Adapted from Tldraw.
  */
 export function getPolygonVertices(width, height, sides) {
   const cx = width / 2;
