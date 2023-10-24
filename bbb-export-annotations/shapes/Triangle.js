@@ -32,7 +32,7 @@ export class Triangle extends Geo {
       'style': this.dasharray,
     });
 
-    this.applyFill(triangle);
+    this.setFill(triangle);
     triangleGroup.add(triangle);
 
     return triangleGroup;

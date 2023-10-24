@@ -34,7 +34,7 @@ export class Diamond extends Geo {
       'style': this.dasharray,
     });
 
-    this.applyFill(diamond);
+    this.setFill(diamond);
     diamondGroup.add(diamond);
 
     return diamondGroup;

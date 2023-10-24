@@ -36,7 +36,7 @@ export class Trapezoid extends Geo {
       'style': this.dasharray,
     });
 
-    this.applyFill(trapezoid);
+    this.setFill(trapezoid);
     trapezoidGroup.add(trapezoid);
 
     return trapezoidGroup;

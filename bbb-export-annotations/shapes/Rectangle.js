@@ -34,7 +34,7 @@ export class Rectangle extends Geo {
       rectangle.attr('ry', this.thickness);
     }
 
-    this.applyFill(rectangle);
+    this.setFill(rectangle);
     rectGroup.add(rectangle);
 
     return rectGroup;

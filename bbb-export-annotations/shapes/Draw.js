@@ -103,7 +103,7 @@ export class Draw extends Shape {
       fillShape.attr('style', this.dasharray);
     }
 
-    this.applyFill(fillShape);
+    this.setFill(fillShape);
 
     if (isDashDraw) {
       const strokeOutlinePoints = getStrokeOutlinePoints(strokePoints, options);

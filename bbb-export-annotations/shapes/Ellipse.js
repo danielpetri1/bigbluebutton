@@ -27,7 +27,7 @@ export class Ellipse extends Geo {
       'style': this.dasharray,
     });
 
-    this.applyFill(ellipse);
+    this.setFill(ellipse);
     ellipseGroup.add(ellipse);
 
     return ellipseGroup;

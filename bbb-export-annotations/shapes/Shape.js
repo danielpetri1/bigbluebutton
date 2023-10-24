@@ -81,12 +81,12 @@ export class Shape {
   }
 
   /**
- * Applies the appropriate fill style to the given SVG shape element based on
- * the object's `fill` property. It supports 'solid', 'semi', 'pattern', and
- * 'none' as fill options.
- * @param {SVGElement} shape - The element to be filled
+   * Applies the appropriate fill style to the given SVG shape element based on
+   * the object's `fill` property. It supports 'solid', 'semi', 'pattern', and
+   * 'none' as fill options.
+   * @param {SVGElement} shape - The element to be filled
  */
-  applyFill(shape) {
+  setFill(shape) {
     switch (this.fill) {
       case 'solid':
         const fillColor = this.colorToHex(this.color, ColorTypes.FillColor);

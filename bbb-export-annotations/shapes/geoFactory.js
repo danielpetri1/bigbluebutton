@@ -4,6 +4,7 @@ import {Ellipse} from './Ellipse.js';
 import {Diamond} from './Diamond.js';
 import {Triangle} from './Triangle.js';
 import {Trapezoid} from './Trapezoid.js';
+import {Rhombus} from './Rhombus.js';
 /**
  * Creates a geometric object instance based on the provided annotations.
  *
@@ -25,6 +26,8 @@ export function createGeoObject(annotations) {
       return new Triangle(annotations);
     case 'trapezoid':
       return new Trapezoid(annotations);
+    case 'rhombus':
+      return new Rhombus(annotations);
     default:
       return new Geo(annotations);
   }
