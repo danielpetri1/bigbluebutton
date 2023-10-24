@@ -15,14 +15,15 @@ export class Rhombus extends Geo {
   draw() {
     const width = this.w;
     const height = this.h;
-    const offset = 0.165;
-    const rhombusLength = width * offset;
+
+    // Internal angle between adjacent sides varies with width and height
+    const offset = Math.min(width * 0.38, height * 0.38);
 
     // Coordinates for the four vertices of the rhombus
     const points = [
-      [rhombusLength, 0], // Top left vertex
+      [offset, 0], // Top left vertex
       [width, 0], // Top right vertex
-      [width - rhombusLength, height], // Bottom right vertex
+      [width - offset, height], // Bottom right vertex
       [0, height], // Bottom left vertex
     ].map((p) => p.join(',')).join(' ');
 
@@ -40,4 +41,3 @@ export class Rhombus extends Geo {
     return rhombusGroup;
   }
 }
-
