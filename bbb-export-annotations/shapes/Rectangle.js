@@ -1,7 +1,3 @@
-import {
-  getStrokeWidth, getGap, determineDasharray,
-  colorToHex, ColorTypes,
-} from '../shapes/helpers.js';
 import {Rect} from '@svgdotjs/svg.js';
 import {Geo} from './Geo.js';
 
@@ -20,13 +16,6 @@ export class Rectangle extends Geo {
    *
  */
   draw() {
-    const dash = this.dash;
-
-    const thickness = getStrokeWidth(this.size);
-    const gap = getGap(dash, this.size);
-
-    const dasharray = determineDasharray(dash, gap);
-    const shapeColor = colorToHex(this.color, ColorTypes.ShapeColor);
     const rectGroup = this.shapeGroup;
 
     const rectangle = new Rect({
@@ -34,18 +23,18 @@ export class Rectangle extends Geo {
       'y': 0,
       'width': this.w,
       'height': this.h,
-      'stroke': shapeColor,
-      'stroke-width': thickness,
-      'style': dasharray,
+      'stroke': this.shapeColor,
+      'stroke-width': this.thickness,
+      'style': this.dasharray,
     });
 
     // Simulate perfect-freehand effect
     if (this.dash === 'draw') {
-      rectangle.attr('rx', thickness);
-      rectangle.attr('ry', thickness);
+      rectangle.attr('rx', this.thickness);
+      rectangle.attr('ry', this.thickness);
     }
 
-    this.applyFill(rectangle, rectGroup);
+    this.applyFill(rectangle);
     rectGroup.add(rectangle);
 
     return rectGroup;

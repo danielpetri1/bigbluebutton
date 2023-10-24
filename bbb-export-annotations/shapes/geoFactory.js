@@ -3,7 +3,7 @@ import {Rectangle} from './Rectangle.js';
 import {Ellipse} from './Ellipse.js';
 import {Diamond} from './Diamond.js';
 import {Triangle} from './Triangle.js';
-
+import {Trapezoid} from './Trapezoid.js';
 /**
  * Creates a geometric object instance based on the provided annotations.
  *
@@ -11,7 +11,7 @@ import {Triangle} from './Triangle.js';
  * @param {Object} annotations - The annotations for the geometric object.
  * @param {Object} [annotations.props] - The properties of the annotations.
  * @param {String} [annotations.props.geo] - Which geometric object to create.
- * @return {(Rectangle|Ellipse|Geo)} The created geometric object.
+ * @return {Geo} The created geometric object.
  */
 export function createGeoObject(annotations) {
   switch (annotations.props?.geo) {
@@ -23,6 +23,8 @@ export function createGeoObject(annotations) {
       return new Diamond(annotations);
     case 'triangle':
       return new Triangle(annotations);
+    case 'trapezoid':
+      return new Trapezoid(annotations);
     default:
       return new Geo(annotations);
   }

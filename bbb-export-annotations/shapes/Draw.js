@@ -1,6 +1,5 @@
 import pkg from 'perfect-freehand';
-import {getStrokeWidth, getGap, determineDasharray,
-  colorToHex, TAU, ColorTypes} from '../shapes/helpers.js';
+import {TAU} from '../shapes/helpers.js';
 import {Path} from '@svgdotjs/svg.js';
 import {Shape} from './Shape.js';
 
@@ -18,11 +17,6 @@ export class Draw extends Shape {
    */
   constructor(draw) {
     super(draw);
-
-    this.size = this.props?.size;
-    this.color = this.props?.color;
-    this.fill = this.props?.fill;
-    this.dash = this.props?.dash;
     this.segments = this.props?.segments;
     this.isClosed = this.props?.isClosed;
     this.isComplete = this.props?.isComplete;
@@ -71,17 +65,11 @@ export class Draw extends Shape {
   draw() {
     const shapePoints = this.segments[0]?.points;
     const shapePointsLength = shapePoints?.length || 0;
-
-    const dash = this.dash;
-    const isDashDraw = (dash === 'draw');
-    const thickness = getStrokeWidth(this.size);
-    const gap = getGap(dash, this.size);
-    const dasharray = determineDasharray(dash, gap);
-    const shapeColor = colorToHex(this.color, ColorTypes.ShapeColor);
+    const isDashDraw = (this.dash === 'draw');
     const drawGroup = this.shapeGroup;
 
     const options = {
-      size: 1 + thickness * 1.5,
+      size: 1 + this.thickness * 1.5,
       thinning: 0.65,
       streamline: 0.65,
       smoothing: 0.65,
@@ -110,18 +98,18 @@ export class Draw extends Shape {
 
     // In case the background shape is the shape itself, add the stroke to it
     if (!isDashDraw) {
-      fillShape.attr('stroke', shapeColor);
-      fillShape.attr('stroke-width', thickness);
-      fillShape.attr('style', dasharray);
+      fillShape.attr('stroke', this.shapeColor);
+      fillShape.attr('stroke-width', this.thickness);
+      fillShape.attr('style', this.dasharray);
     }
 
-    this.applyFill(fillShape, drawGroup);
+    this.applyFill(fillShape);
 
     if (isDashDraw) {
       const strokeOutlinePoints = getStrokeOutlinePoints(strokePoints, options);
       const svgPath = this.getSvgPath(strokeOutlinePoints);
 
-      drawPath.attr('fill', shapeColor);
+      drawPath.attr('fill', this.shapeColor);
       drawPath.attr('d', svgPath);
     }
 

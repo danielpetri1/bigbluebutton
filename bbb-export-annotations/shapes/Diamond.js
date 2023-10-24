@@ -1,7 +1,3 @@
-import {
-  getStrokeWidth, getGap, determineDasharray,
-  colorToHex, ColorTypes,
-} from '../shapes/helpers.js';
 import {Polygon as SVGPolygon} from '@svgdotjs/svg.js';
 import {Geo} from './Geo.js';
 
@@ -17,14 +13,6 @@ export class Diamond extends Geo {
      * @return {G} Returns the SVG group element containing the diamond.
      */
   draw() {
-    const dash = this.dash;
-
-    const thickness = getStrokeWidth(this.size);
-    const gap = getGap(dash, this.size);
-
-    const dasharray = determineDasharray(dash, gap);
-    const shapeColor = colorToHex(this.color, ColorTypes.ShapeColor);
-
     const width = this.w;
     const height = this.h;
     const halfWidth = width / 2;
@@ -41,12 +29,12 @@ export class Diamond extends Geo {
     const diamondGroup = this.shapeGroup;
     const diamond = new SVGPolygon({
       points,
-      'stroke': shapeColor,
-      'stroke-width': thickness,
-      'style': dasharray,
+      'stroke': this.shapeColor,
+      'stroke-width': this.thickness,
+      'style': this.dasharray,
     });
 
-    this.applyFill(diamond, diamondGroup);
+    this.applyFill(diamond);
     diamondGroup.add(diamond);
 
     return diamondGroup;

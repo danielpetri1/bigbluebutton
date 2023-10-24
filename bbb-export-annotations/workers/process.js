@@ -10,7 +10,7 @@ import sanitize from 'sanitize-filename';
 import probe from 'probe-image-size';
 import redis from 'redis';
 import {PresAnnStatusMsg} from '../lib/utils/message-builder.js';
-import {sortByKey, getStrokeWidth} from '../shapes/helpers.js';
+import {sortByKey} from '../shapes/helpers.js';
 import {Draw} from '../shapes/Draw.js';
 import {createGeoObject} from '../shapes/geoFactory.js';
 
