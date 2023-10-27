@@ -12,7 +12,7 @@ import {ArrowRight} from './ArrowRight.js';
 import {ArrowLeft} from './ArrowLeft.js';
 import {ArrowUp} from './ArrowUp.js';
 import {ArrowDown} from './ArrowDown.js';
-
+import {XBox} from './XBox.js';
 /**
  * Creates a geometric object instance based on the provided annotations.
  *
@@ -50,6 +50,8 @@ export function createGeoObject(annotations) {
       return new ArrowUp(annotations);
     case 'arrow-down':
       return new ArrowDown(annotations);
+    case 'x-box':
+      return new XBox(annotations);
     default:
       return new Geo(annotations);
   }
