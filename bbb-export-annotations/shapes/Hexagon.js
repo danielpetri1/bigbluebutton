@@ -1,6 +1,5 @@
 import {Polygon as SVGPolygon} from '@svgdotjs/svg.js';
 import {Geo} from './Geo.js';
-import {getPolygonVertices} from '../shapes/helpers.js';
 
 /**
  * Creates an SVG hexagon shape from Tldraw v2 JSON data.
@@ -19,7 +18,7 @@ export class Hexagon extends Geo {
     const sides = 6;
 
     // Get the vertices of the hexagon
-    const pointsOnPerimeter = getPolygonVertices(width, height, sides);
+    const pointsOnPerimeter = Geo.getPolygonVertices(width, height, sides);
 
     // Convert the vertices to SVG polygon points format
     const points = pointsOnPerimeter.map((p) => `${p.x},${p.y}`).join(' ');

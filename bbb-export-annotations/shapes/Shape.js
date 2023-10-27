@@ -43,9 +43,9 @@ export class Shape {
     this.fill = this.props?.fill;
 
     // Derived SVG properties
-    this.thickness = this.getStrokeWidth(this.size);
-    this.dasharray = this.determineDasharray(this.dash, this.size);
-    this.shapeColor = this.colorToHex(this.color, ColorTypes.ShapeColor);
+    this.thickness = Shape.getStrokeWidth(this.size);
+    this.dasharray = Shape.determineDasharray(this.dash, this.size);
+    this.shapeColor = Shape.colorToHex(this.color, ColorTypes.ShapeColor);
 
     // SVG representation
     this.shapeGroup = new G({
@@ -89,17 +89,17 @@ export class Shape {
   setFill(shape) {
     switch (this.fill) {
       case 'solid':
-        const fillColor = this.colorToHex(this.color, ColorTypes.FillColor);
+        const fillColor = Shape.colorToHex(this.color, ColorTypes.FillColor);
         shape.attr('fill', fillColor);
         break;
 
       case 'semi':
-        const semiColor = this.colorToHex(this.fill, ColorTypes.SemiFillColor);
+        const semiColor = Shape.colorToHex(this.fill, ColorTypes.SemiFillColor);
         shape.attr('fill', semiColor);
         break;
 
       case 'pattern':
-        const shapeColor = this.colorToHex(this.color, ColorTypes.ShapeColor);
+        const shapeColor = Shape.colorToHex(this.color, ColorTypes.ShapeColor);
         const pattern = this.getFillPattern(shapeColor);
         this.shapeGroup.add(pattern);
         shape.attr('fill', `url(#hash_pattern-${this.id})`);
@@ -129,17 +129,17 @@ export class Shape {
   }
 
   /**
- * Converts a tldraw color name to its corresponding HEX code.
- *
- * @param {string} color - The name of the color (e.g., 'blue', 'red').
- * @param {string} colorType - Context to select the appropriate mapping.
- *                             Valid values are 'shape', 'fill',
- *                             'semi', and 'sticky'.
- *
- * @return {string} The HEX code for the given color and color type.
- *                   Returns '#0d0d0d' if the color or color type is not found.
- */
-  colorToHex(color, colorType) {
+   * Converts a tldraw color name to its corresponding HEX code.
+   *
+   * @param {string} color - The name of the color (e.g., 'blue', 'red').
+   * @param {string} colorType - Context to select the appropriate mapping.
+   *                             Valid values are 'shape', 'fill',
+   *                             'semi', and 'sticky'.
+   *
+   * @return {string} The HEX code for the given color and color type.
+   *                   Returns '#0d0d0d' if not found.
+   */
+  static colorToHex(color, colorType) {
     const colorMap = {
       'black': '#161616',
       'grey': '#9EA6B0',
@@ -208,7 +208,7 @@ export class Shape {
    * @return {string} A string representing the SVG attributes
    *                  for the given dash and gap.
    */
-  determineDasharray(dash, size) {
+  static determineDasharray(dash, size) {
     const gapSettings = {
       'dashed': {
         's': '4.37 4.91',
@@ -245,7 +245,7 @@ export class Shape {
    * @param {string} size - The size of the stroke ('s', 'm', 'l', 'xl').
    * @return {number} - The corresponding stroke width.
   */
-  getStrokeWidth(size) {
+  static getStrokeWidth(size) {
     const strokeWidths = {
       's': 2,
       'm': 3.5,

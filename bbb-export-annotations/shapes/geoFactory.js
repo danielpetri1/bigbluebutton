@@ -7,6 +7,7 @@ import {Trapezoid} from './Trapezoid.js';
 import {Rhombus} from './Rhombus.js';
 import {Hexagon} from './Hexagon.js';
 import {Oval} from './Oval.js';
+import {Star} from './Star.js';
 /**
  * Creates a geometric object instance based on the provided annotations.
  *
@@ -34,6 +35,8 @@ export function createGeoObject(annotations) {
       return new Hexagon(annotations);
     case 'oval':
       return new Oval(annotations);
+    case 'star':
+      return new Star(annotations);
     default:
       return new Geo(annotations);
   }
