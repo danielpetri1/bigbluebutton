@@ -8,6 +8,11 @@ import {Rhombus} from './Rhombus.js';
 import {Hexagon} from './Hexagon.js';
 import {Oval} from './Oval.js';
 import {Star} from './Star.js';
+import {ArrowRight} from './ArrowRight.js';
+import {ArrowLeft} from './ArrowLeft.js';
+import {ArrowUp} from './ArrowUp.js';
+import {ArrowDown} from './ArrowDown.js';
+
 /**
  * Creates a geometric object instance based on the provided annotations.
  *
@@ -37,6 +42,14 @@ export function createGeoObject(annotations) {
       return new Oval(annotations);
     case 'star':
       return new Star(annotations);
+    case 'arrow-right':
+      return new ArrowRight(annotations);
+    case 'arrow-left':
+      return new ArrowLeft(annotations);
+    case 'arrow-up':
+      return new ArrowUp(annotations);
+    case 'arrow-down':
+      return new ArrowDown(annotations);
     default:
       return new Geo(annotations);
   }

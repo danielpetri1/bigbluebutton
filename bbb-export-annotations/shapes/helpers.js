@@ -1,3 +1,13 @@
+/**
+ * Represents the constant TAU, which is equal to 2 * PI.
+ *
+ * TAU is often used in trigonometric calculations as it represents
+ * one full turn in radians, making it more intuitive than using 2 * PI.
+ * For example, half a circle is TAU / 2, a quarter is TAU / 4, etc.,
+ * which makes the math easier to follow.
+ *
+ * @constant {number}
+ */
 export const TAU = Math.PI * 2;
 
 /**
