@@ -103,6 +103,11 @@ export class Draw extends Shape {
       fillShape.attr('style', this.dasharray);
     }
 
+    // Fill only applies for closed shapes
+    if (!this.isClosed) {
+      this.fill = 'none';
+    }
+
     this.setFill(fillShape);
 
     if (isDashDraw) {

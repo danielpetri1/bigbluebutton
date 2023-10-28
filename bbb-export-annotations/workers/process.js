@@ -12,6 +12,7 @@ import redis from 'redis';
 import {PresAnnStatusMsg} from '../lib/utils/message-builder.js';
 import {sortByKey} from '../shapes/helpers.js';
 import {Draw} from '../shapes/Draw.js';
+import {Highlight} from '../shapes/Highlight.js';
 import {createGeoObject} from '../shapes/geoFactory.js';
 
 const jobId = workerData.jobId;
@@ -311,6 +312,15 @@ function overlayGeo(svg, annotation) {
   svg.add(geoDrawn);
 }
 
+function overlayHighlight(svg, annotation) {
+  // Adjust JSON properties
+  annotation.opacity = 0.3;
+
+  const highlight = new Highlight(annotation);
+  const highlightDrawn = highlight.draw();
+  svg.add(highlightDrawn);
+}
+
 function overlay_shape_label(svg, annotation) {
   const fontColor = colorToHex(annotation.style.color);
   const font = determine_font_from_family(annotation.style.font);
@@ -432,9 +442,12 @@ function overlayAnnotation(svg, annotation) {
       overlayGeo(svg, annotation);
       break;
 
+    case 'highlight':
+      overlayHighlight(svg, annotation);
+
     default:
-      logger.info(annotation);
       logger.info(`Unknown annotation type ${annotation.type}.`);
+      logger.info(annotation);
   }
 }
 
