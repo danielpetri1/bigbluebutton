@@ -26,10 +26,10 @@ export class Oval extends Geo {
     if (h > w) {
       for (let i = 0; i < len - 1; i++) {
         const t1 = -(TAU / 2) + ((TAU / 2) * i) / (len - 2);
-        const t2 = (TAU / 2 * i) / (len - 2);
-        points[i] = [cx + cx * Math.cos(t1), cy + cy * Math.sin(t1)];
+        const t2 = ((TAU / 2) * i) / (len - 2);
+        points[i] = [cx + cx * Math.cos(t1), cx + cx * Math.sin(t1)];
         points[i + (len - 1)] = [cx + cx * Math.cos(t2),
-          h - cy + cy * Math.sin(t2)];
+          h - cx + cx * Math.sin(t2)];
       }
     } else {
       for (let i = 0; i < len - 1; i++) {

@@ -14,6 +14,7 @@ import {ArrowUp} from './ArrowUp.js';
 import {ArrowDown} from './ArrowDown.js';
 import {XBox} from './XBox.js';
 import {Checkbox} from './Checkbox.js';
+import {Cloud} from './Cloud.js';
 /**
  * Creates a geometric object instance based on the provided annotations.
  *
@@ -55,6 +56,8 @@ export function createGeoObject(annotations) {
       return new XBox(annotations);
     case 'check-box':
       return new Checkbox(annotations);
+    case 'cloud':
+      return new Cloud(annotations);
     default:
       return new Geo(annotations);
   }

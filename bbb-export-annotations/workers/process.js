@@ -423,7 +423,6 @@ function overlay_text(svg, annotation) {
 }
 
 function overlayAnnotation(svg, annotation) {
-  logger.info(annotation);
   switch (annotation.type) {
     case 'draw':
       overlayDraw(svg, annotation);
