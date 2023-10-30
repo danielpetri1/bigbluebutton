@@ -13,6 +13,7 @@ import {PresAnnStatusMsg} from '../lib/utils/message-builder.js';
 import {sortByKey} from '../shapes/helpers.js';
 import {Draw} from '../shapes/Draw.js';
 import {Highlight} from '../shapes/Highlight.js';
+import {Line} from '../shapes/Line.js';
 import {createGeoObject} from '../shapes/geoFactory.js';
 
 const jobId = workerData.jobId;
@@ -321,6 +322,12 @@ function overlayHighlight(svg, annotation) {
   svg.add(highlightDrawn);
 }
 
+function overlayLine(svg, annotation) {
+  const line = new Line(annotation);
+  const lineDrawn = line.draw();
+  svg.add(lineDrawn);
+}
+
 function overlay_shape_label(svg, annotation) {
   const fontColor = colorToHex(annotation.style.color);
   const font = determine_font_from_family(annotation.style.font);
@@ -444,6 +451,12 @@ function overlayAnnotation(svg, annotation) {
 
     case 'highlight':
       overlayHighlight(svg, annotation);
+      break;
+
+    case 'line':
+      overlayLine(svg, annotation);
+      logger.info(annotation);
+      break;
 
     default:
       logger.info(`Unknown annotation type ${annotation.type}.`);
