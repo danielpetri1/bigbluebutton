@@ -1,7 +1,7 @@
 import Logger from '../lib/utils/logger.js';
 import fs from 'fs';
 import {createSVGWindow} from 'svgdom';
-import {SVG, registerWindow} from '@svgdotjs/svg.js';
+import {SVG as svgCanvas, registerWindow} from '@svgdotjs/svg.js';
 import cp from 'child_process';
 import WorkerStarter from '../lib/utils/worker-starter.js';
 import {workerData} from 'worker_threads';
@@ -14,6 +14,7 @@ import {sortByKey} from '../shapes/helpers.js';
 import {Draw} from '../shapes/Draw.js';
 import {Highlight} from '../shapes/Highlight.js';
 import {Line} from '../shapes/Line.js';
+import {Arrow} from '../shapes/Arrow.js';
 import {createGeoObject} from '../shapes/geoFactory.js';
 
 const jobId = workerData.jobId;
@@ -28,7 +29,7 @@ const exportJob = JSON.parse(job);
 const statusUpdate = new PresAnnStatusMsg(exportJob,
     PresAnnStatusMsg.EXPORT_STATUSES.PROCESSING);
 
-function align_to_pango(alignment) {
+function alignToPango(alignment) {
   switch (alignment) {
     case 'start': return 'left';
     case 'middle': return 'center';
@@ -38,7 +39,7 @@ function align_to_pango(alignment) {
   }
 }
 
-function determine_font_from_family(family) {
+function determineFontFromFamily(family) {
   switch (family) {
     case 'script': return 'Caveat Brush';
     case 'sans': return 'Source Sans Pro';
@@ -52,12 +53,12 @@ function determine_font_from_family(family) {
 }
 
 // Convert pixels to points
-function to_pt(px) {
+function toPt(px) {
   return (px / config.process.pixelsPerInch) * config.process.pointsPerInch;
 }
 
 // Convert points to pixels
-function to_px(pt) {
+function toPx(pt) {
   return (pt / config.process.pointsPerInch) * config.process.pixelsPerInch;
 }
 
@@ -73,15 +74,22 @@ function escapeText(string) {
       .replace(/</g, '\\&lt;');
 }
 
-function render_textbox(textColor, font, fontSize, textAlign, text, id, textBoxWidth = null) {
-  fontSize = to_pt(fontSize) * config.process.textScaleFactor;
+function renderTextbox(textColor, font, fontSize, textAlign,
+    text, id, textBoxWidth = null) {
+  fontSize = toPt(fontSize) * config.process.textScaleFactor;
   text = escapeText(text);
 
   // Sticky notes need automatic line wrapping: take width into account
   // Texbox scaled by a constant factor to improve resolution at small scales
-  const size = textBoxWidth ? ['-size', `${textBoxWidth * config.process.textScaleFactor}x`] : [];
 
-  const pangoText = `pango:<span font_family='${font}' font='${fontSize}' color='${textColor}'>${text}</span>`;
+  const size = textBoxWidth ?
+    ['-size', `${textBoxWidth * config.process.textScaleFactor}x`] :
+    [];
+
+  // For the 'pangoText' constant
+  const pangoText = `pango:<span font_family='${font}' ` +
+    `font='${fontSize}' ` +
+    `color='${textColor}'>${text}</span>`;
 
   const justify = textAlign === 'justify';
   textAlign = justify ? 'left' : textAlign;
@@ -101,12 +109,15 @@ function render_textbox(textColor, font, fontSize, textAlign, text, id, textBoxW
   try {
     cp.spawnSync(config.shared.imagemagick, commands, {shell: false});
   } catch (error) {
-    logger.error(`ImageMagick failed to render textbox in job ${jobId}: ${error.message}`);
+    logger.error(
+        `ImageMagick failed to render textbox in job ${jobId}: `,
+        error.message,
+    );
     statusUpdate.setError();
   }
 }
 
-function text_size_to_px(size, scale = 1, isStickyNote = false) {
+function textSizeToPx(size, scale = 1, isStickyNote = false) {
   if (isStickyNote) {
     size = `sticky-${size}`;
   }
@@ -121,183 +132,6 @@ function text_size_to_px(size, scale = 1, isStickyNote = false) {
 
     default: return 28 * scale;
   }
-}
-
-function circleFromThreePoints(A, B, C) {
-  const [x1, y1] = A;
-  const [x2, y2] = B;
-  const [x3, y3] = C;
-
-  const a = x1 * (y2 - y3) - y1 * (x2 - x3) + x2 * y3 - x3 * y2;
-
-  const b =
-    (x1 * x1 + y1 * y1) * (y3 - y2) +
-    (x2 * x2 + y2 * y2) * (y1 - y3) +
-    (x3 * x3 + y3 * y3) * (y2 - y1);
-
-  const c =
-    (x1 * x1 + y1 * y1) * (x2 - x3) +
-    (x2 * x2 + y2 * y2) * (x3 - x1) +
-    (x3 * x3 + y3 * y3) * (x1 - x2);
-
-  const x = -b / (2 * a);
-  const y = -c / (2 * a);
-
-  return [x, y, Math.hypot(x - x1, y - y1)];
-}
-
-function distance(x1, y1, x2, y2) {
-  return Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2));
-}
-
-function getArcLength(C, r, A, B) {
-  const sweep = getSweep(C, A, B);
-  return r * (2 * Math.PI) * (sweep / (2 * Math.PI));
-}
-
-function getSweep(C, A, B) {
-  // Get angle between two vectors in radians
-  const a0 = Math.atan2(A[1] - C[1], A[0] - C[0]);
-  const a1 = Math.atan2(B[1] - C[1], B[0] - C[0]);
-
-  // Short distance between two angles
-  const max = Math.PI * 2;
-  const da = (a1 - a0) % max;
-
-  return ((2 * da) % max) - da;
-}
-
-function intersectCircleCircle(c1, r1, c2, r2) {
-  let dx = c2[0] - c1[0];
-  let dy = c2[1] - c1[1];
-
-  const d = Math.sqrt(dx * dx + dy * dy);
-  const x = (d * d - r2 * r2 + r1 * r1) / (2 * d);
-  const y = Math.sqrt(r1 * r1 - x * x);
-
-  dx /= d;
-  dy /= d;
-
-  return [[c1[0] + dx * x - dy * y, c1[1] + dy * x + dx * y],
-    [c1[0] + dx * x + dy * y, c1[1] + dy * x - dx * y]];
-}
-
-function rotWith(A, C, r = 0) {
-  // Rotate a vector A around another vector C by r radians
-  if (r === 0) return A;
-
-  const s = Math.sin(r);
-  const c = Math.cos(r);
-
-  const px = A[0] - C[0];
-  const py = A[1] - C[1];
-
-  const nx = px * c - py * s;
-  const ny = px * s + py * c;
-
-  return [nx + C[0], ny + C[1]];
-}
-
-function nudge(A, B, d) {
-  // Pushes a point A towards a point B by a given distance
-  if (A[0] === B[0] && A[1] === B[1]) return A;
-
-  // B - A
-  const sub = [B[0] - A[0], B[1] - A[1]];
-
-  // Vector length
-  const len = Math.hypot(sub[0], sub[1]);
-
-  // Get unit vector
-  const unit = [sub[0] / len, sub[1] / len];
-
-  // Multiply by distance
-  const mul = [unit[0] * d, unit[1] * d];
-
-  return [A[0] + mul[0], A[1] + mul[1]];
-}
-
-function getCurvedArrowHeadPath(A, r1, C, r2, sweep) {
-  const phi = (1 + Math.sqrt(5)) / 2;
-
-  // Determine intersections between two circles
-  const ints = intersectCircleCircle(A, r1 * (phi - 1), C, r2);
-
-  if (!ints) {
-    logger.info('Could not find an intersection for the arrow head.');
-    return {left: A, right: A};
-  }
-
-  const int = sweep ? ints[0] : ints[1];
-  const left = int ? nudge(rotWith(int, A, Math.PI / 6), A, r1 * -0.382) : A;
-  const right = int ? nudge(rotWith(int, A, -Math.PI / 6), A, r1 * -0.382) : A;
-
-  return `M ${left} L ${A} ${right}`;
-}
-
-// Methods to convert Akka message contents into SVG
-function overlay_arrow(svg, annotation) {
-  const [x, y] = annotation.point;
-  const bend = annotation.bend;
-  const decorations = annotation.decorations;
-
-  let dash = annotation.style.dash;
-  dash = (dash == 'draw') ? 'solid' : dash; // Use 'solid' thickness
-
-  const shapeColor = color_to_hex(annotation.style.color);
-  const sw = getStrokeWidth(annotation.style.size);
-  const gap = getGap(dash, annotation.style.size);
-  const stroke_dasharray = determineDasharray(dash, gap);
-
-  const [start_x, start_y] = annotation.handles.start.point;
-  const [end_x, end_y] = annotation.handles.end.point;
-  const [bend_x, bend_y] = annotation.handles.bend.point;
-
-  const line = [];
-  const arrowHead = [];
-  const arrowDistance = distance(start_x, start_y, end_x, end_y);
-  const arrowHeadLength = Math.min(arrowDistance / 3, 8 * sw);
-  const isStraightLine = parseFloat(bend).toFixed(3) == 0;
-
-  const angle = Math.atan2(end_y - start_y, end_x - start_x);
-
-  if (isStraightLine) {
-    // Draws a straight line / arrow
-    line.push(`M ${start_x} ${start_y} L ${end_x} ${end_y}`);
-
-    if (decorations.start || decorations.end) {
-      arrowHead.push(`M ${end_x} ${end_y}`);
-      arrowHead.push(`L ${end_x + arrowHeadLength * Math.cos(angle + (7 / 6) * Math.PI)} ${end_y + arrowHeadLength * Math.sin(angle + (7 / 6) * Math.PI)}`);
-      arrowHead.push(`M ${end_x} ${end_y}`);
-      arrowHead.push(`L ${end_x + arrowHeadLength * Math.cos(angle + (5 / 6) * Math.PI)} ${end_y + arrowHeadLength * Math.sin(angle + (5 / 6) * Math.PI)}`);
-    }
-  } else {
-    // Curved lines and arrows
-    const circle = circleFromThreePoints([start_x, start_y], [bend_x, bend_y], [end_x, end_y]);
-    const center = [circle[0], circle[1]];
-    const radius = circle[2];
-    const length = getArcLength(center, radius, [start_x, start_y], [end_x, end_y]);
-
-    line.push(`M ${start_x} ${start_y} A ${radius} ${radius} 0 0 ${length > 0 ? '1' : '0'} ${end_x} ${end_y}`);
-
-    if (decorations.start) {
-      arrowHead.push(getCurvedArrowHeadPath([start_x, start_y], arrowHeadLength, center, radius, length < 0));
-    } else if (decorations.end) {
-      arrowHead.push(getCurvedArrowHeadPath([end_x, end_y], arrowHeadLength, center, radius, length >= 0));
-    }
-  }
-
-  // The arrowhead is purposely not styled (e.g., dashed / dotted)
-  svg.ele('g', {
-    style: `stroke:${shapeColor};stroke-width:${sw};fill:none;`,
-    transform: `translate(${x} ${y})`,
-  }).ele('path', {
-    'style': stroke_dasharray,
-    'd': line.join(' '),
-  }).up()
-      .ele('path', {
-        d: arrowHead.join(' '),
-      }).up();
 }
 
 function overlayDraw(svg, annotation) {
@@ -328,47 +162,54 @@ function overlayLine(svg, annotation) {
   svg.add(lineDrawn);
 }
 
-function overlay_shape_label(svg, annotation) {
+function overlayArrow(svg, annotation) {
+  const arrow = new Arrow(annotation);
+  const arrowDrawn = arrow.draw();
+  svg.add(arrowDrawn);
+}
+
+function overlayShapeLabel(svg, annotation) {
   const fontColor = colorToHex(annotation.style.color);
-  const font = determine_font_from_family(annotation.style.font);
-  const fontSize = text_size_to_px(annotation.style.size, annotation.style.scale);
+  const font = determineFontFromFamily(annotation.style.font);
+  const fontSize = textSizeToPx(annotation.style.size, annotation.style.scale);
   const textAlign = 'center';
   const text = annotation.label;
   const id = sanitize(annotation.id);
   const rotation = radToDegree(annotation.rotation);
 
-  const [shape_width, shape_height] = annotation.size;
-  const [shape_x, shape_y] = annotation.point;
+  const [shapeWidth, shapeHeight] = annotation.size;
+  const [shapeX, shapeY] = annotation.point;
 
-  const x_offset = annotation.labelPoint[0];
-  const y_offset = annotation.labelPoint[1];
+  const xOffset = annotation.labelPoint[0];
+  const yOffset = annotation.labelPoint[1];
 
-  const label_center_x = shape_x + shape_width * x_offset;
-  const label_center_y = shape_y + shape_height * y_offset;
+  const labelCenterX = shapeX + shapeWidth * xOffset;
+  const labelCenterY = shapeY + shapeWidth * yOffset;
 
   render_textbox(fontColor, font, fontSize, textAlign, text, id);
-  const shape_label = path.join(dropbox, `text${id}.png`);
+  const shapeLabel = path.join(dropbox, `text${id}.png`);
 
-  if (fs.existsSync(shape_label)) {
+  if (fs.existsSync(shapeLabel)) {
     // Poll results must fit inside shape, unlike other rectangle labels.
     // Linewrapping handled by client.
     const ref = `file://${dropbox}/text${id}.png`;
-    const transform = `rotate(${rotation} ${label_center_x} ${label_center_y})`;
+    const transform = `rotate(${rotation} ${labelCenterY} ${labelCenterY})`;
     const fitLabelToShape = annotation?.name?.startsWith('poll-result');
 
-    let labelWidth = shape_width;
-    let labelHeight = shape_height;
+    let labelWidth = shapeWidth;
+    let labelHeight = shapeHeight;
 
     if (!fitLabelToShape) {
       const dimensions = probe.sync(fs.readFileSync(shape_label));
       labelWidth = dimensions.width / config.process.textScaleFactor;
       labelHeight = dimensions.height / config.process.textScaleFactor;
     }
+
     svg.ele('g', {
       transform: transform,
     }).ele('image', {
-      'x': label_center_x - (labelWidth * x_offset),
-      'y': label_center_y - (labelHeight * y_offset),
+      'x': labelCenterX - (labelWidth * xOffset),
+      'y': labelCenterY - (labelHeight * yOffset),
       'width': labelWidth,
       'height': labelHeight,
       'xlink:href': ref,
@@ -376,15 +217,16 @@ function overlay_shape_label(svg, annotation) {
   }
 }
 
-function overlay_sticky(svg, annotation) {
+function overlaySticky(svg, annotation) {
   const backgroundColor = colorToHex(annotation.style.color, true);
-  const fontSize = text_size_to_px(annotation.style.size, annotation.style.scale, true);
+  const fontSize = textSizeToPx(annotation.style.size, annotation.style.scale,
+      true);
   const rotation = radToDegree(annotation.rotation);
-  const font = determine_font_from_family(annotation.style.font);
-  const textAlign = align_to_pango(annotation.style.textAlign);
+  const font = determineFontFromFamily(annotation.style.font);
+  const textAlign = alignToPango(annotation.style.textAlign);
 
   const [textBoxWidth, textBoxHeight] = annotation.size;
-  const [textBox_x, textBox_y] = annotation.point;
+  const [textBoxX, textBoxY] = annotation.point;
 
   const textColor = '#0d0d0d'; // For sticky notes
   const text = annotation.text;
@@ -394,45 +236,49 @@ function overlay_sticky(svg, annotation) {
 
   // Overlay transparent text image over empty sticky note
   svg.ele('g', {
-    transform: `rotate(${rotation}, ${textBox_x + (textBoxWidth / 2)}, ${textBox_y + (textBoxHeight / 2)})`,
+    transform: `rotate(
+      ${rotation}, 
+      ${textBoxX + (textBoxWidth / 2)}, 
+      ${textBoxY + (textBoxHeight / 2)}
+    )`,
   }).ele('rect', {
-    x: textBox_x,
-    y: textBox_y,
+    x: textBoxX,
+    y: textBoxY,
     width: textBoxWidth,
     height: textBoxHeight,
     fill: backgroundColor,
   }).up()
       .ele('image', {
-        'x': textBox_x,
-        'y': textBox_y,
+        'x': textBoxX,
+        'y': textBoxY,
         'width': textBoxWidth,
         'height': textBoxHeight,
         'xlink:href': `file://${dropbox}/text${id}.png`,
       }).up();
 }
 
-function overlay_text(svg, annotation) {
+function overlayText(svg, annotation) {
   const [textBoxWidth, textBoxHeight] = annotation.size;
   const fontColor = colorToHex(annotation.style.color);
-  const font = determine_font_from_family(annotation.style.font);
-  const fontSize = text_size_to_px(annotation.style.size, annotation.style.scale);
-  const textAlign = align_to_pango(annotation.style.textAlign);
+  const font = determineFontFromFamily(annotation.style.font);
+  const fontSize = textSizeToPx(annotation.style.size, annotation.style.scale);
+  const textAlign = alignToPango(annotation.style.textAlign);
   const text = annotation.text;
   const id = sanitize(annotation.id);
 
   const rotation = radToDegree(annotation.rotation);
-  const [textBox_x, textBox_y] = annotation.point;
+  const [textboxX, textboxY] = annotation.point;
 
   render_textbox(fontColor, font, fontSize, textAlign, text, id);
 
-  const rotation_x = textBox_x + (textBoxWidth / 2);
-  const rotation_y = textBox_y + (textBoxHeight / 2);
+  const rotationx = textboxX + (textBoxWidth / 2);
+  const rotationy = textboxY + (textBoxHeight / 2);
 
   svg.ele('g', {
-    transform: `rotate(${rotation} ${rotation_x} ${rotation_y})`,
+    transform: `rotate(${rotation} ${rotationx} ${rotationy})`,
   }).ele('image', {
-    'x': textBox_x,
-    'y': textBox_y,
+    'x': textboxX,
+    'y': textboxY,
     'width': textBoxWidth,
     'height': textBoxHeight,
     'xlink:href': `file://${dropbox}/text${id}.png`,
@@ -455,6 +301,10 @@ function overlayAnnotation(svg, annotation) {
 
     case 'line':
       overlayLine(svg, annotation);
+      break;
+
+    case 'arrow':
+      overlayArrow(svg, annotation);
       logger.info(annotation);
       break;
 
@@ -511,7 +361,8 @@ async function processPresentationAnnotations() {
     const svgBackgroundSlide = path.join(exportJob.presLocation,
         'svgs', `slide${currentSlide.page}.svg`);
     const svgBackgroundExists = fs.existsSync(svgBackgroundSlide);
-    const backgroundFormat = fs.existsSync(`${bgImagePath}.png`) ? 'png' : 'jpeg';
+    const backgroundFormat = fs.existsSync(`${bgImagePath}.png`) ?
+      'png' : 'jpeg';
 
     const dimensions = svgBackgroundExists ?
     probe.sync(fs.readFileSync(svgBackgroundSlide)) :
@@ -523,7 +374,8 @@ async function processPresentationAnnotations() {
     const maxImageWidth = config.process.maxImageWidth;
     const maxImageHeight = config.process.maxImageHeight;
 
-    const ratio = Math.min(maxImageWidth / slideWidth, maxImageHeight / slideHeight);
+    const ratio = Math.min(maxImageWidth / slideWidth,
+        maxImageHeight / slideHeight);
     const scaledWidth = slideWidth * ratio;
     const scaledHeight = slideHeight * ratio;
 
@@ -535,7 +387,7 @@ async function processPresentationAnnotations() {
     registerWindow(window, document);
 
     // Create the canvas (root SVG element)
-    const canvas = SVG(document.documentElement)
+    const canvas = svgCanvas(document.documentElement)
         .size(scaledWidth, scaledHeight)
         .attr({
           'xmlns': 'http://www.w3.org/2000/svg',
@@ -556,8 +408,10 @@ async function processPresentationAnnotations() {
     const svg = canvas.svg();
 
     // Write annotated SVG file
-    const SVGfile = path.join(dropbox, `annotated-slide${currentSlide.page}.svg`);
-    const PDFfile = path.join(dropbox, `annotated-slide${currentSlide.page}.pdf`);
+    const SVGfile = path.join(dropbox,
+        `annotated-slide${currentSlide.page}.svg`);
+    const PDFfile = path.join(dropbox,
+        `annotated-slide${currentSlide.page}.pdf`);
 
     fs.writeFileSync(SVGfile, svg, function(err) {
       if (err) {
@@ -568,19 +422,22 @@ async function processPresentationAnnotations() {
     // Scale slide back to its original size
     const convertAnnotatedSlide = [
       SVGfile,
-      '--output-width', to_px(slideWidth),
-      '--output-height', to_px(slideHeight),
+      '--output-width', toPx(slideWidth),
+      '--output-height', toPx(slideHeight),
       '-o', PDFfile,
     ];
 
     try {
-      cp.spawnSync(config.shared.cairosvg, convertAnnotatedSlide, {shell: false});
+      cp.spawnSync(config.shared.cairosvg,
+          convertAnnotatedSlide, {shell: false});
     } catch (error) {
-      logger.error(`Processing slide ${currentSlide.page} failed for job ${jobId}: ${error.message}`);
+      logger.error(`Processing slide ${currentSlide.page}
+        failed for job ${jobId}: ${error.message}`);
       statusUpdate.setError();
     }
 
-    await client.publish(config.redis.channels.publish, statusUpdate.build(currentSlide.page));
+    await client.publish(config.redis.channels.publish,
+        statusUpdate.build(currentSlide.page));
     ghostScriptInput.push(PDFfile);
   }
 
@@ -591,25 +448,32 @@ async function processPresentationAnnotations() {
     fs.mkdirSync(outputDir, {recursive: true});
   }
 
-  const filename_with_extension = `${sanitize(exportJob.filename.replace(/\s/g, '_'))}.pdf`;
+  const sanitizedFilename = sanitize(exportJob.filename.replace(/\s/g, '_'));
+  const filenameWithExtension = `${sanitizedFilename}.pdf`;
 
   const mergePDFs = [
     '-dNOPAUSE',
     '-sDEVICE=pdfwrite',
-    `-sOUTPUTFILE="${path.join(outputDir, filename_with_extension)}"`,
+    `-sOUTPUTFILE="${path.join(outputDir, filenameWithExtension)}"`,
     `-dBATCH`].concat(ghostScriptInput);
 
   // Resulting PDF file is stored in the presentation dir
   try {
     cp.spawnSync(config.shared.ghostscript, mergePDFs, {shell: false});
   } catch (error) {
-    return logger.error(`GhostScript failed to merge PDFs in job ${jobId}: ${error.message}`);
+    const errorMessage = 'GhostScript failed to merge PDFs in job' +
+      `${jobId}: ${error.message}`;
+    return logger.error(errorMessage);
   }
 
   // Launch Notifier Worker depending on job type
-  logger.info(`Saved PDF at ${outputDir}/${jobId}/${filename_with_extension}`);
+  logger.info(`Saved PDF at ${outputDir}/${jobId}/${filenameWithExtension}`);
 
-  const notifier = new WorkerStarter({jobType: exportJob.jobType, jobId, filename: filename_with_extension});
+  const notifier = new WorkerStarter({
+    jobType: exportJob.jobType,
+    jobId,
+    filename: filenameWithExtension});
+
   notifier.notify();
   await client.disconnect();
 }

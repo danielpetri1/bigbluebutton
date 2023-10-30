@@ -1,5 +1,5 @@
-import { Worker } from 'worker_threads';
-import { fileURLToPath } from 'url';
+import {Worker} from 'worker_threads';
+import {fileURLToPath} from 'url';
 import path from 'path';
 
 const WorkerTypes = Object.freeze({
@@ -12,14 +12,19 @@ const kickOffWorker = (workerType, workerData) => {
   return new Promise((resolve, reject) => {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
-    const workerPath = path.join(__dirname, '..', '..', 'workers', `${workerType}.js`);
+    const workerPath = path.join(
+        __dirname,
+        '..',
+        '..',
+        'workers',
+        `${workerType}.js`);
     const worker = new Worker(workerPath, {workerData});
-    
     worker.on('message', resolve);
     worker.on('error', reject);
     worker.on('exit', (code) => {
       if (code !== 0) {
-        reject(new Error(`Worker '${workerType}' stopped with exit code ${code}`));
+        reject(
+            new Error(`Worker '${workerType}' stopped with exit code ${code}`));
       }
     });
   });

@@ -119,8 +119,10 @@ export class Shape {
    * @return {string} The SVG transform attribute value.
   */
   getTransform() {
+    const x = this.x.toFixed(2);
+    const y = this.y.toFixed(2);
     const rotation = radToDegree(this.rotation);
-    const translate = `translate(${this.x} ${this.y})`;
+    const translate = `translate(${x} ${y})`;
     const transformOrigin = 'transform-origin: center';
     const rotate = `rotate(${rotation})`;
     const transform = `${translate}; ${transformOrigin}; ${rotate}`;

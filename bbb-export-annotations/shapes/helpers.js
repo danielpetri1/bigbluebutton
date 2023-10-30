@@ -137,3 +137,62 @@ export function calculateDistance(point1, point2) {
   const dy = point2.y - point1.y;
   return Math.sqrt(dx * dx + dy * dy);
 }
+
+/**
+ * Calculate the circle that passes through three points A, B, and C.
+ * Returns the circle's center as [x, y] and its radius.
+ *
+ * @param {number[]} A - Point A as [x1, y1].
+ * @param {number[]} B - Point B as [x2, y2].
+ * @param {number[]} C - Point C as [x3, y3].
+ * @return {number[]|null} - The circle's center [x, y] and radius,
+ *                          or null if the points are collinear.
+ */
+export function circleFromThreePoints(A, B, C) {
+  const [x1, y1] = A;
+  const [x2, y2] = B;
+  const [x3, y3] = C;
+
+  const a = x1 * (y2 - y3) - y1 * (x2 - x3) + x2 * y3 - x3 * y2;
+
+  if (a === 0) {
+    return null;
+  }
+
+  const b =
+    (x1 * x1 + y1 * y1) * (y3 - y2) +
+    (x2 * x2 + y2 * y2) * (y1 - y3) +
+    (x3 * x3 + y3 * y3) * (y2 - y1);
+
+  const c =
+    (x1 * x1 + y1 * y1) * (x2 - x3) +
+    (x2 * x2 + y2 * y2) * (x3 - x1) +
+    (x3 * x3 + y3 * y3) * (x1 - x2);
+
+  const x = -b / (2 * a);
+  const y = -c / (2 * a);
+
+  return [x, y, Math.hypot(x - x1, y - y1)];
+}
+
+/**
+ * Normalize a 2D vector represented as an array [x, y].
+ *
+ * @param {Array<number>} A - The 2D vector to normalize.
+ * @return {Array<number>} The normalized vector,
+ */
+export function normalize(A) {
+  const length = Math.sqrt(A[0] * A[0] + A[1] * A[1]);
+  return [A[0] / length, A[1] / length];
+}
+
+/**
+ * Rotates a vector [x,y] 90 degrees counter-clockwise.
+ *
+ * @param {Array<number>} vec - The 2D vector to rotate.
+ * @return {Array<number>} The rotated vector.
+ */
+export function rotate(vec) {
+  const [x, y] = vec;
+  return [y, -x];
+}
