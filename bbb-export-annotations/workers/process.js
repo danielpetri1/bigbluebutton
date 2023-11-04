@@ -186,7 +186,7 @@ function overlayShapeLabel(svg, annotation) {
   const labelCenterX = shapeX + shapeWidth * xOffset;
   const labelCenterY = shapeY + shapeWidth * yOffset;
 
-  render_textbox(fontColor, font, fontSize, textAlign, text, id);
+  renderTextbox(fontColor, font, fontSize, textAlign, text, id);
   const shapeLabel = path.join(dropbox, `text${id}.png`);
 
   if (fs.existsSync(shapeLabel)) {

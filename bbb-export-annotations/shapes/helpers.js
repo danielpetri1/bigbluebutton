@@ -99,6 +99,24 @@ export function getPointOnCircle(cx, cy, r, a) {
   };
 }
 
+/**
+ * Calculates the angle (in radians) between a center point and another point
+ * using the arctangent of the quotient of their coordinates.
+ * The angle is measured in the coordinate system where x-axis points to the
+ * right and y-axis points down. The angle is measured counterclockwise
+ * from the positive x-axis.
+ *
+ * @param {Object} center - The center point with x and y coordinates.
+ * @param {number} center.x - The x-coordinate of the center point.
+ * @param {number} center.y - The y-coordinate of the center point.
+ *
+ * @param {Object} point - The other point with x and y coordinates.
+ * @param {number} point.x - The x-coordinate of the other point.
+ * @param {number} point.y - The y-coordinate of the other point.
+ *
+ * @return {number} The angle in radians between the line from the center
+ *                  to the other point and the positive x-axis.
+ */
 export function angle(center, point) {
   const dy = point.y - center.y;
   const dx = point.x - center.x;

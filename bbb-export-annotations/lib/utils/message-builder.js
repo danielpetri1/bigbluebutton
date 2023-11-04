@@ -86,4 +86,4 @@ class NewPresFileAvailableMsg {
   };
 };
 
-export { PresAnnStatusMsg, NewPresFileAvailableMsg };
+export {PresAnnStatusMsg, NewPresFileAvailableMsg};
