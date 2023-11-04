@@ -2,6 +2,7 @@ import {Path, Marker, Defs} from '@svgdotjs/svg.js';
 import {Shape} from './Shape.js';
 import {TAU, circleFromThreePoints, normalize, rotate}
   from '../shapes/helpers.js';
+import {ColorTypes} from '../shapes/Shape.js';
 
 /**
  * Creates an SVG path from Tldraw v2 arrow data.
@@ -134,24 +135,80 @@ export class Arrow extends Shape {
     return {startAngleDegrees, endAngleDegrees};
   }
 
+  /**
+   * Creates a marker element with specified attributes
+   * and shape based on the type. The marker is configured with default
+   * properties which can be overridden according to the type.
+   * The marker type determines the path and fill of the SVG element.
+   *
+   * @param {string} type - One of 'arrow', 'diamond', 'triangle', 'inverted',
+   *                        'square', 'dot', 'bar'.
+   * @param {string} url - URL reference in SVG.
+   * @param {number} [angle=0] - Angle in degrees for the marker.
+   * @return {Marker} A new Marker instance.
+  */
   createMarker(type, url, angle = 0) {
+    const arrowMarker = new Marker({
+      id: url,
+      viewBox: '0 0 10 10',
+      refX: '5',
+      refY: '5',
+      markerWidth: '6',
+      markerHeight: '6',
+      orient: angle,
+    });
+
+    const fillColor = Shape.colorToHex(this.color, ColorTypes.FillColor);
+
     switch (type) {
       case 'arrow':
+        arrowMarker.path('M 0 0 L 10 5 L 0 10 Z').fill(this.shapeColor);
+        break;
+      case 'diamond':
+        arrowMarker.path('M 5 0 L 10 5 L 5 10 L 0 5 z')
+            .stroke(this.shapeColor)
+            .fill(fillColor);
+        break;
       case 'triangle':
+        arrowMarker.path('M 0 0 L 10 5 L 0 10 Z')
+            .stroke(this.shapeColor)
+            .fill(fillColor);
+        break;
+      case 'inverted':
+        arrowMarker.attr('orient', angle + 180);
+        arrowMarker.path('M 0 0 L 10 5 L 0 10 Z')
+            .stroke(this.shapeColor)
+            .fill(fillColor);
+        break;
+      case 'square':
+        arrowMarker.path('M 0 0 L 10 0 L 10 10 L 0 10 Z')
+            .stroke(this.shapeColor)
+            .fill(fillColor);
+        break;
+      case 'dot':
+        const circleSize = 5;
+        arrowMarker.attr('refX', '0');
+        arrowMarker.attr('refY', circleSize / 2);
+        arrowMarker.attr('markerUnits', 'strokeWidth');
+        arrowMarker.attr('markerWidth', '6');
+        arrowMarker.attr('markerHeight', '6');
+        arrowMarker.stroke('context-stroke');
+        arrowMarker.fill(fillColor);
+        arrowMarker.circle(circleSize)
+            .stroke(this.shapeColor)
+            .fill(fillColor);
+        break;
+      case 'bar':
+        arrowMarker.attr('refX', '0');
+        arrowMarker.attr('refY', '2.5');
+        arrowMarker.path('M 0 0 L 0 -5 L 2 -5  L 2 5 L 0 5 Z')
+            .stroke(this.shapeColor)
+            .fill(this.shapeColor);
+        break;
       default:
-        const arrowMarker = new Marker({
-          id: url,
-          viewBox: '0 0 10 10',
-          refX: '5',
-          refY: '5',
-          markerWidth: '6',
-          markerHeight: '6',
-          orient: angle,
-        });
-
         arrowMarker.path('M 0 0 L 10 5 L 0 10 z').fill(this.shapeColor);
-        return arrowMarker;
     }
+    return arrowMarker;
   }
 
   /**
