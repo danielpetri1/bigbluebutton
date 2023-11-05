@@ -34,8 +34,8 @@ export class Geo extends Shape {
     // Do nothing if there is no text
     if (!this.text) return;
 
-    const x = (this.w / 2).toFixed(2);
-    const y = (this.h / 2).toFixed(2);
+    const x = Shape.alignHorizontally(this.align, this.w);
+    const y = Shape.alignVertically(this.verticalAlign, this.h, this.growY);
 
     // Create a new SVG text element
     // Text is escaped by SVG.js
@@ -47,8 +47,8 @@ export class Geo extends Shape {
     label.font({
       'family': Shape.determineFontFromFamily(this.font),
       'size': Shape.determineFontSize(this.size),
-      'alignment-baseline': 'baseline',
-      'anchor': 'middle',
+      'alignment-baseline': 'middle',
+      'anchor': this.align,
       'leading': '1.5em',
       'font-weight': 500,
     });

@@ -15,6 +15,7 @@ import {Draw} from '../shapes/Draw.js';
 import {Highlight} from '../shapes/Highlight.js';
 import {Line} from '../shapes/Line.js';
 import {Arrow} from '../shapes/Arrow.js';
+import {TextShape} from '../shapes/TextShape.js';
 import {createGeoObject} from '../shapes/geoFactory.js';
 
 const jobId = workerData.jobId;
@@ -180,31 +181,9 @@ function overlaySticky(svg, annotation) {
 }
 
 function overlayText(svg, annotation) {
-  const [textBoxWidth, textBoxHeight] = annotation.size;
-  const fontColor = colorToHex(annotation.style.color);
-  const font = determineFontFromFamily(annotation.style.font);
-  const fontSize = textSizeToPx(annotation.style.size, annotation.style.scale);
-  const textAlign = alignToPango(annotation.style.textAlign);
-  const text = annotation.text;
-  const id = sanitize(annotation.id);
-
-  const rotation = radToDegree(annotation.rotation);
-  const [textboxX, textboxY] = annotation.point;
-
-  render_textbox(fontColor, font, fontSize, textAlign, text, id);
-
-  const rotationx = textboxX + (textBoxWidth / 2);
-  const rotationy = textboxY + (textBoxHeight / 2);
-
-  svg.ele('g', {
-    transform: `rotate(${rotation} ${rotationx} ${rotationy})`,
-  }).ele('image', {
-    'x': textboxX,
-    'y': textboxY,
-    'width': textBoxWidth,
-    'height': textBoxHeight,
-    'xlink:href': `file://${dropbox}/text${id}.png`,
-  }).up();
+  const text = new TextShape(annotation);
+  const textDrawn = text.draw();
+  svg.add(textDrawn);
 }
 
 function overlayAnnotation(svg, annotation) {
@@ -229,7 +208,10 @@ function overlayAnnotation(svg, annotation) {
 
     case 'arrow':
       overlayArrow(svg, annotation);
-      logger.info(annotation);
+      break;
+
+    case 'text':
+      overlayText(svg, annotation);
       break;
 
     default:

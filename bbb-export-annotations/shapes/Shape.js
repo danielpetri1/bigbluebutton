@@ -260,13 +260,30 @@ export class Shape {
 
   static determineFontSize(size) {
     const fontSizes = {
-      's': 16,
-      'm': 20,
-      'l': 24,
-      'xl': 32,
+      's': 26,
+      'm': 36,
+      'l': 54,
+      'xl': 64,
     };
 
     return fontSizes[size] || 16;
+  }
+
+  static alignHorizontally(align, width) {
+    switch (align) {
+      case 'middle': return (width / 2).toFixed(2);
+      case 'end': return (width).toFixed(2);
+      default: return '0';
+    }
+  }
+
+  static alignVertically(align, height, growY) {
+    switch (align) {
+      case 'start': return growY.toFixed(2);
+      case 'middle': return ((height + growY) / 2).toFixed(2);
+      case 'end': return (height + growY).toFixed(2);
+      default: return '0';
+    }
   }
 
   /**
