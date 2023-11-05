@@ -214,3 +214,24 @@ export function rotate(vec) {
   const [x, y] = vec;
   return [y, -x];
 }
+
+
+/**
+ * Escapes special characters in a string to their corresponding HTML entities
+ * to prevent misinterpretation of HTML content. This function converts
+ * ampersands, single quotes, double quotes, greater-than signs, and
+ * less-than signs to their corresponding HTML entity codes, making it safe
+ * to insert the string into HTML or XML content where these characters would
+ * otherwise be mistaken for markup.
+ *
+ * @param {string} string - The string to be escaped.
+ * @return {string} The escaped string with HTML entities.
+ */
+export function escapeSVGText(string) {
+  return string
+      .replace(/&/g, '\\&amp;') // Escape ampersands.
+      .replace(/'/g, '\\&apos;') // Escape single quotes.
+      .replace(/"/g, '\\&quot;') // Escape double quotes.
+      .replace(/>/g, '\\&gt;') // Escape greater-than signs.
+      .replace(/</g, '\\&lt;'); // Escape less-than signs.
+}

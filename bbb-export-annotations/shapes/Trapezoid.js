@@ -38,6 +38,7 @@ export class Trapezoid extends Geo {
 
     this.setFill(trapezoid);
     trapezoidGroup.add(trapezoid);
+    this.drawLabel(trapezoidGroup);
 
     return trapezoidGroup;
   }

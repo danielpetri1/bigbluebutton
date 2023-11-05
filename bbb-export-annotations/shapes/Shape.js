@@ -258,6 +258,36 @@ export class Shape {
     return strokeWidths[size] || 1;
   }
 
+  static determineFontSize(size) {
+    const fontSizes = {
+      's': 16,
+      'm': 20,
+      'l': 24,
+      'xl': 32,
+    };
+
+    return fontSizes[size] || 16;
+  }
+
+  /**
+   * Determines the font to use based on the specified font family.
+   * Supported families are 'draw', 'sans', 'serif', and 'mono'. Any other input
+   * defaults to the Caveat Brush font.
+   *
+   * @param {string} family The name of the font family.
+   * @return {string} The font that corresponds to the given family.
+   * @static
+ */
+  static determineFontFromFamily(family) {
+    switch (family) {
+      case 'sans': return 'Source Sans Pro';
+      case 'serif': return 'Crimson Pro';
+      case 'mono': return 'Source Code Pro';
+      case 'draw':
+      default: return 'Caveat Brush';
+    }
+  }
+
   /**
    * Placeholder method for drawing the shape.
    * Intended to be overridden by subclasses.

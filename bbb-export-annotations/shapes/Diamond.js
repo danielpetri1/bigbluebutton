@@ -36,6 +36,7 @@ export class Diamond extends Geo {
 
     this.setFill(diamond);
     diamondGroup.add(diamond);
+    this.drawLabel(diamondGroup);
 
     return diamondGroup;
   }

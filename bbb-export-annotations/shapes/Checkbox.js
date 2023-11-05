@@ -60,6 +60,8 @@ export class Checkbox extends Rectangle {
       rectGroup.add(line);
     });
 
+    this.drawLabel(rectGroup);
+
     return rectGroup;
   }
 }

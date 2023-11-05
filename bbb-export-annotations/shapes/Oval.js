@@ -53,6 +53,7 @@ export class Oval extends Geo {
 
     this.setFill(oval);
     ovalGroup.add(oval);
+    this.drawLabel(ovalGroup);
 
     return ovalGroup;
   }

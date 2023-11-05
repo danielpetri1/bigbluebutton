@@ -37,6 +37,7 @@ export class Rhombus extends Geo {
 
     this.setFill(rhombus);
     rhombusGroup.add(rhombus);
+    this.drawLabel(rhombusGroup);
 
     return rhombusGroup;
   }

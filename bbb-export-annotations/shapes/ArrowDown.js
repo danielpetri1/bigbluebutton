@@ -36,6 +36,7 @@ export class ArrowDown extends Geo {
 
     this.setFill(arrow);
     arrowGroup.add(arrow);
+    this.drawLabel(arrowGroup);
 
     return arrowGroup;
   }

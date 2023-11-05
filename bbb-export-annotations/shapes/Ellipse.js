@@ -18,10 +18,10 @@ export class Ellipse extends Geo {
 
     const ellipseGroup = this.shapeGroup;
     const ellipse = new SVGEllipse({
-      'cx': rx,
-      'cy': ry,
-      'rx': rx,
-      'ry': ry,
+      'cx': rx.toFixed(2),
+      'cy': ry.toFixed(2),
+      'rx': rx.toFixed(2),
+      'ry': ry.toFixed(2),
       'stroke': this.shapeColor,
       'stroke-width': this.thickness,
       'style': this.dasharray,
@@ -29,6 +29,7 @@ export class Ellipse extends Geo {
 
     this.setFill(ellipse);
     ellipseGroup.add(ellipse);
+    this.drawLabel(ellipseGroup);
 
     return ellipseGroup;
   }

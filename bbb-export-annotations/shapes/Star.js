@@ -82,6 +82,7 @@ export class Star extends Geo {
     // Fill the polygon if required
     this.setFill(star);
     starGroup.add(star);
+    this.drawLabel(starGroup);
 
     return starGroup;
   }

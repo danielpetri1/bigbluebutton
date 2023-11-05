@@ -33,6 +33,7 @@ export class XBox extends Rectangle {
     // Add the lines to the group
     rectGroup.add(line1);
     rectGroup.add(line2);
+    this.drawLabel(rectGroup);
 
     return rectGroup;
   }

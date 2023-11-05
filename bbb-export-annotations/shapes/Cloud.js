@@ -296,6 +296,7 @@ export class Cloud extends Geo {
 
     this.setFill(cloud);
     cloudGroup.add(cloud);
+    this.drawLabel(cloudGroup);
 
     return cloudGroup;
   }

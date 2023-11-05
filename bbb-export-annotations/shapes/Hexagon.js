@@ -35,6 +35,7 @@ export class Hexagon extends Geo {
     // Fill the polygon if required
     this.setFill(hexagon);
     hexagonGroup.add(hexagon);
+    this.drawLabel(hexagonGroup);
 
     return hexagonGroup;
   }

@@ -36,6 +36,7 @@ export class Rectangle extends Geo {
 
     this.setFill(rectangle);
     rectGroup.add(rectangle);
+    this.drawLabel(rectGroup);
 
     return rectGroup;
   }

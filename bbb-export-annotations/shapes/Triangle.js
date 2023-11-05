@@ -34,6 +34,7 @@ export class Triangle extends Geo {
 
     this.setFill(triangle);
     triangleGroup.add(triangle);
+    this.drawLabel(triangleGroup);
 
     return triangleGroup;
   }

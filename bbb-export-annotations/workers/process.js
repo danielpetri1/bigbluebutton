@@ -39,18 +39,6 @@ function alignToPango(alignment) {
   }
 }
 
-function determineFontFromFamily(family) {
-  switch (family) {
-    case 'script': return 'Caveat Brush';
-    case 'sans': return 'Source Sans Pro';
-    case 'serif': return 'Crimson Pro';
-    // Temporary workaround due to typo in messages
-    case 'erif': return 'Crimson Pro';
-    case 'mono': return 'Source Code Pro';
-
-    default: return 'Caveat Brush';
-  }
-}
 
 // Convert pixels to points
 function toPt(px) {
@@ -76,7 +64,7 @@ function escapeText(string) {
 
 function renderTextbox(textColor, font, fontSize, textAlign,
     text, id, textBoxWidth = null) {
-  fontSize = toPt(fontSize) * config.process.textScaleFactor;
+  fontSize = toPt(fontSize);
   text = escapeText(text);
 
   // Sticky notes need automatic line wrapping: take width into account
@@ -117,23 +105,6 @@ function renderTextbox(textColor, font, fontSize, textAlign,
   }
 }
 
-function textSizeToPx(size, scale = 1, isStickyNote = false) {
-  if (isStickyNote) {
-    size = `sticky-${size}`;
-  }
-
-  switch (size) {
-    case 'sticky-small': return 24;
-    case 'small': return 28 * scale;
-    case 'sticky-medium': return 36;
-    case 'medium': return 48 * scale;
-    case 'sticky-large': return 48;
-    case 'large': return 96 * scale;
-
-    default: return 28 * scale;
-  }
-}
-
 function overlayDraw(svg, annotation) {
   const drawing = new Draw(annotation);
   const drawnDrawing = drawing.draw();
@@ -166,55 +137,6 @@ function overlayArrow(svg, annotation) {
   const arrow = new Arrow(annotation);
   const arrowDrawn = arrow.draw();
   svg.add(arrowDrawn);
-}
-
-function overlayShapeLabel(svg, annotation) {
-  const fontColor = colorToHex(annotation.style.color);
-  const font = determineFontFromFamily(annotation.style.font);
-  const fontSize = textSizeToPx(annotation.style.size, annotation.style.scale);
-  const textAlign = 'center';
-  const text = annotation.label;
-  const id = sanitize(annotation.id);
-  const rotation = radToDegree(annotation.rotation);
-
-  const [shapeWidth, shapeHeight] = annotation.size;
-  const [shapeX, shapeY] = annotation.point;
-
-  const xOffset = annotation.labelPoint[0];
-  const yOffset = annotation.labelPoint[1];
-
-  const labelCenterX = shapeX + shapeWidth * xOffset;
-  const labelCenterY = shapeY + shapeWidth * yOffset;
-
-  renderTextbox(fontColor, font, fontSize, textAlign, text, id);
-  const shapeLabel = path.join(dropbox, `text${id}.png`);
-
-  if (fs.existsSync(shapeLabel)) {
-    // Poll results must fit inside shape, unlike other rectangle labels.
-    // Linewrapping handled by client.
-    const ref = `file://${dropbox}/text${id}.png`;
-    const transform = `rotate(${rotation} ${labelCenterY} ${labelCenterY})`;
-    const fitLabelToShape = annotation?.name?.startsWith('poll-result');
-
-    let labelWidth = shapeWidth;
-    let labelHeight = shapeHeight;
-
-    if (!fitLabelToShape) {
-      const dimensions = probe.sync(fs.readFileSync(shape_label));
-      labelWidth = dimensions.width / config.process.textScaleFactor;
-      labelHeight = dimensions.height / config.process.textScaleFactor;
-    }
-
-    svg.ele('g', {
-      transform: transform,
-    }).ele('image', {
-      'x': labelCenterX - (labelWidth * xOffset),
-      'y': labelCenterY - (labelHeight * yOffset),
-      'width': labelWidth,
-      'height': labelHeight,
-      'xlink:href': ref,
-    }).up();
-  }
 }
 
 function overlaySticky(svg, annotation) {
@@ -286,6 +208,8 @@ function overlayText(svg, annotation) {
 }
 
 function overlayAnnotation(svg, annotation) {
+  console.log(annotation);
+
   switch (annotation.type) {
     case 'draw':
       overlayDraw(svg, annotation);
