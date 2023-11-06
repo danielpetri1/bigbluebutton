@@ -14,7 +14,7 @@ export class ArrowDown extends Geo {
    */
   draw() {
     const w = this.w;
-    const h = this.h;
+    const h = this.h + this.growY;
     const ox = w * 0.16;
     const oy = Math.min(w, h) * 0.38;
 

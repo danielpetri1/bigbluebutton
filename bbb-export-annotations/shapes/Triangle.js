@@ -14,7 +14,7 @@ export class Triangle extends Geo {
      */
   draw() {
     const width = this.w;
-    const height = this.h;
+    const height = this.h + this.growY;
     const halfWidth = width / 2;
 
     // Shape begins from the upper left corner

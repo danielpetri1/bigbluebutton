@@ -16,7 +16,7 @@ export class Oval extends Geo {
    */
   draw() {
     const w = Math.max(1, this.w);
-    const h = Math.max(1, this.h);
+    const h = Math.max(1, this.h + this.growY);
     const cx = w / 2;
     const cy = h / 2;
 

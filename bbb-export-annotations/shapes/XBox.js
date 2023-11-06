@@ -20,13 +20,13 @@ export class XBox extends Rectangle {
 
     // Add the first diagonal line from upper-left to lower-right
     const line1 = new Line();
-    line1.plot(0, 0, this.w, this.h)
+    line1.plot(0, 0, this.w, this.h + this.growY)
         .stroke({color: this.shapeColor, width: this.thickness})
         .style({dasharray: this.dasharray});
 
     // Add the second diagonal line from upper-right to lower-left
     const line2 = new Line();
-    line2.plot(this.w, 0, 0, this.h)
+    line2.plot(this.w, 0, 0, this.h + this.growY)
         .stroke({color: this.shapeColor, width: this.thickness})
         .style({dasharray: this.dasharray});
 

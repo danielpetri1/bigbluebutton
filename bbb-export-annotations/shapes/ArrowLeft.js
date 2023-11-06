@@ -14,7 +14,7 @@ export class ArrowLeft extends Geo {
    */
   draw() {
     const w = this.w;
-    const h = this.h;
+    const h = this.h + this.growY;
     const ox = Math.min(w, h) * 0.38;
     const oy = h * 0.16;
 

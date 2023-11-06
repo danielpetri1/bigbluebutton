@@ -282,7 +282,7 @@ export class Cloud extends Geo {
   draw() {
     const points = Cloud.cloudSvgPath(
         this.w,
-        this.h,
+        this.h + this.growY,
         this.id,
         this.size);
 

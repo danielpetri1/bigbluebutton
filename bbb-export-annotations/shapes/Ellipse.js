@@ -14,7 +14,7 @@ export class Ellipse extends Geo {
    */
   draw() {
     const rx = this.w / 2;
-    const ry = this.h / 2;
+    const ry = (this.h + this.growY) / 2;
 
     const ellipseGroup = this.shapeGroup;
     const ellipse = new SVGEllipse({

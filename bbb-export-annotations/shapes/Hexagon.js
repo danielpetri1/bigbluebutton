@@ -14,7 +14,7 @@ export class Hexagon extends Geo {
    */
   draw() {
     const width = this.w;
-    const height = this.h;
+    const height = this.h + this.growY;
     const sides = 6;
 
     // Get the vertices of the hexagon

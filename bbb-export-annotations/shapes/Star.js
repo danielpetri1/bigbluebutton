@@ -62,7 +62,7 @@ export class Star extends Geo {
    */
   draw() {
     const width = this.w;
-    const height = this.h;
+    const height = this.h + this.growY;
 
     // Get the vertices of the star
     const pointsOnPerimeter = this.getStarVertices(width, height, 5);
@@ -82,6 +82,7 @@ export class Star extends Geo {
     // Fill the polygon if required
     this.setFill(star);
     starGroup.add(star);
+
     this.drawLabel(starGroup);
 
     return starGroup;

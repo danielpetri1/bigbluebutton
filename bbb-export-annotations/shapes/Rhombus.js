@@ -14,7 +14,7 @@ export class Rhombus extends Geo {
    */
   draw() {
     const width = this.w;
-    const height = this.h;
+    const height = this.h + this.growY;
 
     // Internal angle between adjacent sides varies with width and height
     const offset = Math.min(width * 0.38, height * 0.38);

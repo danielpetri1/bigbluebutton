@@ -1,5 +1,7 @@
-import {Pattern, Line, Defs, Rect, G} from '@svgdotjs/svg.js';
+import {Pattern, Line, Defs, Rect, G, Text, Tspan} from '@svgdotjs/svg.js';
 import {radToDegree} from '../shapes/helpers.js';
+import opentype from 'opentype.js';
+import fs from 'fs';
 /**
  * Represents a basic Tldraw shape on the whiteboard.
  *
@@ -277,11 +279,10 @@ export class Shape {
     }
   }
 
-  static alignVertically(align, height, growY) {
+  static alignVertically(align, height) {
     switch (align) {
-      case 'start': return growY.toFixed(2);
-      case 'middle': return ((height + growY) / 2).toFixed(2);
-      case 'end': return (height + growY).toFixed(2);
+      case 'middle': return (height / 2).toFixed(2);
+      case 'end': return height.toFixed(2);
       default: return '0';
     }
   }
@@ -303,6 +304,144 @@ export class Shape {
       case 'draw':
       default: return 'Caveat Brush';
     }
+  }
+
+  /**
+     * Measures the width of a given text string using font metrics.
+    * @param {string} text - The text to measure.
+    * @param {opentype.Font} font - The loaded font object.
+    * @param {number} fontSize - The size of the font.
+    * @return {number} The width of the text.
+    */
+  measureTextWidth(text, font, fontSize) {
+    const scale = 1 / font.unitsPerEm * fontSize;
+    const glyphs = font.stringToGlyphs(text);
+    let width = 0;
+
+    glyphs.forEach((glyph) => {
+      if (glyph.advanceWidth) {
+        width += glyph.advanceWidth * scale;
+      }
+    });
+
+    return width;
+  }
+
+  /**
+   * Wraps text to fit within a specified width and height.
+   * @param {string} text - The text to wrap.
+   * @param {number} width - The width of the bounding box.
+   * @return {string[]} An array of strings, each being a line.
+  */
+  wrapText(text, width) {
+    const config = JSON.parse(
+        fs.readFileSync(
+            './config/settings.json',
+            'utf8'));
+
+    const font = this.props?.font || 'draw';
+    const fontPath = config.fonts[font];
+
+    const words = text.split(' ');
+    let line = '';
+    const lines = [];
+
+    // Read the font file into a Buffer
+    const fontBuffer = fs.readFileSync(fontPath);
+
+    // Convert the Buffer to an ArrayBuffer
+    const arrayBuffer = fontBuffer.buffer.slice(
+        fontBuffer.byteOffset,
+        fontBuffer.byteOffset + fontBuffer.byteLength);
+
+    // Parse the font using the ArrayBuffer
+    const parsedFont = opentype.parse(arrayBuffer);
+    const fontSize = Shape.determineFontSize(this.size);
+
+    for (const word of words) {
+      const testLine = line + word + ' ';
+      const testWidth = this.measureTextWidth(
+          testLine,
+          parsedFont,
+          fontSize);
+
+      if (testWidth > width) {
+        if (line !== '') {
+          lines.push(line);
+        }
+        line = word + ' ';
+      } else {
+        line = testLine;
+      }
+    }
+
+    if (line !== '') {
+      lines.push(line.trim());
+    }
+
+    // Split newlines into separate lines
+    const brokenLines = lines
+        .map((line) => line.split('\n'))
+        .flat();
+
+    return brokenLines;
+  }
+
+  /**
+   * Draws label text on the SVG canvas.
+   * @param {SVGG} group The SVG group element to add the label to.
+  */
+  drawLabel(group) {
+    // Do nothing if there is no text
+    if (!this.text) return;
+
+    // Sticky notes have a width and height of 200 and can't be resized,
+    // unless the text becomes too long.
+    const width = this.w || 200;
+    const height = (this.h || 200) + this.growY;
+
+    const x = Shape.alignHorizontally(this.align, width);
+    let y = Shape.alignVertically(this.verticalAlign, height);
+    const lineHeight = Shape.determineFontSize(this.size);
+    const fontFamily = Shape.determineFontFromFamily(this.props?.font);
+
+    if (this.verticalAlign === 'end' || this.verticalAlign === 'middle') {
+      y -= (lineHeight / 2);
+    }
+
+    // Create a new SVG text element
+    // Text is escaped by SVG.js
+    const textElement = new Text()
+        .move(x, y)
+        .font({
+          'family': fontFamily,
+          'size': lineHeight,
+          'anchor': this.align,
+          'alignment-baseline': 'baseline',
+        });
+
+    const lines = this.wrapText(this.text, width);
+
+    lines.forEach((line) => {
+      const tspan = new Tspan()
+          .text(line)
+          .attr({
+            x: x,
+            dy: lineHeight,
+          });
+
+      textElement.add(tspan);
+    });
+
+    // Set the fill color for the text
+    textElement.fill(this.labelColor || 'black');
+
+    // If there's a URL, make the text clickable
+    if (this.url) {
+      textElement.linkTo(this.url);
+    }
+
+    group.add(textElement);
   }
 
   /**

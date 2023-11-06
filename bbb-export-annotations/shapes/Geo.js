@@ -27,42 +27,6 @@ export class Geo extends Shape {
   }
 
   /**
-   * Draws label text on the SVG canvas.
-   * @param {SVGG} group The SVG group element to add the label to.
-  */
-  drawLabel(group) {
-    // Do nothing if there is no text
-    if (!this.text) return;
-
-    const x = Shape.alignHorizontally(this.align, this.w);
-    const y = Shape.alignVertically(this.verticalAlign, this.h, this.growY);
-
-    // Create a new SVG text element
-    // Text is escaped by SVG.js
-    const label = group.text(this.text);
-
-    label.x(x);
-    label.y(y);
-
-    label.font({
-      'family': Shape.determineFontFromFamily(this.font),
-      'size': Shape.determineFontSize(this.size),
-      'alignment-baseline': 'middle',
-      'anchor': this.align,
-      'leading': '1.5em',
-      'font-weight': 500,
-    });
-
-    // Set the fill color for the text
-    label.fill(this.labelColor || 'black');
-
-    // If there's a URL, make the text clickable
-    if (this.url) {
-      label.linkTo(this.url);
-    }
-  }
-
-  /**
  * Gets the vertices of a polygon given its dimensions and the number of sides.
  * @param {number} width The width of the bounding box for the polygon.
  * @param {number} height The height of the bounding box for the polygon.

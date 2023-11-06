@@ -14,7 +14,7 @@ export class Diamond extends Geo {
      */
   draw() {
     const width = this.w;
-    const height = this.h;
+    const height = this.h + this.growY;
     const halfWidth = width / 2;
     const halfHeight = height / 2;
 

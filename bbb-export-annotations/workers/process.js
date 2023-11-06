@@ -16,6 +16,7 @@ import {Highlight} from '../shapes/Highlight.js';
 import {Line} from '../shapes/Line.js';
 import {Arrow} from '../shapes/Arrow.js';
 import {TextShape} from '../shapes/TextShape.js';
+import {StickyNote} from '../shapes/StickyNote.js';
 import {createGeoObject} from '../shapes/geoFactory.js';
 
 const jobId = workerData.jobId;
@@ -30,80 +31,9 @@ const exportJob = JSON.parse(job);
 const statusUpdate = new PresAnnStatusMsg(exportJob,
     PresAnnStatusMsg.EXPORT_STATUSES.PROCESSING);
 
-function alignToPango(alignment) {
-  switch (alignment) {
-    case 'start': return 'left';
-    case 'middle': return 'center';
-    case 'end': return 'right';
-    case 'justify': return 'justify';
-    default: return 'left';
-  }
-}
-
-
-// Convert pixels to points
-function toPt(px) {
-  return (px / config.process.pixelsPerInch) * config.process.pointsPerInch;
-}
-
 // Convert points to pixels
 function toPx(pt) {
   return (pt / config.process.pointsPerInch) * config.process.pixelsPerInch;
-}
-
-// Escape shell metacharacters based on MDN's page on regular expressions,
-// the escape-string-regexp npm package, and Pango markup.
-function escapeText(string) {
-  return string
-      .replace(/[~`!.*+?%^${}()|[\]\\/]/g, '\\$&')
-      .replace(/&/g, '\\&amp;')
-      .replace(/'/g, '\\&#39;')
-      .replace(/"/g, '\\&quot;')
-      .replace(/>/g, '\\&gt;')
-      .replace(/</g, '\\&lt;');
-}
-
-function renderTextbox(textColor, font, fontSize, textAlign,
-    text, id, textBoxWidth = null) {
-  fontSize = toPt(fontSize);
-  text = escapeText(text);
-
-  // Sticky notes need automatic line wrapping: take width into account
-  // Texbox scaled by a constant factor to improve resolution at small scales
-
-  const size = textBoxWidth ?
-    ['-size', `${textBoxWidth * config.process.textScaleFactor}x`] :
-    [];
-
-  // For the 'pangoText' constant
-  const pangoText = `pango:<span font_family='${font}' ` +
-    `font='${fontSize}' ` +
-    `color='${textColor}'>${text}</span>`;
-
-  const justify = textAlign === 'justify';
-  textAlign = justify ? 'left' : textAlign;
-
-  const commands = [
-    '-encoding', `${config.process.whiteboardTextEncoding}`,
-    '-density', config.process.pixelsPerInch,
-    '-background', 'transparent'].concat(size,
-      [
-        '-define', `pango:align=${textAlign}`,
-        '-define', `pango:justify=${justify}`,
-        '-define', 'pango:wrap=word-char',
-        pangoText,
-        path.join(dropbox, `text${id}.png`),
-      ]);
-
-  try {
-    cp.spawnSync(config.shared.imagemagick, commands, {shell: false});
-  } catch (error) {
-    logger.error(
-        `ImageMagick failed to render textbox in job ${jobId}: `,
-        error.message,
-    );
-    statusUpdate.setError();
-  }
 }
 
 function overlayDraw(svg, annotation) {
@@ -141,43 +71,9 @@ function overlayArrow(svg, annotation) {
 }
 
 function overlaySticky(svg, annotation) {
-  const backgroundColor = colorToHex(annotation.style.color, true);
-  const fontSize = textSizeToPx(annotation.style.size, annotation.style.scale,
-      true);
-  const rotation = radToDegree(annotation.rotation);
-  const font = determineFontFromFamily(annotation.style.font);
-  const textAlign = alignToPango(annotation.style.textAlign);
-
-  const [textBoxWidth, textBoxHeight] = annotation.size;
-  const [textBoxX, textBoxY] = annotation.point;
-
-  const textColor = '#0d0d0d'; // For sticky notes
-  const text = annotation.text;
-  const id = sanitize(annotation.id);
-
-  render_textbox(textColor, font, fontSize, textAlign, text, id, textBoxWidth);
-
-  // Overlay transparent text image over empty sticky note
-  svg.ele('g', {
-    transform: `rotate(
-      ${rotation}, 
-      ${textBoxX + (textBoxWidth / 2)}, 
-      ${textBoxY + (textBoxHeight / 2)}
-    )`,
-  }).ele('rect', {
-    x: textBoxX,
-    y: textBoxY,
-    width: textBoxWidth,
-    height: textBoxHeight,
-    fill: backgroundColor,
-  }).up()
-      .ele('image', {
-        'x': textBoxX,
-        'y': textBoxY,
-        'width': textBoxWidth,
-        'height': textBoxHeight,
-        'xlink:href': `file://${dropbox}/text${id}.png`,
-      }).up();
+  const stickyNote = new StickyNote(annotation);
+  const stickyNoteDrawn = stickyNote.draw();
+  svg.add(stickyNoteDrawn);
 }
 
 function overlayText(svg, annotation) {
@@ -212,6 +108,10 @@ function overlayAnnotation(svg, annotation) {
 
     case 'text':
       overlayText(svg, annotation);
+      break;
+
+    case 'note':
+      overlaySticky(svg, annotation);
       break;
 
     default:

@@ -22,7 +22,7 @@ export class Rectangle extends Geo {
       'x': 0,
       'y': 0,
       'width': this.w,
-      'height': this.h,
+      'height': this.h + this.growY,
       'stroke': this.shapeColor,
       'stroke-width': this.thickness,
       'style': this.dasharray,

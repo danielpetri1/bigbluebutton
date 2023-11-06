@@ -46,7 +46,7 @@ export class Checkbox extends Rectangle {
     const rectGroup = super.draw();
 
     // Get the lines for the checkmark
-    const lines = Checkbox.getCheckBoxLines(this.w, this.h);
+    const lines = Checkbox.getCheckBoxLines(this.w, this.h + this.growY);
 
     lines.forEach(([start, end]) => {
       const line = new Line();

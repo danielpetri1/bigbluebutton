@@ -14,7 +14,7 @@ export class Trapezoid extends Geo {
    */
   draw() {
     const width = this.w;
-    const height = this.h;
+    const height = this.h + this.growY;
 
     // Adjust this value as needed for the trapezoid
     const topWidth = width * 0.6;
