@@ -15,7 +15,6 @@ export class Geo extends Shape {
   constructor(geo) {
     super(geo);
     this.url = this.props?.url;
-    this.text = this.props?.text;
     this.font = this.props?.font;
     this.w = this.props?.w;
     this.h = this.props?.h;

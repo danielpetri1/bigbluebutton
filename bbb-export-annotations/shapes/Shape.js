@@ -43,6 +43,7 @@ export class Shape {
     this.color = this.props?.color;
     this.dash = this.props?.dash;
     this.fill = this.props?.fill;
+    this.text = this.props?.text;
 
     // Derived SVG properties
     this.thickness = Shape.getStrokeWidth(this.size);

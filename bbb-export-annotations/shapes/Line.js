@@ -74,6 +74,7 @@ export class Line extends Shape {
     });
 
     lineGroup.add(linePath);
+    this.drawLabel(lineGroup);
 
     return lineGroup;
   }

@@ -262,6 +262,7 @@ export class Arrow extends Shape {
     }
 
     arrowGroup.add(arrowPath);
+    this.drawLabel(arrowGroup);
 
     return arrowGroup;
   }
