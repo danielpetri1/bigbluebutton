@@ -83,8 +83,6 @@ function overlayText(svg, annotation) {
 }
 
 function overlayAnnotation(svg, annotation) {
-  console.log(annotation);
-
   switch (annotation.type) {
     case 'draw':
       overlayDraw(svg, annotation);
@@ -157,22 +155,33 @@ async function processPresentationAnnotations() {
 
   // Get the annotations
   const annotations = fs.readFileSync(path.join(dropbox, 'whiteboard'));
-  const whiteboard = JSON.parse(annotations);
-  const pages = JSON.parse(whiteboard.pages);
+  const whiteboardJSON = JSON.parse(annotations);
+  const pages = JSON.parse(whiteboardJSON.pages);
   const ghostScriptInput = [];
 
-  // Convert annotations to SVG
   for (const currentSlide of pages) {
     const bgImagePath = path.join(dropbox, `slide${currentSlide.page}`);
-    const svgBackgroundSlide = path.join(exportJob.presLocation,
-        'svgs', `slide${currentSlide.page}.svg`);
-    const svgBackgroundExists = fs.existsSync(svgBackgroundSlide);
-    const backgroundFormat = fs.existsSync(`${bgImagePath}.png`) ?
-      'png' : 'jpeg';
+    const svgBackgroundSlide = path.join(
+        exportJob.presLocation,
+        'svgs',
+        `slide${currentSlide.page}.svg`);
 
-    const dimensions = svgBackgroundExists ?
-    probe.sync(fs.readFileSync(svgBackgroundSlide)) :
-    probe.sync(fs.readFileSync(`${bgImagePath}.${backgroundFormat}`));
+    let backgroundFormat = '';
+    if (fs.existsSync(svgBackgroundSlide)) {
+      backgroundFormat = 'svg';
+    } else if (fs.existsSync(`${bgImagePath}.png`)) {
+      backgroundFormat = 'png';
+    } else if (fs.existsSync(`${bgImagePath}.jpg`)) {
+      backgroundFormat = 'jpg';
+    } else if (fs.existsSync(`${bgImagePath}.jpeg`)) {
+      backgroundFormat = 'jpeg';
+    } else {
+      logger.error(`Skipping slide ${currentSlide.page} (${jobId})`);
+      continue;
+    }
+
+    const dimensions = probe.sync(
+        fs.readFileSync(`${bgImagePath}.${backgroundFormat}`));
 
     const slideWidth = parseInt(dimensions.width, 10);
     const slideHeight = parseInt(dimensions.height, 10);

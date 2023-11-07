@@ -1,6 +1,5 @@
 import Logger from '../lib/utils/logger.js';
 import axios from 'axios';
-import cp from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import redis from 'redis';
@@ -59,38 +58,27 @@ async function collectAnnotationsFromRedis() {
   const statusUpdate = new PresAnnStatusMsg(exportJob);
 
   if (fs.existsSync(pdfFile)) {
+    // If there's a PDF file, we leverage the existing converted SVG slides
     for (const p of pages) {
       const pageNumber = p.page;
-      const outputFile = path.join(dropbox, `slide${pageNumber}`);
+      const imageName = `slide${pageNumber}`;
+      const convertedSVG = path.join(
+          exportJob.presLocation,
+          'svgs',
+          `${imageName}.svg`);
 
-      // CairoSVG doesn't handle transparent SVG and PNG embeds properly,
-      // e.g., in rasterized text. So textboxes may get a black background
-      // when downloading/exporting repeatedly. To avoid that, we take slides
-      // from the uploaded file, but later probe the dimensions from the SVG
-      // so it matches what was shown in the browser.
-
-      const extractPNGfromPDF = [
-        '-png',
-        '-f', pageNumber,
-        '-l', pageNumber,
-        '-scale-to', config.collector.pngWidthRasterizedSlides,
-        '-singlefile',
-        '-cropbox',
-        pdfFile, outputFile,
-      ];
+      const outputFile = path.join(dropbox, `slide${pageNumber}.svg`);
 
       try {
-        cp.spawnSync(config.shared.pdftocairo,
-            extractPNGfromPDF,
-            {shell: false});
+        fs.copyFileSync(convertedSVG, outputFile);
       } catch (error) {
-        logger.error('PDFtoCairo failed extracting slide ' + pageNumber +
-        ' in job ' + jobId + ': ' + error.message);
-
+        logger.error('Failed collecting slide ' + pageNumber +
+          ' in job ' + jobId + ': ' + error.message);
         statusUpdate.setError();
       }
 
-      await client.publish(config.redis.channels.publish,
+      await client.publish(
+          config.redis.channels.publish,
           statusUpdate.build(pageNumber));
     }
   } else {

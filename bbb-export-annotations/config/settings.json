@@ -6,12 +6,7 @@
     "shared": {
       "presAnnDropboxDir": "/tmp/pres-ann-dropbox",
       "cairosvg": "/usr/bin/cairosvg",
-      "ghostscript": "/usr/bin/gs",
-      "imagemagick": "/usr/bin/convert",
-      "pdftocairo": "/usr/bin/pdftocairo"
-    },
-    "collector": {
-      "pngWidthRasterizedSlides": 2560
+      "ghostscript": "/usr/bin/gs"
     },
     "process": {
       "whiteboardTextEncoding": "utf-8",
