@@ -31,11 +31,27 @@ const exportJob = JSON.parse(job);
 const statusUpdate = new PresAnnStatusMsg(exportJob,
     PresAnnStatusMsg.EXPORT_STATUSES.PROCESSING);
 
-// Convert points to pixels
+/**
+ * Converts measured points to pixels, using the predefined points-per-inch
+ * and pixels-per-inch ratios from the configuration.
+ *
+ * @function toPx
+ * @param {number} pt - The measurement in points to be converted.
+ * @return {number} The converted measurement in pixels.
+ */
 function toPx(pt) {
   return (pt / config.process.pointsPerInch) * config.process.pixelsPerInch;
 }
 
+/**
+ * Creates a new drawing instance from the provided annotation
+ * and then adds the resulting drawn element to the SVG.
+ *
+ * @function overlayDraw
+ * @param {Object} svg - The SVG element to which the drawing will be added.
+ * @param {Object} annotation - The annotation data used to create the drawing.
+ * @return {void}
+ */
 function overlayDraw(svg, annotation) {
   const drawing = new Draw(annotation);
   const drawnDrawing = drawing.draw();
@@ -43,12 +59,28 @@ function overlayDraw(svg, annotation) {
   svg.add(drawnDrawing);
 }
 
+/**
+ * Creates a geometric object from the annotation and then adds
+ * the rendered shape to the SVG.
+ * @function overlayGeo
+ * @param {Object} svg - SVG element to which the geometric shape will be added.
+ * @param {Object} annotation - Annotation data used to create the geo shape.
+ * @return {void}
+ */
 function overlayGeo(svg, annotation) {
   const geo = createGeoObject(annotation);
   const geoDrawn = geo.draw();
   svg.add(geoDrawn);
 }
 
+/**
+ * Applies a highlight effect to an SVG element using the provided annotation.
+ * Adjusts the annotation's opacity and draws the highlight.
+ * @function overlayHighlight
+ * @param {Object} svg - SVG element to which the highlight will be applied.
+ * @param {Object} annotation - JSON annotation data.
+ * @return {void}
+ */
 function overlayHighlight(svg, annotation) {
   // Adjust JSON properties
   annotation.opacity = 0.3;
@@ -58,30 +90,73 @@ function overlayHighlight(svg, annotation) {
   svg.add(highlightDrawn);
 }
 
+/**
+ * Adds a line to an SVG element based on the provided annotation.
+ * It creates a line object from the annotation and then adds
+ * the rendered line to the SVG.
+ * @function overlayLine
+ * @param {Object} svg - SVG element to which the line will be added.
+ * @param {Object} annotation - JSON annotation data for the line.
+ * @return {void}
+ */
 function overlayLine(svg, annotation) {
   const line = new Line(annotation);
   const lineDrawn = line.draw();
   svg.add(lineDrawn);
 }
 
+/**
+ * Adds an arrow to an SVG element using the provided annotation data.
+ * It constructs an arrow object and then appends the drawn arrow to the SVG.
+ * @function overlayArrow
+ * @param {Object} svg - The SVG element where the arrow will be added.
+ * @param {Object} annotation - JSON annotation data for the arrow.
+ * @return {void}
+ */
 function overlayArrow(svg, annotation) {
   const arrow = new Arrow(annotation);
   const arrowDrawn = arrow.draw();
   svg.add(arrowDrawn);
 }
 
+/**
+ * Overlays a sticky note onto an SVG element based on the given annotation.
+ * Creates a sticky note instance and then appends the rendered note to the SVG.
+ * @function overlaySticky
+ * @param {Object} svg - SVG element to which the sticky note will be added.
+ * @param {Object} annotation - JSON annotation data for the sticky note.
+ * @return {void}
+ */
 function overlaySticky(svg, annotation) {
   const stickyNote = new StickyNote(annotation);
   const stickyNoteDrawn = stickyNote.draw();
   svg.add(stickyNoteDrawn);
 }
 
+/**
+ * Overlays text onto an SVG element using the provided annotation data.
+ * Initializes a text shape object with the annotation and then adds
+ * the rendered text to the SVG.
+ * @function overlayText
+ * @param {Object} svg - The SVG element where the text will be added.
+ * @param {Object} annotation - JSON annotation data for the text.
+ * @return {void}
+ */
 function overlayText(svg, annotation) {
   const text = new TextShape(annotation);
   const textDrawn = text.draw();
   svg.add(textDrawn);
 }
 
+/**
+ * Determines the annotation type and overlays the corresponding shape
+ * onto the SVG element. It delegates the rendering to the specific
+ * overlay function based on the annotation type.
+ * @function overlayAnnotation
+ * @param {Object} svg - SVG element onto which the annotation will be overlaid.
+ * @param {Object} annotation - JSON annotation data.
+ * @return {void}
+ */
 function overlayAnnotation(svg, annotation) {
   switch (annotation.type) {
     case 'draw':
@@ -118,6 +193,15 @@ function overlayAnnotation(svg, annotation) {
   }
 }
 
+/**
+ * Overlays a collection of annotations onto an SVG element.
+ * It sorts the annotations by their index before overlaying them to maintain
+ * the stacking order.
+ * @function overlayAnnotations
+ * @param {Object} svg - SVG element onto which annotations will be overlaid.
+ * @param {Array} slideAnnotations - Array of JSON annotation data objects.
+ * @return {void}
+ */
 function overlayAnnotations(svg, slideAnnotations) {
   // Sort annotations by lowest child index
   slideAnnotations = sortByKey(slideAnnotations, 'annotationInfo', 'index');
@@ -141,7 +225,13 @@ function overlayAnnotations(svg, slideAnnotations) {
   }
 }
 
-// Process the presentation pages and annotations into a PDF file
+/**
+ * Processes presentation slides and associated annotations into
+ * a single PDF file.
+ * @async
+ * @function processPresentationAnnotations
+ * @return {Promise<void>} A promise that resolves when the process is complete.
+ */
 async function processPresentationAnnotations() {
   const client = redis.createClient({
     host: config.redis.host,

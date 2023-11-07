@@ -22,6 +22,19 @@ const job = fs.readFileSync(path.join(dropbox, 'job'));
 const exportJob = JSON.parse(job);
 const jobType = exportJob.jobType;
 
+/**
+ * Asynchronously collects annotations from Redis, processes them,
+ * and handles the collection of presentation page files. It removes
+ * the annotations from Redis after collection, writes them to a file,
+ * and manages the retrieval of SVGs, PNGs, or JPEGs. Errors during the
+ * process are logged, and the status of the operation is published to
+ * a Redis channel.
+ *
+ * @async
+ * @function collectAnnotationsFromRedis
+ * @throws Will log an error if an error occurs in connecting to Redis.
+ * @return {Promise<void>} Resolves when the function has completed its task.
+ */
 async function collectAnnotationsFromRedis() {
   const client = redis.createClient({
     host: config.redis.host,
@@ -109,6 +122,15 @@ async function collectAnnotationsFromRedis() {
   process.process();
 }
 
+/**
+ * Creates a promise that resolves after a specified number of milliseconds,
+ * effectively pausing execution for that duration. Used to delay operations
+ * in an asynchronous function.
+ * @async
+ * @function sleep
+ * @param {number} ms - The amount of time in milliseconds to sleep.
+ * @return {Promise<void>} Resolves after the specified number of milliseconds.
+ */
 async function sleep(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
