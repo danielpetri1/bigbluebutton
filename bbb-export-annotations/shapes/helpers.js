@@ -65,6 +65,14 @@ export function rng(seed = '') {
   let z = 0;
   let w = 0;
 
+  /**
+ * Generates the next number in the pseudo-random sequence using bitwise
+ * operations. This function uses a form of 'xorshift', a type of pseudo-
+ * random number generator algorithm. It manipulates four state variables
+ * \( x, y, z, w \) with bitwise operations to produce a new random number
+ * upon each call. The returned value is scaled to the range [0, 2).
+ * @return {number} The next pseudo-random number within [0, 2).
+ */
   function next() {
     const t = x ^ (x << 11);
     x = y;

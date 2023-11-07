@@ -1,7 +1,24 @@
 import {Text} from '@svgdotjs/svg.js';
 import {Shape} from './Shape.js';
 
+/**
+ * Draws the text shape on the SVG canvas, aligning and styling it
+ * based on the provided properties.
+ * @override
+ * @return {G} The SVG group element containing the text element.
+ */
 export class TextShape extends Shape {
+  /**
+ * Constructs a new TextShape instance with the given parameters.
+ * Inherits from Shape and initializes text-specific properties.
+ *
+ * @param {Object} params - The configuration object for the text shape.
+ * @param {string} [params.text=""] - The text content for the shape.
+ * @param {string} [params.align] - The horizontal text alignment.
+ * @param {number} [params.w] - The width of the shape.
+ * @param {number} [params.h] - The height of the shape.
+ * @param {string} [params.font] - The font family for the text.
+ */
   constructor(params) {
     super(params);
     this.text = this.props?.text || '';

@@ -279,6 +279,12 @@ export class Cloud extends Geo {
     return path;
   }
 
+  /**
+ * Renders a cloud shape on the SVG canvas. It uses a predefined SVG path
+ * for the cloud shape, which is scaled to the dimensions of the instance.
+ * @return {G} An SVG group element (`<g>`)
+ * that contains the cloud path and label.
+ */
   draw() {
     const points = Cloud.cloudSvgPath(
         this.w,

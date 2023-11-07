@@ -261,6 +261,12 @@ export class Shape {
     return strokeWidths[size] || 1;
   }
 
+  /**
+   * Get the font size in pixels.
+   *
+   * @param {string} size - The size of the font ('s', 'm', 'l', 'xl').
+   * @return {number} - The corresponding font size, in pixels.
+  */
   static determineFontSize(size) {
     const fontSizes = {
       's': 26,
@@ -272,6 +278,15 @@ export class Shape {
     return fontSizes[size] || 16;
   }
 
+  /**
+   * Aligns horizontally based on the given alignment type.
+   *
+   * @param {string} align - One of ('start', 'middle', 'end').
+   * @param {number} width - The width of the container.
+   * @return {string} The calculated horizontal position as a string with
+   * two decimal places. Coordinates are relative to the container.
+   * @static
+  */
   static alignHorizontally(align, width) {
     switch (align) {
       case 'middle': return (width / 2).toFixed(2);
@@ -280,6 +295,15 @@ export class Shape {
     }
   }
 
+  /**
+   * Aligns vertically based on the given alignment type.
+   *
+   * @param {string} align - One of ('start', 'middle', 'end').
+   * @param {number} height - The height of the container.
+   * @return {string} The calculated vertical position as a string with
+   * two decimal places. Coordinates are relative to the container.
+   * @static
+  */
   static alignVertically(align, height) {
     switch (align) {
       case 'middle': return (height / 2).toFixed(2);

@@ -23,6 +23,14 @@ export class Arrow extends Shape {
     this.bend = this.props?.bend;
   }
 
+  /**
+ * Calculates the midpoint of a curve considering the bend of the line.
+ * The midpoint is adjusted by the bend property to represent the
+ * actual midpoint of a quadratic Bezier curve defined by the start
+ * and end points with the bend as control point offset.
+ *
+ * @return {number[]} An array containing the x and y coordinates.
+ */
   getMidpoint() {
     const mid = [
       (this.start.x + this.end.x) / 2,
@@ -109,6 +117,16 @@ export class Arrow extends Shape {
     return path;
   }
 
+  /**
+ * Calculates the tangent angles at the start and end points of a path.
+ * This method assumes that the path is an instance of a class with
+ * a method `pointAt` which returns a point with `x` and `y` properties
+ * given a distance along the path.
+ *
+ * @param {Object} path - SVG.js path with the `pointAt` method.
+ * @return {Object} An object with `startAngleDegrees` and `endAngleDegrees`
+ * properties.
+ */
   getTangentAngleAtEnds(path) {
     const length = path.length();
     const start = path.pointAt(0);
