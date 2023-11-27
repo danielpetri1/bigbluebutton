@@ -119,6 +119,10 @@ object PadCapturePubMsg { val NAME = "PadCapturePubMsg" }
 case class PadCapturePubMsg(header: BbbCoreHeaderWithMeetingId, body: PadCapturePubMsgBody) extends PadStandardMsg
 case class PadCapturePubMsgBody(parentMeetingId: String, breakoutId: String, padId: String, filename: String)
 
+object PadCaptureMarkdownPubMsg { val NAME = "PadCaptureMarkdownPubMsg" }
+case class PadCaptureMarkdownPubMsg(header: BbbCoreHeaderWithMeetingId, body: PadCaptureMarkdownPubMsgBody) extends PadStandardMsg
+case class PadCaptureMarkdownPubMsgBody(meetingId: String, padId: String, filename: String)
+
 // client -> apps
 object PadPinnedReqMsg { val NAME = "PadPinnedReqMsg" }
 case class PadPinnedReqMsg(header: BbbClientMsgHeader, body: PadPinnedReqMsgBody) extends StandardMsg

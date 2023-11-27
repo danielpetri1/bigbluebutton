@@ -6,7 +6,7 @@ const redis = require('redis');
 const axios = require('axios').default;
 const path = require('path');
 const {NewPresFileAvailableMsg} = require('../lib/utils/message-builder');
-
+const cp = require('child_process');
 const {workerData} = require('worker_threads');
 const [jobType, jobId, filename] = [workerData.jobType, workerData.jobId, workerData.filename];
 
@@ -50,6 +50,7 @@ async function upload(filePath) {
   formData.append('is_downloadable', config.notifier.is_downloadable);
   formData.append('temporaryPresentationId', jobId);
   formData.append('fileUpload', fs.createReadStream(filePath));
+  formData.append('current', 'true');
 
   try {
     const res = await axios.post(callbackUrl, formData,
@@ -60,6 +61,26 @@ async function upload(filePath) {
   }
 }
 
+async function renderMarkdownFile(filePath) {
+  const mdFile = filePath.replace('.txt', '.pdf');
+  const convertMarkdownFile = [
+    '-t',
+    'beamer',
+    filePath,
+    '-o',
+    mdFile,
+  ];
+
+  try {
+    cp.spawnSync('pandoc', convertMarkdownFile, {shell: false});
+  } catch (error) {
+    logger.error(`Processing slideshow failed for job ${jobId}: ${error.message}`);
+    return;
+  }
+
+  upload(mdFile);
+}
+
 if (jobType == 'PresentationWithAnnotationDownloadJob') {
   notifyMeetingActor();
 } else if (jobType == 'PresentationWithAnnotationExportJob') {
@@ -68,6 +89,10 @@ if (jobType == 'PresentationWithAnnotationDownloadJob') {
 } else if (jobType == 'PadCaptureJob') {
   const filePath = `${dropbox}/${filename}`;
   upload(filePath);
+} else if (jobType == 'PadCaptureMarkdownJob') {
+  const filePath = `${dropbox}/${filename}`;
+
+  renderMarkdownFile(filePath);
 } else {
   logger.error(`Notifier received unknown job type ${jobType}`);
 }

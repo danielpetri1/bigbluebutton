@@ -4,11 +4,16 @@ import PadsService from '/imports/ui/components/pads/service';
 import NotesService from '/imports/ui/components/notes/service';
 import { UploadingPresentations } from '/imports/api/presentations';
 import { uniqueId } from '/imports/utils/string-utils';
+import { makeCall } from '/imports/ui/services/api';
 
 const PADS_CONFIG = Meteor.settings.public.pads;
 
-async function convertAndUpload(presentations) {
+async function convertAndUploadMarkdown() {
+  const padId = await PadsService.getPadId(NotesService.ID);
+  makeCall('getNotesAsMarkdown', { padId });
+}
 
+async function convertAndUpload(presentations) {
   let filename = 'Shared_Notes';
   const duplicates = presentations.filter((pres) => pres.filename?.startsWith(filename) || pres.name?.startsWith(filename)).length;
 
@@ -58,5 +63,6 @@ async function convertAndUpload(presentations) {
 
 export default {
   convertAndUpload,
+  convertAndUploadMarkdown,
   pinSharedNotes: () => NotesService.pinSharedNotes(true),
 };

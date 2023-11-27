@@ -161,9 +161,46 @@ async function collectSharedNotes(retries = 3) {
   notifier.notify();
 }
 
+async function collectSharedNotesAsMarkdownPresentation(retries = 3) {
+  const padId = exportJob.presId;
+  const notesFormat = 'txt';
+
+  const filename = `${sanitize(exportJob.filename.replace(/\s/g, '_'))}.${notesFormat}`;
+  const notes_endpoint = `${config.bbbPadsAPI}/p/${padId}/export/${notesFormat}`;
+  const filePath = path.join(dropbox, filename);
+
+  const finishedDownload = promisify(stream.finished);
+  const writer = fs.createWriteStream(filePath);
+
+  try {
+    const response = await axios({
+      method: 'GET',
+      url: notes_endpoint,
+      responseType: 'stream',
+    });
+    response.data.pipe(writer);
+    await finishedDownload(writer);
+  } catch (err) {
+    if (retries > 0 && err?.response?.status == 429) {
+      // Wait for the bbb-pads API to be available due to rate limiting
+      const backoff = err.response.headers['retry-after'] * 1000;
+      logger.info(`Retrying ${jobId} in ${backoff}ms...`);
+      await sleep(backoff);
+      return collectSharedNotesAsMarkdownPresentation(retries - 1);
+    } else {
+      logger.error(`Could not download notes in job ${jobId}`);
+      return;
+    }
+  }
+
+  const notifier = new WorkerStarter({jobType, jobId, filename});
+  notifier.notify();
+}
+
 switch (jobType) {
   case 'PresentationWithAnnotationExportJob': return collectAnnotationsFromRedis();
   case 'PresentationWithAnnotationDownloadJob': return collectAnnotationsFromRedis();
   case 'PadCaptureJob': return collectSharedNotes();
+  case 'PadCaptureMarkdownJob': return collectSharedNotesAsMarkdownPresentation();
   default: return logger.error(`Unknown job type ${jobType}`);
 }

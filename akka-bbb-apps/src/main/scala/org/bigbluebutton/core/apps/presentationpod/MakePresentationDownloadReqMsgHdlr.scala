@@ -21,6 +21,7 @@ trait MakePresentationDownloadReqMsgHdlr extends RightsManagementTrait {
     val DOWNLOAD = "PresentationWithAnnotationDownloadJob"
     val CAPTURE_PRESENTATION = "PresentationWithAnnotationExportJob"
     val CAPTURE_NOTES = "PadCaptureJob"
+    val CAPTURE_NOTES_MARKDOWN = "PadCaptureMarkdownJob"
   }
 
   def buildStoreAnnotationsInRedisSysMsg(annotations: StoredAnnotations, liveMeeting: LiveMeeting): BbbCommonEnvCoreMsg = {
@@ -286,7 +287,6 @@ trait MakePresentationDownloadReqMsgHdlr extends RightsManagementTrait {
   }
 
   def handle(m: PadCapturePubMsg, liveMeeting: LiveMeeting, bus: MessageBus): Unit = {
-
     val userId: String = "system"
     val jobId: String = s"${m.body.breakoutId}-notes" // Used as the temporaryPresentationId upon upload
     val filename = m.body.filename
@@ -296,6 +296,21 @@ trait MakePresentationDownloadReqMsgHdlr extends RightsManagementTrait {
     bus.outGW.send(buildPresentationUploadTokenSysPubMsg(m.body.parentMeetingId, userId, presentationUploadToken, filename, presentationId))
 
     val exportJob = new ExportJob(jobId, JobTypes.CAPTURE_NOTES, filename, m.body.padId, "", true, List(), m.body.parentMeetingId, presentationUploadToken)
+    val job = buildStoreExportJobInRedisSysMsg(exportJob, liveMeeting)
+
+    bus.outGW.send(job)
+  }
+
+  def handle(m: PadCaptureMarkdownPubMsg, liveMeeting: LiveMeeting, bus: MessageBus): Unit = {
+    val userId: String = "system"
+    val jobId: String = s"${m.body.meetingId}-notes" // Used as the temporaryPresentationId upon upload
+    val filename = m.body.filename
+    val presentationUploadToken: String = PresentationPodsApp.generateToken("DEFAULT_PRESENTATION_POD", userId)
+    val presentationId = PresentationPodsApp.generatePresentationId(m.body.filename)
+
+    bus.outGW.send(buildPresentationUploadTokenSysPubMsg(m.body.meetingId, userId, presentationUploadToken, filename, presentationId))
+
+    val exportJob = new ExportJob(jobId, JobTypes.CAPTURE_NOTES_MARKDOWN, filename, m.body.padId, "", true, List(), m.body.meetingId, presentationUploadToken)
     val job = buildStoreExportJobInRedisSysMsg(exportJob, liveMeeting)
 
     bus.outGW.send(job)

@@ -179,6 +179,8 @@ class ReceivedJsonMsgHandlerActor(
         routeGenericMsg[PadUpdatePubMsg](envelope, jsonNode)
       case PadCapturePubMsg.NAME =>
         routePadMsg[PadCapturePubMsg](envelope, jsonNode)
+      case PadCaptureMarkdownPubMsg.NAME =>
+        routePadMsg[PadCaptureMarkdownPubMsg](envelope, jsonNode)
       case PadPinnedReqMsg.NAME =>
         routeGenericMsg[PadPinnedReqMsg](envelope, jsonNode)
 

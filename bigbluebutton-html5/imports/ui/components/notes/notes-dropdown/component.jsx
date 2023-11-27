@@ -11,6 +11,10 @@ const NOTES_CONFIG = Meteor.settings.public.notes;
 const NOTES_IS_PINNABLE = NOTES_CONFIG.pinnable;
 
 const intlMessages = defineMessages({
+  convertAndUploadMarkdownLabel: {
+    id: 'app.notes.notesDropdown.convertAndUploadMarkdown',
+    description: 'Export shared notes as a markdown presentation and upload to the main room',
+  },
   convertAndUploadLabel: {
     id: 'app.notes.notesDropdown.covertAndUpload',
     description: 'Export shared notes as a PDF and upload to the main room',
@@ -62,6 +66,18 @@ class NotesDropdown extends PureComponent {
 
     if (amIPresenter) {
       this.menuItems.push(
+        {
+          key: uniqueId('notes-option-'),
+          icon: uploadIcon,
+          dataTest: 'moveNotesAsMarkdownToWhiteboard',
+          label: intl.formatMessage(intlMessages.convertAndUploadMarkdownLabel),
+          disabled: converterButtonDisabled,
+          onClick: () => {
+            this.setConverterButtonDisabled(true);
+            setTimeout(() => this.setConverterButtonDisabled(false), DEBOUNCE_TIMEOUT);
+            return Service.convertAndUploadMarkdown(presentations);
+          },
+        },
         {
           key: uniqueId('notes-option-'),
           icon: uploadIcon,

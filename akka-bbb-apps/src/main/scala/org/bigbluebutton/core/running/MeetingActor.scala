@@ -523,6 +523,7 @@ class MeetingActor(
       case m: NewPresFileAvailableMsg                        => presentationPodsApp.handle(m, liveMeeting, msgBus)
       case m: PresAnnStatusMsg                               => presentationPodsApp.handle(m, liveMeeting, msgBus)
       case m: PadCapturePubMsg                               => presentationPodsApp.handle(m, liveMeeting, msgBus)
+      case m: PadCaptureMarkdownPubMsg                       => presentationPodsApp.handle(m, liveMeeting, msgBus)
 
       // Presentation Pods
       case m: CreateNewPresentationPodPubMsg                 => state = presentationPodsApp.handle(m, state, liveMeeting, msgBus)
