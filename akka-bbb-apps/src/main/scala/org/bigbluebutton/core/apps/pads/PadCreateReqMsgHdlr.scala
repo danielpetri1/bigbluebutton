@@ -10,11 +10,11 @@ trait PadCreateReqMsgHdlr {
 
   def handle(msg: PadCreateReqMsg, liveMeeting: LiveMeeting, bus: MessageBus): Unit = {
 
-    def broadcastEvent(groupId: String, name: String): Unit = {
+    def broadcastEvent(groupId: String, name: String, defaultText: String): Unit = {
       val routing = collection.immutable.HashMap("sender" -> "bbb-apps-akka")
       val envelope = BbbCoreEnvelope(PadCreateCmdMsg.NAME, routing)
       val header = BbbCoreHeaderWithMeetingId(PadCreateCmdMsg.NAME, liveMeeting.props.meetingProp.intId)
-      val body = PadCreateCmdMsgBody(groupId, name)
+      val body = PadCreateCmdMsgBody(groupId, name, defaultText)
       val event = PadCreateCmdMsg(header, body)
       val msgEvent = BbbCommonEnvCoreMsg(envelope, event)
 
@@ -23,7 +23,7 @@ trait PadCreateReqMsgHdlr {
 
     Pads.getGroup(liveMeeting.pads, msg.body.externalId) match {
       case Some(group) => {
-        if (group.userId == msg.header.userId) broadcastEvent(group.groupId, msg.body.name)
+        if (group.userId == msg.header.userId) broadcastEvent(group.groupId, msg.body.name, msg.body.defaultText)
       }
       case _ =>
     }

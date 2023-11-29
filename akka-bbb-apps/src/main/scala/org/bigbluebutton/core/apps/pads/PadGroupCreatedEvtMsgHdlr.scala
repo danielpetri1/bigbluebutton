@@ -10,11 +10,11 @@ trait PadGroupCreatedEvtMsgHdlr {
 
   def handle(msg: PadGroupCreatedEvtMsg, liveMeeting: LiveMeeting, bus: MessageBus): Unit = {
 
-    def broadcastEvent(externalId: String, model: String, name: String, userId: String): Unit = {
+    def broadcastEvent(externalId: String, model: String, name: String, userId: String, defaultText: String): Unit = {
       val routing = Routing.addMsgToClientRouting(MessageTypes.BROADCAST_TO_MEETING, liveMeeting.props.meetingProp.intId, userId)
       val envelope = BbbCoreEnvelope(PadGroupCreatedRespMsg.NAME, routing)
       val header = BbbClientMsgHeader(PadGroupCreatedRespMsg.NAME, liveMeeting.props.meetingProp.intId, userId)
-      val body = PadGroupCreatedRespMsgBody(externalId, model, name)
+      val body = PadGroupCreatedRespMsgBody(externalId, model, name, defaultText)
       val event = PadGroupCreatedRespMsg(header, body)
       val msgEvent = BbbCommonEnvCoreMsg(envelope, event)
 
@@ -24,7 +24,7 @@ trait PadGroupCreatedEvtMsgHdlr {
     Pads.getGroup(liveMeeting.pads, msg.body.externalId) match {
       case Some(group) => {
         Pads.setGroupId(liveMeeting.pads, msg.body.externalId, msg.body.groupId)
-        broadcastEvent(msg.body.externalId, group.model, group.name, group.userId)
+        broadcastEvent(msg.body.externalId, group.model, group.name, group.userId, msg.body.defaultText)
       }
       case _ =>
     }

@@ -3,13 +3,18 @@ import Pads from '/imports/api/pads';
 import Logger from '/imports/startup/server/logger';
 import createPad from '/imports/api/pads/server/methods/createPad';
 
-export default async function createGroup(meetingId, userId, externalId, model, name) {
+export default async function createGroup(meetingId, userId, externalId, model, name, defaultText) {
   try {
     check(meetingId, String);
     check(userId, String);
     check(externalId, String);
     check(model, String);
     check(name, String);
+    check(defaultText, String);
+
+    Logger.info('============================');
+    Logger.info('defaultText is', defaultText);
+    Logger.info('============================');
 
     const selector = {
       meetingId,
@@ -29,7 +34,7 @@ export default async function createGroup(meetingId, userId, externalId, model, 
       Logger.info(`Added pad group external=${externalId} meeting=${meetingId}`);
       // Each group will get only one pad so we can control access per pad. The pad's name
       // will be the group's externalId
-      createPad(meetingId, userId, externalId, externalId);
+      createPad(meetingId, userId, externalId, externalId, defaultText);
     } else {
       Logger.info(`Upserted pad group external=${externalId} meeting=${meetingId}`);
     }

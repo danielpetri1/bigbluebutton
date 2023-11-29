@@ -1,4 +1,5 @@
 import createGroup from '/imports/api/pads/server/modifiers/createGroup';
+import Logger from '/imports/startup/server/logger';
 
 export default async function groupCreated({ header, body }) {
   const {
@@ -10,7 +11,13 @@ export default async function groupCreated({ header, body }) {
     externalId,
     model,
     name,
+    defaultText,
   } = body;
 
-  await createGroup(meetingId, userId, externalId, model, name);
+  Logger.info('============================');
+  Logger.info('FROM bbb-pads');
+  Logger.info('defaultText is', defaultText);
+  Logger.info('============================');
+
+  await createGroup(meetingId, userId, externalId, model, name, defaultText);
 }

@@ -265,7 +265,7 @@ export default async function addMeeting(meeting) {
       // Init Timer collection
       createTimer(meetingId);
       if (newMeeting.meetingProp.disabledFeatures.indexOf('sharedNotes') === -1) {
-        initPads(meetingId);
+        initPads(meetingId, meeting?.breakoutProps?.defaultNotesText);
       }
       if (newMeeting.meetingProp.disabledFeatures.indexOf('captions') === -1) {
         await initCaptions(meetingId);

@@ -7,32 +7,32 @@ trait PadStandardMsg extends BbbCoreMsg {
 // client -> apps
 object PadCreateGroupReqMsg { val NAME = "PadCreateGroupReqMsg" }
 case class PadCreateGroupReqMsg(header: BbbClientMsgHeader, body: PadCreateGroupReqMsgBody) extends StandardMsg
-case class PadCreateGroupReqMsgBody(externalId: String, model: String, name: String)
+case class PadCreateGroupReqMsgBody(externalId: String, model: String, name: String, defaultText: String)
 
 // apps -> pads
 object PadCreateGroupCmdMsg { val NAME = "PadCreateGroupCmdMsg" }
 case class PadCreateGroupCmdMsg(header: BbbCoreHeaderWithMeetingId, body: PadCreateGroupCmdMsgBody) extends BbbCoreMsg
-case class PadCreateGroupCmdMsgBody(externalId: String, model: String)
+case class PadCreateGroupCmdMsgBody(externalId: String, model: String, defaultText: String)
 
 // pads -> apps
 object PadGroupCreatedEvtMsg { val NAME = "PadGroupCreatedEvtMsg" }
 case class PadGroupCreatedEvtMsg(header: BbbCoreHeaderWithMeetingId, body: PadGroupCreatedEvtMsgBody) extends PadStandardMsg
-case class PadGroupCreatedEvtMsgBody(externalId: String, groupId: String)
+case class PadGroupCreatedEvtMsgBody(externalId: String, groupId: String, defaultText: String)
 
 // apps -> client
 object PadGroupCreatedRespMsg { val NAME = "PadGroupCreatedRespMsg" }
 case class PadGroupCreatedRespMsg(header: BbbClientMsgHeader, body: PadGroupCreatedRespMsgBody) extends BbbCoreMsg
-case class PadGroupCreatedRespMsgBody(externalId: String, model: String, name: String)
+case class PadGroupCreatedRespMsgBody(externalId: String, model: String, name: String, defaultText: String)
 
 // client -> apps
 object PadCreateReqMsg { val NAME = "PadCreateReqMsg" }
 case class PadCreateReqMsg(header: BbbClientMsgHeader, body: PadCreateReqMsgBody) extends StandardMsg
-case class PadCreateReqMsgBody(externalId: String, name: String)
+case class PadCreateReqMsgBody(externalId: String, name: String, defaultText: String)
 
 // apps -> pads
 object PadCreateCmdMsg { val NAME = "PadCreateCmdMsg" }
 case class PadCreateCmdMsg(header: BbbCoreHeaderWithMeetingId, body: PadCreateCmdMsgBody) extends BbbCoreMsg
-case class PadCreateCmdMsgBody(groupId: String, name: String)
+case class PadCreateCmdMsgBody(groupId: String, name: String, defaultText: String)
 
 // pads -> apps
 object PadCreatedEvtMsg { val NAME = "PadCreatedEvtMsg" }

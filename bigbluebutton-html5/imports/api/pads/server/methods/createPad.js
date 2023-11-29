@@ -3,7 +3,7 @@ import { Meteor } from 'meteor/meteor';
 import { check } from 'meteor/check';
 import Logger from '/imports/startup/server/logger';
 
-export default function createPad(meetingId, userId, externalId, name) {
+export default function createPad(meetingId, userId, externalId, name, defaultText) {
   const REDIS_CONFIG = Meteor.settings.private.redis;
   const CHANNEL = REDIS_CONFIG.channels.toAkkaApps;
   const EVENT_NAME = 'PadCreateReqMsg';
@@ -17,6 +17,7 @@ export default function createPad(meetingId, userId, externalId, name) {
     const payload = {
       externalId,
       name,
+      defaultText,
     };
 
     RedisPubSub.publishUserMessage(CHANNEL, EVENT_NAME, meetingId, userId, payload);

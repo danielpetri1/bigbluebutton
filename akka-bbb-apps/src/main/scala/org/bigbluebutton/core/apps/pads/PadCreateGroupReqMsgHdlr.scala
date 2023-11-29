@@ -10,11 +10,11 @@ trait PadCreateGroupReqMsgHdlr {
 
   def handle(msg: PadCreateGroupReqMsg, liveMeeting: LiveMeeting, bus: MessageBus): Unit = {
 
-    def broadcastEvent(externalId: String, model: String): Unit = {
+    def broadcastEvent(externalId: String, model: String, defaultText: String): Unit = {
       val routing = collection.immutable.HashMap("sender" -> "bbb-apps-akka")
       val envelope = BbbCoreEnvelope(PadCreateGroupCmdMsg.NAME, routing)
       val header = BbbCoreHeaderWithMeetingId(PadCreateGroupCmdMsg.NAME, liveMeeting.props.meetingProp.intId)
-      val body = PadCreateGroupCmdMsgBody(externalId, model)
+      val body = PadCreateGroupCmdMsgBody(externalId, model, defaultText)
       val event = PadCreateGroupCmdMsg(header, body)
       val msgEvent = BbbCommonEnvCoreMsg(envelope, event)
 
@@ -29,7 +29,11 @@ trait PadCreateGroupReqMsgHdlr {
 
     if (padEnabled && !Pads.hasGroup(liveMeeting.pads, msg.body.externalId)) {
       Pads.addGroup(liveMeeting.pads, msg.body.externalId, msg.body.model, msg.body.name, msg.header.userId)
-      broadcastEvent(msg.body.externalId, msg.body.model)
+
+      println("===========================")
+      println("PadCreateGroupReqMsgHdlr: " + msg.body.externalId + " " + msg.body.model + " " + msg.body.defaultText)
+      println("===========================")
+      broadcastEvent(msg.body.externalId, msg.body.model, msg.body.defaultText)
     }
   }
 }

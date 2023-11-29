@@ -24,7 +24,7 @@ const getDataFromChangeset = (changeset) => {
   return '';
 };
 
-const createGroup = (meetingId, externalId, model, name) => {
+const createGroup = (meetingId, externalId, model, name, defaultText) => {
   const EVENT_NAME = 'PadCreateGroupReqMsg';
 
   try {
@@ -32,6 +32,7 @@ const createGroup = (meetingId, externalId, model, name) => {
       externalId,
       model,
       name,
+      defaultText,
     };
 
     RedisPubSub.publishUserMessage(CHANNEL, EVENT_NAME, meetingId, 'nodeJSapp', payload);
@@ -40,8 +41,15 @@ const createGroup = (meetingId, externalId, model, name) => {
   }
 };
 
-const initPads = (meetingId) => {
-  if (NOTES_CONFIG.enabled) createGroup(meetingId, NOTES_CONFIG.id, models.NOTES, NOTES_CONFIG.id);
+const initPads = (meetingId, defaultNotesText = '') => {
+  if (NOTES_CONFIG.enabled) {
+    createGroup(
+      meetingId,
+      NOTES_CONFIG.id,
+      models.NOTES,
+      NOTES_CONFIG.id, defaultNotesText,
+    );
+  }
 };
 
 export {

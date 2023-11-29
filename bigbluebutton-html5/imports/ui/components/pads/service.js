@@ -33,7 +33,7 @@ const getParams = () => {
 
 const getPadId = (externalId) => makeCall('getPadId', externalId);
 
-const createGroup = (externalId, model, name) => makeCall('createGroup', externalId, model, name);
+const createGroup = (externalId, model, name, defaultText) => makeCall('createGroup', externalId, model, name, defaultText);
 
 const hasPad = (externalId) => {
   const pad = Pads.findOne(
