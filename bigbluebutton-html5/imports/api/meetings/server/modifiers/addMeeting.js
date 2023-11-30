@@ -78,6 +78,7 @@ export default async function addMeeting(meeting) {
       captureSlides: Boolean,
       captureNotesFilename: String,
       captureSlidesFilename: String,
+      defaultNotesText: String,
     },
     meetingProp: {
       intId: String,

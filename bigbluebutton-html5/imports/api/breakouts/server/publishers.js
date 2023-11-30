@@ -36,6 +36,7 @@ async function breakouts() {
       captureNotes: 1,
       captureSlides: 1,
       sendInviteToModerators: 1,
+      defaultNotesText: 1,
     },
   };
 

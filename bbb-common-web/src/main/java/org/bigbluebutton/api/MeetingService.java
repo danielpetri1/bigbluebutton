@@ -365,6 +365,7 @@ public class MeetingService implements MessageListener {
         breakoutMetadata.put("freeJoin", m.isFreeJoin().toString());
         breakoutMetadata.put("captureSlides", m.isCaptureSlides().toString());
         breakoutMetadata.put("captureNotes", m.isCaptureNotes().toString());
+        breakoutMetadata.put("breakoutRoomsDefaultNotesText", m.getBreakoutRoomsDefaultNotesText());
         breakoutMetadata.put("parentMeetingId", m.getParentMeetingId());
         storeService.recordBreakoutInfo(m.getInternalId(), breakoutMetadata);
       }
@@ -378,6 +379,7 @@ public class MeetingService implements MessageListener {
       logData.put("freeJoin", m.isFreeJoin());
       logData.put("captureSlides",  m.isCaptureSlides());
       logData.put("captureNotes", m.isCaptureNotes());
+      logData.put("breakoutRoomsDefaultNotesText", m.getBreakoutRoomsDefaultNotesText());
       logData.put("parentMeetingId", m.getParentMeetingId());
     }
     logData.put("name", m.getName());
@@ -636,6 +638,7 @@ public class MeetingService implements MessageListener {
       params.put(ApiParams.FREE_JOIN, message.freeJoin.toString());
       params.put(ApiParams.BREAKOUT_ROOMS_CAPTURE_SLIDES, message.captureSlides.toString());
       params.put(ApiParams.BREAKOUT_ROOMS_CAPTURE_NOTES, message.captureNotes.toString());
+      params.put(ApiParams.BREAKOUT_ROOMS_DEFAULT_NOTES_TEXT, message.defaultNotesText);
       params.put(ApiParams.BREAKOUT_ROOMS_CAPTURE_NOTES_FILENAME, message.captureNotesFilename.toString());
       params.put(ApiParams.BREAKOUT_ROOMS_CAPTURE_SLIDES_FILENAME, message.captureSlidesFilename.toString());
       params.put(ApiParams.ATTENDEE_PW, message.viewerPassword);

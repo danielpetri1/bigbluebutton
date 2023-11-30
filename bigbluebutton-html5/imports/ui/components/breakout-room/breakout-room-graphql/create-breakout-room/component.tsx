@@ -211,6 +211,10 @@ const intlMessages = defineMessages({
     id: 'app.createBreakoutRoom.sendInvitationToMods',
     description: 'label for checkbox send invitation to moderators',
   },
+  defaultNotesTextLabel: {
+    id: 'app.createBreakoutRoom.defaultNotesTextLabel',
+    description: 'label for checkbox default notes text',
+  },
 });
 
 const CreateBreakoutRoom: React.FC<CreateBreakoutRoomProps> = ({
@@ -232,6 +236,7 @@ const CreateBreakoutRoom: React.FC<CreateBreakoutRoomProps> = ({
   const [captureSlides, setCaptureSlides] = React.useState(false);
   const [leastOneUserIsValid, setLeastOneUserIsValid] = React.useState(false);
   const [captureNotes, setCaptureNotes] = React.useState(false);
+  const [defaultNotesText, setDefaultNotesText] = React.useState(false);
   const [inviteMods, setInviteMods] = React.useState(false);
   const [numberOfRooms, setNumberOfRooms] = React.useState(MIN_BREAKOUT_ROOMS);
   const [durationTime, setDurationTime] = React.useState(DEFAULT_BREAKOUT_TIME);
@@ -289,7 +294,7 @@ const CreateBreakoutRoom: React.FC<CreateBreakoutRoomProps> = ({
         });
       }
     }
-    createBreakoutRoom(roomsArray, durationTime, record, captureSlides, captureNotes, inviteMods);
+    createBreakoutRoom(roomsArray, durationTime, record, captureSlides, captureNotes, inviteMods, defaultNotesText);
     setIsOpen(false);
   };
 
@@ -356,6 +361,14 @@ const CreateBreakoutRoom: React.FC<CreateBreakoutRoomProps> = ({
         id: 'sendInvitationToAssignedModeratorsCheckbox',
         onChange: checkboxCallbackFactory(setInviteMods),
         label: intl.formatMessage(intlMessages.sendInvitationToMods),
+      },
+      {
+        allowed: true,
+        htmlFor: 'transferNotesCheckbox',
+        key: '',
+        id: 'transferNotesCheckbox',
+        onChange: checkboxCallbackFactory(setDefaultNotesText),
+        label: intl.formatMessage(intlMessages.defaultNotesTextLabel),
       },
     ];
   }, [isBreakoutRecordable]);

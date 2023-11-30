@@ -30,6 +30,7 @@ case class BreakoutProps(
     captureSlides:      Boolean,
     captureNotesFilename: String,
     captureSlidesFilename: String,
+    defaultNotesText:   String
 )
 
 case class PasswordProp(moderatorPass: String, viewerPass: String, learningDashboardAccessToken: String)

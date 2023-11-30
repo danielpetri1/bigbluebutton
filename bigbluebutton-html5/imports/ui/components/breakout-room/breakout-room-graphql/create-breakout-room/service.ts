@@ -8,6 +8,7 @@ export const createBreakoutRoom = (
   captureNotes: boolean = false,
   captureSlides: boolean = false,
   sendInviteToModerators: boolean = false,
+  defaultNotesText: boolean = false,
 ) => makeCall(
   'createBreakoutRoom',
   rooms,
@@ -16,6 +17,7 @@ export const createBreakoutRoom = (
   captureNotes,
   captureSlides,
   sendInviteToModerators,
+  defaultNotesText,
 );
 
 export const moveUser = (

@@ -23,6 +23,7 @@ const CreateBreakoutRoomContainer = (props) => {
   const presentations = presentationData?.pres_presentation || [];
 
   const { amIModerator } = props;
+  const defaultNotesTextByDefault = false;
   return (
     amIModerator
     && (
@@ -32,6 +33,7 @@ const CreateBreakoutRoomContainer = (props) => {
           allowUserChooseRoomByDefault,
           captureWhiteboardByDefault,
           captureSharedNotesByDefault,
+          defaultNotesTextByDefault,
           inviteModsByDefault,
           presentations,
         }}

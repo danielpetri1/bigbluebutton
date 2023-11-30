@@ -18,8 +18,9 @@ object BreakoutModel {
       captureSlides: Boolean,
       captureNotesFilename: String,
       captureSlidesFilename: String,
+      defaultNotesText: String,
   ): BreakoutRoom2x = {
-    new BreakoutRoom2x(id, externalId, name, parentId, sequence, shortName, isDefaultName, freeJoin, voiceConf, assignedUsers, Vector(), Vector(), None, false, captureNotes, captureSlides, captureNotesFilename, captureSlidesFilename)
+    new BreakoutRoom2x(id, externalId, name, parentId, sequence, shortName, isDefaultName, freeJoin, voiceConf, assignedUsers, Vector(), Vector(), None, false, captureNotes, captureSlides, captureNotesFilename, captureSlidesFilename, defaultNotesText)
   }
 
 }

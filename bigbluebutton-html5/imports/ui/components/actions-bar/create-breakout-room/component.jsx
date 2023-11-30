@@ -84,6 +84,10 @@ const intlMessages = defineMessages({
     id: 'app.createBreakoutRoom.freeJoin',
     description: 'free join label',
   },
+  defaultNotesTextLabel: {
+    id: 'app.createBreakoutRoom.defaultNotesText',
+    description: 'transfer text',
+  },
   captureNotesLabel: {
     id: 'app.createBreakoutRoom.captureNotes',
     description: 'capture shared notes label',
@@ -237,6 +241,7 @@ class BreakoutRoom extends PureComponent {
     this.setInvitationConfig = this.setInvitationConfig.bind(this);
     this.setRecord = this.setRecord.bind(this);
     this.setCaptureNotes = this.setCaptureNotes.bind(this);
+    this.setDefaultNotesText = this.setDefaultNotesText.bind(this);
     this.setInviteMods = this.setInviteMods.bind(this);
     this.setCaptureSlides = this.setCaptureSlides.bind(this);
     this.blurDurationTime = this.blurDurationTime.bind(this);
@@ -264,6 +269,7 @@ class BreakoutRoom extends PureComponent {
       captureSlides: false,
       durationIsValid: true,
       breakoutJoinedUsers: null,
+      defaultNotesText: false,
     };
 
     this.btnLevelId = uniqueId('btn-set-level-');
@@ -276,7 +282,7 @@ class BreakoutRoom extends PureComponent {
     const {
       breakoutJoinedUsers, getLastBreakouts, groups, isUpdate,
       allowUserChooseRoomByDefault, captureSharedNotesByDefault,
-      captureWhiteboardByDefault, inviteModsByDefault,
+      captureWhiteboardByDefault, inviteModsByDefault, defaultNotesTextByDefault,
     } = this.props;
     setPresentationVisibility('none');
     this.setRoomUsers();
@@ -308,6 +314,7 @@ class BreakoutRoom extends PureComponent {
       captureSlides: captureWhiteboardByDefault,
       captureNotes: captureSharedNotesByDefault,
       inviteMods: inviteModsByDefault,
+      defaultNotesText: defaultNotesTextByDefault,
     });
 
     const lastBreakouts = getLastBreakouts();
@@ -456,6 +463,7 @@ class BreakoutRoom extends PureComponent {
       record,
       captureNotes,
       captureSlides,
+      defaultNotesText,
       numberOfRoomsIsValid,
       numberOfRooms,
       durationTime,
@@ -503,7 +511,7 @@ class BreakoutRoom extends PureComponent {
       sequence: seq,
     }));
 
-    createBreakoutRoom(rooms, durationTime, record, captureNotes, captureSlides, inviteMods);
+    createBreakoutRoom(rooms, durationTime, record, captureNotes, captureSlides, inviteMods, defaultNotesText);
     Session.set('isUserListOpen', true);
   }
 
@@ -645,6 +653,10 @@ class BreakoutRoom extends PureComponent {
 
   setCaptureNotes(e) {
     this.setState({ captureNotes: e.target.checked });
+  }
+
+  setDefaultNotesText(e) {
+    this.setState({ defaultNotesText: e.target.checked });
   }
 
   setInviteMods(e) {
@@ -987,6 +999,7 @@ class BreakoutRoom extends PureComponent {
       record,
       captureNotes,
       captureSlides,
+      defaultNotesText,
       inviteMods,
     } = this.state;
     if (isUpdate) return null;
@@ -1094,7 +1107,19 @@ class BreakoutRoom extends PureComponent {
                 </Styled.FreeJoinLabel>
               ) : null
             }
-            <Styled.FreeJoinLabel htmlFor="sendInvitationToAssignedModeratorsCheckbox" key="send-invitation-to-assigned-moderators-breakouts">
+            <Styled.FreeJoinLabel htmlFor="transferNotesCheckbox" key="default-notes-text">
+              <Styled.FreeJoinCheckbox
+                id="transferNotesCheckbox"
+                type="checkbox"
+                onChange={this.setDefaultNotesText}
+                checked={defaultNotesText}
+                aria-label={intl.formatMessage(intlMessages.defaultNotesTextLabel)}
+              />
+              <span aria-hidden>
+                {intl.formatMessage(intlMessages.defaultNotesTextLabel)}
+              </span>
+            </Styled.FreeJoinLabel>
+            {/* <Styled.FreeJoinLabel htmlFor="sendInvitationToAssignedModeratorsCheckbox" key="send-invitation-to-assigned-moderators-breakouts">
               <Styled.FreeJoinCheckbox
                 id="sendInvitationToAssignedModeratorsCheckbox"
                 type="checkbox"
@@ -1105,7 +1130,7 @@ class BreakoutRoom extends PureComponent {
               <span aria-hidden>
                 {intl.formatMessage(intlMessages.sendInvitationToMods)}
               </span>
-            </Styled.FreeJoinLabel>
+            </Styled.FreeJoinLabel> */}
           </Styled.CheckBoxesContainer>
         </Styled.BreakoutSettings>
         <Styled.SpanWarn valid={numberOfRoomsIsValid}>

@@ -26,6 +26,7 @@ case class BreakoutRoomDbModel(
           sendInvitationToModerators:   Boolean,
           captureNotes:                 Boolean,
           captureSlides:                Boolean,
+          defaultNotesText:             String,
 )
 
 class BreakoutRoomDbTableDef(tag: Tag) extends Table[BreakoutRoomDbModel](tag, None, "breakoutRoom") {
@@ -43,7 +44,8 @@ class BreakoutRoomDbTableDef(tag: Tag) extends Table[BreakoutRoomDbModel](tag, N
   val sendInvitationToModerators = column[Boolean]("sendInvitationToModerators")
   val captureNotes = column[Boolean]("captureNotes")
   val captureSlides = column[Boolean]("captureSlides")
-  override def * = (breakoutRoomId, parentMeetingId, externalId, sequence, name, shortName, isDefaultName, freeJoin, startedAt, endedAt, durationInSeconds, sendInvitationToModerators, captureNotes, captureSlides) <> (BreakoutRoomDbModel.tupled, BreakoutRoomDbModel.unapply)
+  val defaultNotesText = column[String]("defaultNotesText")
+  override def * = (breakoutRoomId, parentMeetingId, externalId, sequence, name, shortName, isDefaultName, freeJoin, startedAt, endedAt, durationInSeconds, sendInvitationToModerators, captureNotes, captureSlides, defaultNotesText) <> (BreakoutRoomDbModel.tupled, BreakoutRoomDbModel.unapply)
 }
 
 object BreakoutRoomDAO {
@@ -105,6 +107,7 @@ object BreakoutRoomDAO {
         sendInvitationToModerators = sendInvitationToModerators,
         captureNotes = room.captureNotes,
         captureSlides = room.captureSlides,
+        defaultNotesText = room.defaultNotesText,
       )
     )
   }

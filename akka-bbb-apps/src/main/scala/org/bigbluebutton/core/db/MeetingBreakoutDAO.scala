@@ -18,7 +18,8 @@ case class MeetingBreakoutDbModel(
     captureNotes:          Boolean,
     captureSlides:         Boolean,
     captureNotesFilename:  String,
-    captureSlidesFilename: String
+    captureSlidesFilename: String,
+    defaultNotesText:      String
 )
 
 class MeetingBreakoutDbTableDef(tag: Tag) extends Table[MeetingBreakoutDbModel](tag, "meeting_breakout") {
@@ -33,10 +34,11 @@ class MeetingBreakoutDbTableDef(tag: Tag) extends Table[MeetingBreakoutDbModel](
   val captureSlides = column[Boolean]("captureSlides")
   val captureNotesFilename = column[String]("captureNotesFilename")
   val captureSlidesFilename = column[String]("captureSlidesFilename")
+  val defaultNotesText = column[String]("defaultNotesText")
 
   //  def fk_meetingId: ForeignKeyQuery[MeetingDbTableDef, MeetingDbModel] = foreignKey("fk_meetingId", meetingId, TableQuery[MeetingDbTableDef])(_.meetingId)
 
-  override def * : ProvenShape[MeetingBreakoutDbModel] = (meetingId, parentId, sequence, freeJoin, breakoutRooms, record, privateChatEnabled, captureNotes, captureSlides, captureNotesFilename, captureSlidesFilename) <> (MeetingBreakoutDbModel.tupled, MeetingBreakoutDbModel.unapply)
+  override def * : ProvenShape[MeetingBreakoutDbModel] = (meetingId, parentId, sequence, freeJoin, breakoutRooms, record, privateChatEnabled, captureNotes, captureSlides, captureNotesFilename, captureSlidesFilename, defaultNotesText) <> (MeetingBreakoutDbModel.tupled, MeetingBreakoutDbModel.unapply)
 }
 
 object MeetingBreakoutDAO {
@@ -55,7 +57,8 @@ object MeetingBreakoutDAO {
           captureNotes = breakoutProps.captureNotes,
           captureSlides = breakoutProps.captureSlides,
           captureNotesFilename = breakoutProps.captureNotesFilename,
-          captureSlidesFilename = breakoutProps.captureSlidesFilename
+          captureSlidesFilename = breakoutProps.captureSlidesFilename,
+          defaultNotesText = breakoutProps.defaultNotesText
         )
       )
     ).onComplete {

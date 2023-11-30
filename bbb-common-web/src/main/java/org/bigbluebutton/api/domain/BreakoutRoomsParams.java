@@ -7,13 +7,15 @@ public class BreakoutRoomsParams {
 	public final Boolean captureSlides;
 	public final String captureNotesFilename;
 	public final String captureSlidesFilename;
+	public final String defaultNotesText;
 
-	public BreakoutRoomsParams(Boolean record, Boolean privateChatEnabled, Boolean captureNotes, Boolean captureSlides, String captureNotesFilename, String captureSlidesFilename) {
+	public BreakoutRoomsParams(Boolean record, Boolean privateChatEnabled, Boolean captureNotes, Boolean captureSlides, String captureNotesFilename, String captureSlidesFilename, String defaultNotesText) {
 		this.record = record;
 		this.privateChatEnabled = privateChatEnabled;
 		this.captureNotes = captureNotes;
 		this.captureSlides = captureSlides;
 		this.captureNotesFilename = captureNotesFilename;
 		this.captureSlidesFilename = captureSlidesFilename;
+		this.defaultNotesText = defaultNotesText;
 	}
 }

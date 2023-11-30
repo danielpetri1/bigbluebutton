@@ -971,6 +971,7 @@ class ApiController {
                 captureSlides meeting.breakoutRoomsParams.captureSlides
                 captureNotesFilename meeting.breakoutRoomsParams.captureNotesFilename
                 captureSlidesFilename meeting.breakoutRoomsParams.captureSlidesFilename
+                defaultNotesText meeting.breakoutRoomsParams.defaultNotesText
               }
             }
             customdata (

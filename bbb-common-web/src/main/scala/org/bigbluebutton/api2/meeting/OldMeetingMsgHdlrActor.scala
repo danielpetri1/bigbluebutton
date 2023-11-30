@@ -108,6 +108,7 @@ class OldMeetingMsgHdlrActor(val olgMsgGW: OldMessageReceivedGW)
       msg.body.room.captureSlides,
       msg.body.room.captureNotesFilename,
       msg.body.room.captureSlidesFilename,
+      msg.body.room.defaultNotesText,
     ))
     
   }

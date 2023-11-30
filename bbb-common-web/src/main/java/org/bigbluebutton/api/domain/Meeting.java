@@ -44,6 +44,7 @@ public class Meeting {
 	private Boolean captureNotes = false;
 	private String captureSlidesFilename = "bbb-none";
 	private String captureNotesFilename = "bbb-none";
+	private String defaultNotesText = "";
   	private Integer duration = 0;
 	private long createdTime = 0;
 	private long startTime = 0;
@@ -338,6 +339,14 @@ public class Meeting {
 
 	public void setCaptureNotesFilename(String filename) {
 		this.captureNotesFilename = filename;
+	}
+
+	public String getBreakoutRoomsDefaultNotesText() {
+		return defaultNotesText;
+	}
+
+	public void setBreakoutRoomsDefaultNotesText(String text) {
+		this.defaultNotesText = text;
 	}
 
 	public void setCaptureSlidesFilename(String filename) {

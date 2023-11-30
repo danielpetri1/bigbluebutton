@@ -79,6 +79,7 @@ public class ApiParams {
 
     public static final String BREAKOUT_ROOMS_CAPTURE_SLIDES = "breakoutRoomsCaptureSlides";
     public static final String BREAKOUT_ROOMS_CAPTURE_NOTES  = "breakoutRoomsCaptureNotes";
+    public static final String BREAKOUT_ROOMS_DEFAULT_NOTES_TEXT  = "breakoutRoomsDefaultNotesText";
     public static final String BREAKOUT_ROOMS_CAPTURE_SLIDES_FILENAME = "breakoutRoomsCaptureSlidesFilename";
     public static final String BREAKOUT_ROOMS_CAPTURE_NOTES_FILENAME = "breakoutRoomsCaptureNotesFilename";
     public static final String BREAKOUT_ROOMS_ENABLED = "breakoutRoomsEnabled";

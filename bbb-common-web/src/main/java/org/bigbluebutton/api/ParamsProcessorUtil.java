@@ -104,6 +104,7 @@ public class ParamsProcessorUtil {
 		private boolean defaultBreakoutRoomsRecord;
         private boolean defaultBreakoutRoomsCaptureSlides = false;
         private boolean defaultBreakoutRoomsCaptureNotes = false;
+        private String  defaultBreakoutRoomsNotesText = "";
         private String  defaultBreakoutRoomsCaptureSlidesFilename = CONF_NAME;
         private String  defaultBreakoutRoomsCaptureNotesFilename = CONF_NAME;
 		private boolean defaultbreakoutRoomsPrivateChatEnabled;
@@ -296,13 +297,19 @@ public class ParamsProcessorUtil {
                 breakoutRoomsCaptureNotesFilename = breakoutRoomsCaptureNotesFilenameParam;
             }
 
+            String breakoutRoomsDefaultNotesText = defaultBreakoutRoomsNotesText;
+            String breakoutRoomsDefaultNotesTextParam = params.get(ApiParams.BREAKOUT_ROOMS_DEFAULT_NOTES_TEXT);
+            if (!StringUtils.isEmpty(breakoutRoomsDefaultNotesTextParam)) {
+                breakoutRoomsDefaultNotesText = breakoutRoomsDefaultNotesTextParam;
+            }
+
             String breakoutRoomsCaptureSlidesFilename = defaultBreakoutRoomsCaptureSlidesFilename;
             String breakoutRoomsCaptureSlidesFilenameParam = params.get(ApiParams.BREAKOUT_ROOMS_CAPTURE_SLIDES_FILENAME);
             if (!StringUtils.isEmpty(breakoutRoomsCaptureSlidesFilenameParam)) {
                 breakoutRoomsCaptureSlidesFilename = breakoutRoomsCaptureSlidesFilenameParam;
             }
 
-			return new BreakoutRoomsParams(breakoutRoomsRecord, breakoutRoomsPrivateChatEnabled, breakoutRoomsCaptureNotes, breakoutRoomsCaptureSlides, breakoutRoomsCaptureNotesFilename, breakoutRoomsCaptureSlidesFilename);
+			return new BreakoutRoomsParams(breakoutRoomsRecord, breakoutRoomsPrivateChatEnabled, breakoutRoomsCaptureNotes, breakoutRoomsCaptureSlides, breakoutRoomsCaptureNotesFilename, breakoutRoomsCaptureSlidesFilename, breakoutRoomsDefaultNotesText);
 		}
 
 		private LockSettingsParams processLockSettingsParams(Map<String, String> params) {
@@ -802,6 +809,7 @@ public class ParamsProcessorUtil {
             meeting.setCaptureNotes(Boolean.parseBoolean(params.get(ApiParams.BREAKOUT_ROOMS_CAPTURE_NOTES)));
             meeting.setCaptureNotesFilename(params.get(ApiParams.BREAKOUT_ROOMS_CAPTURE_NOTES_FILENAME));
             meeting.setCaptureSlidesFilename(params.get(ApiParams.BREAKOUT_ROOMS_CAPTURE_SLIDES_FILENAME));
+            meeting.setBreakoutRoomsDefaultNotesText(params.get(ApiParams.BREAKOUT_ROOMS_DEFAULT_NOTES_TEXT));
             meeting.setParentMeetingId(parentMeetingId);
         }
 

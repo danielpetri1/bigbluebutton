@@ -3,8 +3,10 @@ import RedisPubSub from '/imports/startup/server/redis';
 import Logger from '/imports/startup/server/logger';
 import { extractCredentials } from '/imports/api/common/server/helpers';
 import { check } from 'meteor/check';
+import Pads from '/imports/api/pads';
+import { HTTP } from 'meteor/http';
 
-export default function createBreakoutRoom(rooms, durationInMinutes, record = false, captureNotes = false, captureSlides = false, sendInviteToModerators = false) {
+export default async function createBreakoutRoom(rooms, durationInMinutes, record = false, captureNotes = false, captureSlides = false, sendInviteToModerators = false, defaultNotesText = '') {
   const REDIS_CONFIG = Meteor.settings.private.redis;
   const CHANNEL = REDIS_CONFIG.channels.toAkkaApps;
   const BREAKOUT_LIM = Meteor.settings.public.app.breakouts.breakoutRoomLimit;
@@ -22,6 +24,27 @@ export default function createBreakoutRoom(rooms, durationInMinutes, record = fa
       Logger.info(`Attempt to create breakout rooms with invalid number of rooms in meeting id=${meetingId}`);
       return;
     }
+
+    const pad = await Pads.findOneAsync(
+      {
+        meetingId,
+        externalId: 'notes',
+      },
+      {
+        fields: {
+          padId: 1,
+        },
+      },
+    );
+
+    if (pad && pad.padId) {
+      const { padId } = pad;
+      const url = `http://127.0.0.1:9002/p/${padId}/export/txt`;
+
+      const response = HTTP.call('GET', url);
+      defaultNotesText = response.content;
+    }
+
     const payload = {
       record,
       captureNotes,
@@ -30,6 +53,7 @@ export default function createBreakoutRoom(rooms, durationInMinutes, record = fa
       rooms,
       meetingId,
       sendInviteToModerators,
+      defaultNotesText,
     };
 
     RedisPubSub.publishUserMessage(CHANNEL, EVENT_NAME, meetingId, requesterUserId, payload);
