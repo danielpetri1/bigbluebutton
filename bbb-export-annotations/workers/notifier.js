@@ -9,7 +9,7 @@ const {NewPresFileAvailableMsg} = require('../lib/utils/message-builder');
 const cp = require('child_process');
 const {workerData} = require('worker_threads');
 const [jobType, jobId, filename] = [workerData.jobType, workerData.jobId, workerData.filename];
-
+const sanitize = require('sanitize-filename');
 const logger = new Logger('presAnn Notifier Worker');
 
 const dropbox = `${config.shared.presAnnDropboxDir}/${jobId}`;
@@ -63,10 +63,12 @@ async function upload(filePath) {
 
 async function renderMarkdownFile(filePath) {
   const mdFile = filePath.replace('.txt', '.pdf');
+  const templatePath = './workers/templates/bbb_beamer_template.tex';
   const convertMarkdownFile = [
     '-t',
     'beamer',
     filePath,
+    `--template=${templatePath}`,
     '-o',
     mdFile,
   ];

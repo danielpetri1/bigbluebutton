@@ -304,7 +304,9 @@ trait MakePresentationDownloadReqMsgHdlr extends RightsManagementTrait {
   def handle(m: PadCaptureMarkdownPubMsg, liveMeeting: LiveMeeting, bus: MessageBus): Unit = {
     val userId: String = "system"
     val jobId: String = m.body.padId // Used as the temporaryPresentationId upon upload
-    val filename = m.body.filename
+
+    // Set the filename to the room name
+    val filename = liveMeeting.props.meetingProp.name
     val presentationUploadToken: String = PresentationPodsApp.generateToken("DEFAULT_PRESENTATION_POD", userId)
     val presentationId = PresentationPodsApp.generatePresentationId(m.body.filename)
 
