@@ -703,7 +703,7 @@ function overlay_triangle(svg, annotation) {
 }
 
 function overlay_text(svg, annotation) {
-  if (annotation.size == null || annotation.size.length < 2) {
+  if (!annotation.size || annotation.size.length < 2) {
     return
   }
   
